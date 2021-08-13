@@ -92,11 +92,6 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _;
     }
 
-    modifier onlyLiveDerivative() {
-        require(block.timestamp < derivativeVault.settleTime(), 'SETTLED');
-        _;
-    }
-
     function requireLock() internal view {
         require(!_mutex, 'REENTRY');
     }
@@ -192,7 +187,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
-    ) external _logs_ _lock_ onlyLiveDerivative {
+    ) external _logs_ _lock_ {
         require(!_finalized, 'IS_FINALIZED');
         require(msg.sender == controller, 'NOT_CONTROLLER');
 
@@ -215,7 +210,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 _qMin,
         uint256 _repricerParam1,
         uint256 _repricerParam2
-    ) external _logs_ _lock_ onlyLiveDerivative {
+    ) external _logs_ _lock_ {
         require(!_finalized, 'IS_FINALIZED');
         require(msg.sender == controller, 'NOT_CONTROLLER');
 
@@ -448,7 +443,6 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _lock_
         whenNotPaused
         onlyFinalized
-        onlyLiveDerivative
         returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
     {
         require(tokenIn != tokenOut, 'SAME_TOKEN');
