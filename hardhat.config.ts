@@ -7,6 +7,7 @@ import "@nomiclabs/hardhat-truffle5";
 import "@nomiclabs/hardhat-ganache";
 
 import "hardhat-gas-reporter";
+import "hardhat-deploy";
 
 import { config as dotEnvConfig } from "dotenv";
 dotEnvConfig();
@@ -44,12 +45,20 @@ const config: HardhatUserConfig = {
     hardhat: {
       allowUnlimitedContractSize: false,
     },
+    rinkeby: {
+      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.RINKEBY_ALCHEMY_API_KEY}`,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      throwOnTransactionFailures: true,
+      loggingEnabled: true,
+      gas: 5000000,
+      gasPrice: 10000000000
+    }
   },
-  // etherscan: {
-  //   // Your API key for Etherscan
-  //   // Obtain one at https://etherscan.io/
-  //   apiKey: ETHERSCAN_API_KEY,
-  // },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: 'UYR734XPNKISQEUMINFFDUVQ3SHGSU5X7R',
+  },
 };
 
 export default config;
