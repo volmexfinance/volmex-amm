@@ -1,7 +1,4 @@
-import { ethers, run } from "hardhat";
-import { Contract, ContractReceipt, Event } from "ethers";
-var Web3 = require('web3');
-var web3 = new Web3();
+import { ethers } from 'hardhat';
 
 const VAULT_FACTORY_PROXY = {
   '1': '0x3269DeB913363eE58E221808661CfDDa9d898127',
@@ -25,6 +22,7 @@ const createPool = async () => {
 
   const PoolFactory = ethers.getContractFactory('PoolFactory');
   const Pool = ethers.getContractFactory('Pool');
+  const x5Repricer = ethers.getContractFactory('x5Repricer');
 
   const VaultFactory = ethers.getContractFactory('VaultFactory');
   const Vault = ethers.getContractFactory('Vault');
@@ -48,6 +46,7 @@ const createPool = async () => {
 
   const leveragePrimary = '999996478162223000'
   const leverageComplement = '1000003521850180000';
+  const dynamicFeeAddress = '0x105aE5e940f157D93187082CafCCB27e1941B505';
 
 
   const poolFactoryAddress = POOL_FACTORY['4'];
@@ -65,18 +64,23 @@ const createPool = async () => {
   const vaultAddress = await vaultFactory.getVault(lastVaultIndex);
   console.log('Last vault created ' + vaultAddress);
 
+  console.log('Deploying x5Repricer...');
+
+  const repricer = (await x5Repricer).deploy();
+  (await repricer).deployed();
+
   console.log('Creating pool... for vault ' + vaultAddress);
   // const newPoolReceipt = await factory.newPool(vaultAddress, ethers.utils.formatBytes32String('x5Repricer'), 0, 0, 0);
   // await newPoolReceipt.wait();
 
   const pool = (await Pool).deploy(
     vaultAddress,
-    "0x105aE5e940f157D93187082CafCCB27e1941B505",
-    "0x58b744ff6Ed0A47925b431c58d842817C9e82DB4",
+    dynamicFeeAddress,
+    (await repricer).address,
     CONTROLLER.address
   );
 
-  (await pool).deployed();
+  (await pool).deployed()
 
   const lastPoolIndex = await factory.getLastPoolIndex.call();
   console.log('Pool created index ' + lastPoolIndex);
@@ -87,7 +91,8 @@ const createPool = async () => {
   const vaultContract = (await Vault).attach(vaultAddress);
 
   console.log('Set Pool Fee');
-  await poolContract.setFeeParams(baseFee, maxFee, feeAmpPrimary, feeAmpComplement);
+  const feeReciept = await poolContract.setFeeParams(baseFee, maxFee, feeAmpPrimary, feeAmpComplement);
+  await feeReciept.wait();
 
   const collateralTokenAddress = await vaultContract.collateralToken();
   const primaryTokenAddress = await vaultContract.primaryToken();
@@ -118,7 +123,7 @@ const createPool = async () => {
   await complementToken.approve(poolContract.address, MAX);
 
   console.log('Finalize Pool');
-  await poolContract.finalize(
+  const finalizeReceipt = await poolContract.finalize(
       '10000000',
       leveragePrimary,
       '10000000',
@@ -130,22 +135,13 @@ const createPool = async () => {
       repricerParam1,
       repricerParam2,
   );
-
-  console.log("Swap exact amount in");
-  const receipt = await poolContract.swapExactAmountIn(
-    primaryTokenAddress,
-    '109942000000',
-    complementTokenAddress,
-    '109952000000'
-  );
-
-  console.log(await receipt.wait());
+  await finalizeReceipt.wait();
 };
 
 createPool()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("Error: ", error);
+    console.error('Error: ', error);
     process.exit(1);
   });
 
