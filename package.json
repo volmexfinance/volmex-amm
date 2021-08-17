@@ -1,18 +1,18 @@
 {
     "private": true,
-    "name": "complifi-amm",
+    "name": "volmex-amm",
     "version": "1.0.0",
     "license": "GPL-3.0-only",
-    "description": "CompliFi AMM and ABI",
+    "description": "Volmex AMM",
     "scripts": {
-        "compile": "truffle compile",
+        "compile": "npx hardhat compile",
         "testrpc": "ganache-cli --deterministic --gasLimit 10000000",
         "test": "npx hardhat test",
-        "test:verbose": "VERBOSE=true truffle test",
-        "coverage": "yarn solidity-coverage",
+        "coverage": "npx hardhat coverage",
         "format": "yarn prettier --write contracts/**/*.sol && yarn prettier --write test/**/*.ts && yarn prettier --write scripts/**/*.js",
         "lint": "eslint .",
-        "lint:contracts": "solhint contracts/*.sol"
+        "lint:contracts": "solhint contracts/*.sol",
+        "create-pool": "npx hardhat run --network $NETWORK scripts/createPool.ts"
     },
     "devDependencies": {
         "@ledgerhq/hw-transport-node-hid": "^5.46.0",
@@ -63,6 +63,7 @@
         "@chainlink/contracts": "^0.1.6",
         "@openzeppelin/contracts": "^3.4.1",
         "@openzeppelin/contracts-ethereum-package": "^3.0.0",
+        "@openzeppelin/contracts-upgradeable": "^4.2.0",
         "abdk-libraries-solidity": "^2.4.0",
         "csv-parse": "^4.15.3",
         "csv-stringify": "^5.6.2",
