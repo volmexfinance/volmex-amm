@@ -44,6 +44,11 @@ contract Repricer {
         oracle.updateVolatilityTokenPrice(_volatilitySymbol, spotPrice);
 
         volatilityPrice = oracle.volatilityTokenPrice(_volatilitySymbol);
+
+        _updateLeverageCoefficient(
+            _volatilityReserve,
+            _tradeAmount
+        );
     }
 
     function _updateLeverageCoefficient(
