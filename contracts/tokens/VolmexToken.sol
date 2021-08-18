@@ -35,4 +35,43 @@ contract VolmexToken is
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
+
+    /**
+     * @dev Creates `amount` new tokens for `to`.
+     *
+     * See {ERC20-_mint}.
+     *
+     */
+    function mint(address to, uint256 amount) external virtual {
+        _mint(to, amount);
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from the caller.
+     *
+     * See {ERC20-_burn}.
+     */
+    function burn(address from, uint256 amount) external virtual {
+        _burn(from, amount);
+    }
+
+    /**
+     * @dev Pauses all token transfers.
+     *
+     * See {ERC20Pausable} and {Pausable-_pause}.
+     *
+     */
+    function pause() external virtual {
+        _pause();
+    }
+
+    /**
+     * @dev Unpauses all token transfers.
+     *
+     * See {ERC20Pausable} and {Pausable-_unpause}.
+     *
+     */
+    function unpause() external virtual {
+        _unpause();
+    }
 }
