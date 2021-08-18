@@ -21,7 +21,7 @@ import './libs/complifi/tokens/TokenMetadataGenerator.sol';
 
 import './Token.sol';
 import './Math.sol';
-import './repricers/IRepricer.sol';
+import './repricers/Repricer.sol';
 import './IDynamicFee.sol';
 import './libs/complifi/IVault.sol';
 
@@ -124,7 +124,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
 
     IVault public derivativeVault;
     IDynamicFee public dynamicFee;
-    IRepricer public repricer;
+    Repricer public repricer;
 
     constructor(
         address _derivativeVault,
@@ -139,7 +139,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         dynamicFee = IDynamicFee(_dynamicFee);
 
         require(_repricer != address(0), 'NOT_REPRICER');
-        repricer = IRepricer(_repricer);
+        repricer = Repricer(_repricer);
 
         require(_controller != address(0), 'NOT_CONTROLLER');
         controller = _controller;
@@ -313,51 +313,51 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         }
     }
 
-    function reprice() internal virtual {
-        if (repricingBlock == block.number) return;
-        repricingBlock = block.number;
+    // function reprice() internal virtual {
+    //     if (repricingBlock == block.number) return;
+    //     repricingBlock = block.number;
 
-        Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
-        Record storage complementRecord = _records[_getComplementDerivativeAddress()];
+    //     Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
+    //     Record storage complementRecord = _records[_getComplementDerivativeAddress()];
 
-        int256 estPricePrimary;
-        int256 estPriceComplement;
-        uint256 estPrice;
-        (
-            estPricePrimary,
-            estPriceComplement,
-            estPrice,
-            upperBoundary
-        ) =
-            repricer.reprice(
-                derivativeVault,
-                pMin,
-                int256(repricerParam1),
-                int256(repricerParam2)
-            );
+    //     int256 estPricePrimary;
+    //     int256 estPriceComplement;
+    //     uint256 estPrice;
+    //     (
+    //         estPricePrimary,
+    //         estPriceComplement,
+    //         estPrice,
+    //         upperBoundary
+    //     ) =
+    //         repricer.reprice(
+    //             derivativeVault,
+    //             pMin,
+    //             int256(repricerParam1),
+    //             int256(repricerParam2)
+    //         );
 
-        uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
-        uint256 complementRecordLeverageBefore = complementRecord.leverage;
+    //     uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
+    //     uint256 complementRecordLeverageBefore = complementRecord.leverage;
 
-        uint256 leveragesMultiplied = mul(primaryRecordLeverageBefore, complementRecordLeverageBefore);
-        primaryRecord.leverage = uint256(
-            repricer.sqrtWrapped(int256(div(mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)), primaryRecord.balance)))
-        );
-        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
+    //     uint256 leveragesMultiplied = mul(primaryRecordLeverageBefore, complementRecordLeverageBefore);
+    //     primaryRecord.leverage = uint256(
+    //         repricer.sqrtWrapped(int256(div(mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)), primaryRecord.balance)))
+    //     );
+    //     complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
 
-        emit LOG_REPRICE(
-            repricingBlock,
-            primaryRecord.balance,
-            complementRecord.balance,
-            primaryRecordLeverageBefore,
-            complementRecordLeverageBefore,
-            primaryRecord.leverage,
-            complementRecord.leverage,
-            estPricePrimary,
-            estPriceComplement,
-            derivativeVault.underlyingStarts(0)
-        );
-    }
+    //     emit LOG_REPRICE(
+    //         repricingBlock,
+    //         primaryRecord.balance,
+    //         complementRecord.balance,
+    //         primaryRecordLeverageBefore,
+    //         complementRecordLeverageBefore,
+    //         primaryRecord.leverage,
+    //         complementRecord.leverage,
+    //         estPricePrimary,
+    //         estPriceComplement,
+    //         derivativeVault.underlyingStarts(0)
+    //     );
+    // }
 
     function calcFee(
         Record memory inRecord,
@@ -436,70 +436,134 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        string calldata volatilitySymbol
     )
         external
-        _logs_
-        _lock_
-        whenNotPaused
-        onlyFinalized
-        returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
+        returns (uint256 tokenAmountOut, uint256 spotPrice)
     {
-        require(tokenIn != tokenOut, 'SAME_TOKEN');
-        require(tokenAmountIn >= qMin, 'MIN_TOKEN_IN');
+        require(tokenIn != tokenOut, "SAME_TOKEN");
+        require(tokenAmountIn >= qMin, "MIN_TOKEN_IN");
 
-        reprice();
+        if (repricingBlock == block.number) return (0, 0);
+        repricingBlock = block.number;
 
-        Record memory inRecord = _records[tokenIn];
-        Record memory outRecord = _records[tokenOut];
+        Record storage inRecord = _records[tokenIn];
+        Record storage outRecord = _records[tokenOut];
 
-        require(
-            tokenAmountIn <=
-                mul(min(getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
-            'MAX_IN_RATIO'
+        uint256 averagePrice;
+        uint256 volatilityPrice;
+
+        (
+            spotPrice,
+            averagePrice,
+            volatilityPrice
+        ) = repricer.reprice(
+            inRecord.balance,
+            outRecord.balance,
+            tokenAmountIn,
+            volatilitySymbol
         );
 
         tokenAmountOut = calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             tokenAmountIn,
-            0
+            baseFee
         );
+        require(tokenAmountOut >= minAmountOut, "LIMIT_OUT");
+        require(outRecord.balance >= tokenAmountOut, "INSUFFICIENT_BALANCE");
 
-        uint256 fee;
-        int256 expStart;
-        (fee, expStart) = calcFee(
-            inRecord,
-            tokenAmountIn,
-            outRecord,
-            tokenAmountOut,
-            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
-        );
+        updateLeverages(inRecord, tokenAmountIn, outRecord, tokenAmountOut);
 
-        uint256 spotPriceBefore =
-            calcSpotPrice(
-                getLeveragedBalance(inRecord),
-                getLeveragedBalance(outRecord),
-                0
-            );
+        inRecord.balance = add(inRecord.balance, tokenAmountIn);
+        outRecord.balance = sub(outRecord.balance, tokenAmountOut);
 
-        tokenAmountOut = calcOutGivenIn(
-            getLeveragedBalance(inRecord),
-            getLeveragedBalance(outRecord),
-            tokenAmountIn,
-            fee
-        );
-        require(tokenAmountOut >= minAmountOut, 'LIMIT_OUT');
-
-        spotPriceAfter = performSwap(
+        emit LOG_SWAP(
+            msg.sender,
             tokenIn,
-            tokenAmountIn,
             tokenOut,
+            tokenAmountIn,
             tokenAmountOut,
-            spotPriceBefore,
-            fee
+            baseFee,
+            inRecord.balance,
+            outRecord.balance,
+            inRecord.leverage,
+            outRecord.leverage
         );
+
+        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
+        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
+
+    // function swapExactAmountIn(
+    //     address tokenIn,
+    //     uint256 tokenAmountIn,
+    //     address tokenOut,
+    //     uint256 minAmountOut
+    // )
+    //     external
+    //     _logs_
+    //     _lock_
+    //     whenNotPaused
+    //     onlyFinalized
+    //     returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
+    // {
+    //     require(tokenIn != tokenOut, 'SAME_TOKEN');
+    //     require(tokenAmountIn >= qMin, 'MIN_TOKEN_IN');
+
+    //     reprice();
+
+    //     Record memory inRecord = _records[tokenIn];
+    //     Record memory outRecord = _records[tokenOut];
+
+    //     require(
+    //         tokenAmountIn <=
+    //             mul(min(getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
+    //         'MAX_IN_RATIO'
+    //     );
+
+    //     tokenAmountOut = calcOutGivenIn(
+    //         getLeveragedBalance(inRecord),
+    //         getLeveragedBalance(outRecord),
+    //         tokenAmountIn,
+    //         0
+    //     );
+
+    //     uint256 fee;
+    //     int256 expStart;
+    //     (fee, expStart) = calcFee(
+    //         inRecord,
+    //         tokenAmountIn,
+    //         outRecord,
+    //         tokenAmountOut,
+    //         _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+    //     );
+
+    //     uint256 spotPriceBefore =
+    //         calcSpotPrice(
+    //             getLeveragedBalance(inRecord),
+    //             getLeveragedBalance(outRecord),
+    //             0
+    //         );
+
+    //     tokenAmountOut = calcOutGivenIn(
+    //         getLeveragedBalance(inRecord),
+    //         getLeveragedBalance(outRecord),
+    //         tokenAmountIn,
+    //         fee
+    //     );
+    //     require(tokenAmountOut >= minAmountOut, 'LIMIT_OUT');
+
+    //     spotPriceAfter = performSwap(
+    //         tokenIn,
+    //         tokenAmountIn,
+    //         tokenOut,
+    //         tokenAmountOut,
+    //         spotPriceBefore,
+    //         fee
+    //     );
+    // }
 
 //    // Method temporary is not available for external usage.
 //    function swapExactAmountOut(
