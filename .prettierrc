@@ -3,7 +3,7 @@
     "bracketSpacing": true,
     "htmlWhitespaceSensitivity": "css",
     "insertPragma": false,
-    "printWidth": 60,
+    "printWidth": 70,
     "proseWrap": "preserve",
     "quoteProps": "as-needed",
     "requirePragma": false,

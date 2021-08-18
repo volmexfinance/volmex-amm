@@ -31,10 +31,18 @@ contract VolmexOracle is OwnableUpgradeable {
      * @dev Update the volatility token price corresponding to the volatility token symbol
      * @dev Store the volatility token price corresponding to the block number
      */
-    function updateVolatilityTokenPrice(string calldata _volatilityTokenSymbol, uint256 _volatilityTokenPrice) external onlyOwner {
-        require(_volatilityTokenPrice > 0 && _volatilityTokenPrice < 250, "VolmexOracle: _volatilityTokenPrice should be greater than 0");
+    function updateVolatilityTokenPrice(
+        string calldata _volatilityTokenSymbol,
+        uint256 _volatilityTokenPrice
+    ) external onlyOwner {
+        require(
+            _volatilityTokenPrice > 0 && _volatilityTokenPrice < 250,
+            "VolmexOracle: _volatilityTokenPrice should be greater than 0"
+        );
 
-        volatilityTokenPrice[_volatilityTokenSymbol] = _volatilityTokenPrice;
+        volatilityTokenPrice[
+            _volatilityTokenSymbol
+        ] = _volatilityTokenPrice;
 
         emit VolatilityTokenPriceUpdated(
             _volatilityTokenPrice,
