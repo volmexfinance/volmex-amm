@@ -2,9 +2,9 @@
 
 pragma solidity =0.7.6;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20PausableUpgradeable.sol";
 
 /**
  * @title Volmex Token Contract
@@ -31,7 +31,6 @@ contract VolmexToken is
         __AccessControl_init_unchained();
 
         __ERC20Pausable_init();
-        __ERC165_init();
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
