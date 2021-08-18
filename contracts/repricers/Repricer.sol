@@ -16,4 +16,12 @@ contract Repricer {
     uint256 public leverageCoefficient;
 
     IVolmexOracle public oracle;
+
+    constructor(
+        uint256 _leverageCoefficient,
+        address _oracle
+    ) {
+        leverageCoefficient = _leverageCoefficient;
+        oracle = IVolmexOracle(_oracle);
+    }
 }
