@@ -24,4 +24,25 @@ contract Repricer {
         leverageCoefficient = _leverageCoefficient;
         oracle = IVolmexOracle(_oracle);
     }
+
+    function reprice(
+        uint256 _collateralReserve,
+        uint256 _volatilityReserve,
+        uint256 _tradeAmount,
+        string calldata _volatilitySymbol
+    )
+        external
+        returns (
+            uint256 spotPrice,
+            uint256 averagePrice,
+            uint256 volatilityPrice
+        )
+    {
+        spotPrice = _collateralReserve.div(leverageCoefficient.mul(_volatilityReserve));
+        averagePrice = (_collateralReserve.add(_tradeAmount)).div(leverageCoefficient.mul(_volatilityReserve));
+
+        oracle.updateVolatilityTokenPrice(_volatilitySymbol, spotPrice);
+
+        volatilityPrice = oracle.volatilityTokenPrice(_volatilitySymbol);
+    }
 }
