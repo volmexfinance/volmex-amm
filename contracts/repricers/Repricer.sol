@@ -45,4 +45,16 @@ contract Repricer {
 
         volatilityPrice = oracle.volatilityTokenPrice(_volatilitySymbol);
     }
+
+    function _updateLeverageCoefficient(
+        uint256 _volatilityReserve,
+        uint256 _tradeAmount
+    ) internal {
+        uint256 numerator = (leverageCoefficient.mul(_volatilityReserve)).add(_tradeAmount);
+        uint256 denominator = _volatilityReserve.add(_tradeAmount);
+
+        leverageCoefficient = numerator.div(denominator);
+
+        emit UpdatedLeverageCoefficient(leverageCoefficient);
+    }
 }
