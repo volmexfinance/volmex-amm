@@ -16,4 +16,23 @@ contract VolmexToken is
     Initializable,
     AccessControlUpgradeable,
     ERC20PausableUpgradeable
-{}
+{
+    /**
+     * @dev Grants `DEFAULT_ADMIN_ROLE` to the
+     * account that deploys the contract.
+     *
+     * See {ERC20-constructor}.
+     */
+    function initialize(string memory name, string memory symbol)
+        external
+        initializer
+    {
+        __ERC20_init_unchained(name, symbol);
+        __AccessControl_init_unchained();
+
+        __ERC20Pausable_init();
+        __ERC165_init();
+
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+}
