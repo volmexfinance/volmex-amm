@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../oracles/IVolmexOracle.sol";
 
-contract Repricer {
+contract VolmexRepricer {
     using SafeMath for uint256;
 
     event UpdatedLeverageCoefficient(uint256 leverageCoefficient);
