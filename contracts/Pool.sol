@@ -21,9 +21,10 @@ import './libs/complifi/tokens/TokenMetadataGenerator.sol';
 
 import './Token.sol';
 import './Math.sol';
-import './repricers/Repricer.sol';
+import './repricers/IVolmexRepricer.sol';
 import './IDynamicFee.sol';
 import './libs/complifi/IVault.sol';
+import './interfaces/IVolmexProtocol.sol';
 
 contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator {
     struct Record {
@@ -92,6 +93,11 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _;
     }
 
+    modifier onlyNotSettled() {
+        require(!IVolmexProtocol(protocol).isSettled(), 'PROTOCOL_SETTLED');
+        _;
+    }
+
     function requireLock() internal view {
         require(!_mutex, 'REENTRY');
     }
@@ -124,22 +130,24 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
 
     IVault public derivativeVault;
     IDynamicFee public dynamicFee;
-    Repricer public repricer;
+    IVolmexRepricer public repricer;
+    IVolmexProtocol public protocol;
+
+    uint256 public spotPrice;
+    uint256 public averagePrice;
+    uint256 public volatilityPrice;
 
     constructor(
-        address _derivativeVault,
-        address _dynamicFee,
-        address _repricer,
+        IVault _derivativeVault,
+        IDynamicFee _dynamicFee,
+        IVolmexRepricer _repricer,
+        IVolmexProtocol _protocol,
         address _controller
     ) public {
-        require(_derivativeVault != address(0), 'NOT_D_VAULT');
-        derivativeVault = IVault(_derivativeVault);
-
-        require(_dynamicFee != address(0), 'NOT_FEE');
-        dynamicFee = IDynamicFee(_dynamicFee);
-
-        require(_repricer != address(0), 'NOT_REPRICER');
-        repricer = Repricer(_repricer);
+        derivativeVault = _derivativeVault;
+        dynamicFee = _dynamicFee;
+        repricer = _repricer;
+        protocol = _protocol;
 
         require(_controller != address(0), 'NOT_CONTROLLER');
         controller = _controller;
@@ -268,6 +276,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _logs_
         _lock_
         onlyFinalized
+        onlyNotSettled
     {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountOut, poolTotal);
@@ -293,6 +302,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _logs_
         _lock_
         onlyFinalized
+        onlyNotSettled
     {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountIn, poolTotal);
@@ -313,51 +323,29 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         }
     }
 
-    // function reprice() internal virtual {
-    //     if (repricingBlock == block.number) return;
-    //     repricingBlock = block.number;
+    function reprice(
+        uint256 balanceIn,
+        uint256 balanceOut,
+        uint256 tokenAmountIn,
+        string calldata volatilitySymbol
+    )
+        internal
+        virtual
+    {
+        if (repricingBlock == block.number) return;
+        repricingBlock = block.number;
 
-    //     Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
-    //     Record storage complementRecord = _records[_getComplementDerivativeAddress()];
-
-    //     int256 estPricePrimary;
-    //     int256 estPriceComplement;
-    //     uint256 estPrice;
-    //     (
-    //         estPricePrimary,
-    //         estPriceComplement,
-    //         estPrice,
-    //         upperBoundary
-    //     ) =
-    //         repricer.reprice(
-    //             derivativeVault,
-    //             pMin,
-    //             int256(repricerParam1),
-    //             int256(repricerParam2)
-    //         );
-
-    //     uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
-    //     uint256 complementRecordLeverageBefore = complementRecord.leverage;
-
-    //     uint256 leveragesMultiplied = mul(primaryRecordLeverageBefore, complementRecordLeverageBefore);
-    //     primaryRecord.leverage = uint256(
-    //         repricer.sqrtWrapped(int256(div(mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)), primaryRecord.balance)))
-    //     );
-    //     complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
-
-    //     emit LOG_REPRICE(
-    //         repricingBlock,
-    //         primaryRecord.balance,
-    //         complementRecord.balance,
-    //         primaryRecordLeverageBefore,
-    //         complementRecordLeverageBefore,
-    //         primaryRecord.leverage,
-    //         complementRecord.leverage,
-    //         estPricePrimary,
-    //         estPriceComplement,
-    //         derivativeVault.underlyingStarts(0)
-    //     );
-    // }
+        (
+            spotPrice,
+            averagePrice,
+            volatilityPrice
+        ) = repricer.reprice(
+            balanceIn,
+            balanceOut,
+            tokenAmountIn,
+            volatilitySymbol
+        );
+    }
 
     function calcFee(
         Record memory inRecord,
@@ -440,25 +428,18 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         string calldata volatilitySymbol
     )
         external
-        returns (uint256 tokenAmountOut, uint256 spotPrice)
+        whenNotPaused
+        onlyFinalized
+        onlyNotSettled
+        returns (uint256 tokenAmountOut)
     {
         require(tokenIn != tokenOut, "SAME_TOKEN");
         require(tokenAmountIn >= qMin, "MIN_TOKEN_IN");
 
-        if (repricingBlock == block.number) return (0, 0);
-        repricingBlock = block.number;
-
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
 
-        uint256 averagePrice;
-        uint256 volatilityPrice;
-
-        (
-            spotPrice,
-            averagePrice,
-            volatilityPrice
-        ) = repricer.reprice(
+        reprice(
             inRecord.balance,
             outRecord.balance,
             tokenAmountIn,
