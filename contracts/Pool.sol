@@ -83,7 +83,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     }
 
     modifier onlyNotSettled() {
-        require(!IVolmexProtocol(protocol).isSettled(), 'PROTOCOL_SETTLED');
+        require(!protocol.isSettled(), 'PROTOCOL_SETTLED');
         _;
     }
 
@@ -435,11 +435,20 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
             volatilitySymbol
         );
 
+        uint256 fee;
+        (fee,) = calcFee(
+            inRecord,
+            tokenAmountIn,
+            outRecord,
+            tokenAmountOut,
+            feeAmpPrimary
+        );
+
         tokenAmountOut = calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             tokenAmountIn,
-            baseFee
+            fee
         );
         require(tokenAmountOut >= minAmountOut, "LIMIT_OUT");
         require(outRecord.balance >= tokenAmountOut, "INSUFFICIENT_BALANCE");
