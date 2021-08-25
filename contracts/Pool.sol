@@ -61,8 +61,8 @@ contract Pool is
         uint256 leverageComplement,
         uint256 newLeveragePrimary,
         uint256 newLeverageComplement,
-        int256 estPricePrimary,
-        int256 estPriceComplement,
+        uint256 estPricePrimary,
+        uint256 estPriceComplement,
         int256 liveUnderlingValue
     );
 
@@ -374,19 +374,66 @@ contract Pool is
         }
     }
 
-    function reprice(
-        uint256 balanceIn,
-        uint256 balanceOut,
-        uint256 tokenAmountIn
-    ) internal virtual {
+    function reprice() internal virtual {
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
-        (spotPrice) = repricer.reprice(
-            balanceIn,
-            balanceOut,
-            tokenAmountIn,
-            volatilitySymbol
+        Record storage primaryRecord = _records[
+            _getPrimaryDerivativeAddress()
+        ];
+        Record storage complementRecord = _records[
+            _getComplementDerivativeAddress()
+        ];
+
+        uint256 estPricePrimary;
+        uint256 estPriceComplement;
+        uint256 estPrice;
+        (
+            estPricePrimary,
+            estPriceComplement,
+            estPrice,
+            upperBoundary
+        ) = repricer.reprice(volatilitySymbol);
+
+        uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
+        uint256 complementRecordLeverageBefore = complementRecord
+            .leverage;
+
+        uint256 leveragesMultiplied = mul(
+            primaryRecordLeverageBefore,
+            complementRecordLeverageBefore
+        );
+
+        // TODO: Need to lookover the sqrtWrapped equation and calculation
+        primaryRecord.leverage = uint256(
+            repricer.sqrtWrapped(
+                int256(
+                    div(
+                        mul(
+                            leveragesMultiplied,
+                            mul(complementRecord.balance, estPrice)
+                        ),
+                        primaryRecord.balance
+                    )
+                )
+            )
+        );
+        complementRecord.leverage = div(
+            leveragesMultiplied,
+            primaryRecord.leverage
+        );
+
+        emit LOG_REPRICE(
+            repricingBlock,
+            primaryRecord.balance,
+            complementRecord.balance,
+            primaryRecordLeverageBefore,
+            complementRecordLeverageBefore,
+            primaryRecord.leverage,
+            complementRecord.leverage,
+            estPricePrimary,
+            estPriceComplement,
+            derivativeVault.underlyingStarts(0)
         );
     }
 
@@ -505,7 +552,7 @@ contract Pool is
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
 
-        reprice(inRecord.balance, outRecord.balance, tokenAmountIn);
+        reprice();
 
         uint256 fee;
         (fee, ) = calcFee(
