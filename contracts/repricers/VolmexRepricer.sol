@@ -5,68 +5,54 @@ pragma solidity =0.7.6;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../oracles/IVolmexOracle.sol";
+import "../interfaces/IVolmexProtocol.sol";
+import "../NumExtra.sol";
 
-contract VolmexRepricer {
+contract VolmexRepricer is NumExtra {
     using SafeMath for uint256;
-
-    event UpdatedLeverageCoefficient(uint256 leverageCoefficient);
-
-    event Repriced(
-        uint256 collateralReserve,
-        uint256 volatilityReserve,
-        uint256 spotPrice
-    );
 
     uint256 public leverageCoefficient;
 
     IVolmexOracle public oracle;
+    IVolmexProtocol public protocol;
 
-    constructor(uint256 _leverageCoefficient, IVolmexOracle _oracle) {
-        leverageCoefficient = _leverageCoefficient;
+    constructor(
+        IVolmexOracle _oracle,
+        IVolmexProtocol _protocol,
+        uint256 _leverageCoefficient
+    ) {
+        protocol = _protocol;
         oracle = _oracle;
+        leverageCoefficient = _leverageCoefficient;
     }
 
-    function reprice(
-        uint256 _collateralReserve,
-        uint256 _volatilityReserve,
-        uint256 _tradeAmount,
-        string calldata _volatilitySymbol
-    ) external returns (uint256 spotPrice) {
-        require(
-            _collateralReserve > 0 && _volatilityReserve > 0,
-            "Repricer: reserve should be greater than 0"
-        );
+    function reprice(string calldata _volatilitySymbol)
+        external
+        view
+        returns (
+            uint256 estPrimaryPrice,
+            uint256 estComplementPrice,
+            uint256 estPrice,
+            uint256 upperBoundary
+        )
+    {
+        // Calculate the upperBoundary, volatilityCapRatio * 10^18
+        upperBoundary = protocol.volatilityCapRatio().mul(BONE);
 
-        _updateLeverageCoefficient(
-            _collateralReserve,
-            _volatilityReserve,
+        estPrimaryPrice = oracle.volatilityTokenPrice(
             _volatilitySymbol
         );
 
-        spotPrice = (_collateralReserve.add(_tradeAmount)).div(
-            leverageCoefficient.mul(_volatilityReserve)
+        estComplementPrice = protocol.volatilityCapRatio().sub(
+            estPrimaryPrice
         );
 
-        emit Repriced(
-            _collateralReserve,
-            _volatilityReserve,
-            spotPrice
+        estPrice = (estPrimaryPrice.mul(BONE)).div(
+            estComplementPrice
         );
     }
 
-    function _updateLeverageCoefficient(
-        uint256 _collateralReserve,
-        uint256 _volatilityReserve,
-        string memory _volatilitySymbol
-    ) internal {
-        uint256 volatilityPrice = oracle.volatilityTokenPrice(
-            _volatilitySymbol
-        );
-
-        leverageCoefficient = _collateralReserve.div(
-            volatilityPrice.mul(_volatilityReserve)
-        );
-
-        emit UpdatedLeverageCoefficient(leverageCoefficient);
+    function sqrtWrapped(int256 x) external pure returns (int256) {
+        return sqrt(x); // Need to understand the sqrt method from abdk-libraries
     }
 }

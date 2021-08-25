@@ -5,10 +5,15 @@ pragma solidity =0.7.6;
 interface IVolmexRepricer {
     function leverageCoefficient() external view returns (uint256);
 
-    function reprice(
-        uint256 _collateralReserve,
-        uint256 _volatilityReserve,
-        uint256 _tradeAmount,
-        string calldata _volatilitySymbol
-    ) external returns (uint256 spotPrice);
+    function reprice(string calldata _volatilitySymbol)
+        external
+        view
+        returns (
+            uint256 estPrimaryPrice,
+            uint256 estComplementPrice,
+            uint256 estPrice,
+            uint256 upperBoundary
+        );
+
+    function sqrtWrapped(int256 value) external pure returns (int256);
 }
