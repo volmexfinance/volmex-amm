@@ -377,7 +377,7 @@ contract Pool is
     function reprice(
         uint256 balanceIn,
         uint256 balanceOut,
-        uint256 tokenAmountIn,
+        uint256 tokenAmountIn
     ) internal virtual {
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
@@ -505,11 +505,7 @@ contract Pool is
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
 
-        reprice(
-            inRecord.balance,
-            outRecord.balance,
-            tokenAmountIn
-        );
+        reprice(inRecord.balance, outRecord.balance, tokenAmountIn);
 
         uint256 fee;
         (fee, ) = calcFee(
