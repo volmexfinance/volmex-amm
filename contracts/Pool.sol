@@ -142,6 +142,7 @@ contract Pool is
     IVolmexProtocol public protocol;
 
     uint256 public spotPrice;
+    string private volatilitySymbol;
 
     constructor(
         IVault _derivativeVault,
@@ -249,7 +250,8 @@ contract Pool is
         uint256 _pMin,
         uint256 _qMin,
         uint256 _repricerParam1,
-        uint256 _repricerParam2
+        uint256 _repricerParam2,
+        string calldata _volatilitySymbol
     ) external _logs_ _lock_ onlyNotSettled {
         require(!_finalized, "IS_FINALIZED");
         require(msg.sender == controller, "NOT_CONTROLLER");
@@ -267,6 +269,7 @@ contract Pool is
         exposureLimitComplement = _exposureLimitComplement;
         repricerParam1 = _repricerParam1;
         repricerParam2 = _repricerParam2;
+        volatilitySymbol = _volatilitySymbol;
 
         _finalized = true;
 
@@ -375,7 +378,6 @@ contract Pool is
         uint256 balanceIn,
         uint256 balanceOut,
         uint256 tokenAmountIn,
-        string calldata volatilitySymbol
     ) internal virtual {
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
@@ -489,8 +491,7 @@ contract Pool is
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut,
-        uint256 minAmountOut,
-        string calldata volatilitySymbol
+        uint256 minAmountOut
     )
         external
         whenNotPaused
@@ -507,8 +508,7 @@ contract Pool is
         reprice(
             inRecord.balance,
             outRecord.balance,
-            tokenAmountIn,
-            volatilitySymbol
+            tokenAmountIn
         );
 
         uint256 fee;
