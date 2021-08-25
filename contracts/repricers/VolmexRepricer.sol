@@ -11,13 +11,19 @@ contract VolmexRepricer {
 
     event UpdatedLeverageCoefficient(uint256 leverageCoefficient);
 
+    event Repriced(
+        uint256 collateralReserve,
+        uint256 volatilityReserve,
+        uint256 spotPrice
+    );
+
     uint256 public leverageCoefficient;
 
     IVolmexOracle public oracle;
 
-    constructor(uint256 _leverageCoefficient, address _oracle) {
+    constructor(uint256 _leverageCoefficient, IVolmexOracle _oracle) {
         leverageCoefficient = _leverageCoefficient;
-        oracle = IVolmexOracle(_oracle);
+        oracle = _oracle;
     }
 
     function reprice(
@@ -25,47 +31,41 @@ contract VolmexRepricer {
         uint256 _volatilityReserve,
         uint256 _tradeAmount,
         string calldata _volatilitySymbol
-    )
-        external
-        returns (
-            uint256 spotPrice,
-            uint256 averagePrice,
-            uint256 volatilityPrice
-        )
-    {
+    ) external returns (uint256 spotPrice) {
         require(
             _collateralReserve > 0 && _volatilityReserve > 0,
             "Repricer: reserve should be greater than 0"
         );
-        spotPrice = _collateralReserve.div(
-            leverageCoefficient.mul(_volatilityReserve)
-        );
-        averagePrice = (_collateralReserve.add(_tradeAmount)).div(
-            leverageCoefficient.mul(_volatilityReserve)
-        );
 
-        oracle.updateVolatilityTokenPrice(
-            _volatilitySymbol,
-            spotPrice
-        );
-
-        volatilityPrice = oracle.volatilityTokenPrice(
+        _updateLeverageCoefficient(
+            _collateralReserve,
+            _volatilityReserve,
             _volatilitySymbol
         );
 
-        _updateLeverageCoefficient(_volatilityReserve, _tradeAmount);
+        spotPrice = (_collateralReserve.add(_tradeAmount)).div(
+            leverageCoefficient.mul(_volatilityReserve)
+        );
+
+        emit Repriced(
+            _collateralReserve,
+            _volatilityReserve,
+            spotPrice
+        );
     }
 
     function _updateLeverageCoefficient(
+        uint256 _collateralReserve,
         uint256 _volatilityReserve,
-        uint256 _tradeAmount
+        string memory _volatilitySymbol
     ) internal {
-        uint256 numerator = (
-            leverageCoefficient.mul(_volatilityReserve)
-        ).add(_tradeAmount);
-        uint256 denominator = _volatilityReserve.add(_tradeAmount);
+        uint256 volatilityPrice = oracle.volatilityTokenPrice(
+            _volatilitySymbol
+        );
 
-        leverageCoefficient = numerator.div(denominator);
+        leverageCoefficient = _collateralReserve.div(
+            volatilityPrice.mul(_volatilityReserve)
+        );
 
         emit UpdatedLeverageCoefficient(leverageCoefficient);
     }
