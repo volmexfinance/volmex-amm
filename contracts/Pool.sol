@@ -184,7 +184,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
-    ) external _logs_ _lock_ {
+    ) external _logs_ _lock_ onlyNotSettled {
         require(!_finalized, 'IS_FINALIZED');
         require(msg.sender == controller, 'NOT_CONTROLLER');
 
@@ -207,7 +207,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 _qMin,
         uint256 _repricerParam1,
         uint256 _repricerParam2
-    ) external _logs_ _lock_ {
+    ) external _logs_ _lock_ onlyNotSettled{
         require(!_finalized, 'IS_FINALIZED');
         require(msg.sender == controller, 'NOT_CONTROLLER');
 
@@ -265,7 +265,6 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _logs_
         _lock_
         onlyFinalized
-        onlyNotSettled
     {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountOut, poolTotal);
@@ -291,7 +290,6 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _logs_
         _lock_
         onlyFinalized
-        onlyNotSettled
     {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountIn, poolTotal);
