@@ -10,11 +10,5 @@ interface IVolmexRepricer {
         uint256 _volatilityReserve,
         uint256 _tradeAmount,
         string calldata _volatilitySymbol
-    )
-        external
-        returns (
-            uint256 spotPrice,
-            uint256 averagePrice,
-            uint256 volatilityPrice
-        );
+    ) external returns (uint256 spotPrice);
 }
