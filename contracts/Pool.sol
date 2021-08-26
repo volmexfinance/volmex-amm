@@ -164,12 +164,14 @@ contract Pool is
         setName(
             makeTokenName(
                 IERC20Modified(protocol.volatilityToken()).name(),
+                "",
                 " LP"
             )
         );
         setSymbol(
             makeTokenSymbol(
                 IERC20Modified(protocol.volatilityToken()).symbol(),
+                "",
                 "-LP"
             )
         );

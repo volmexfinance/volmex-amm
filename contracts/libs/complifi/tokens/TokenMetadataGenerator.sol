@@ -38,7 +38,7 @@ contract TokenMetadataGenerator {
 
     function makeTokenName(
         string memory _baseName,
-        // string memory _date,
+        string memory _date,
         string memory _postfix
     ) internal pure returns (string memory) {
         return formatMeta(_baseName, " ", _date, _postfix);
