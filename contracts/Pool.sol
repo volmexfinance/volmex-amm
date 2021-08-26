@@ -104,7 +104,8 @@ contract Pool is
     uint256 public exposureLimitPrimary;
     uint256 public exposureLimitComplement;
 
-    // Currently not is use
+    // Currently not is use. Required in x5Repricer and callOption
+    // TODO: Need to understand the use of these args in repricer
     // uint256 public repricerParam1;
     // uint256 public repricerParam2;
 
@@ -287,8 +288,7 @@ contract Pool is
             IERC20Modified(address(protocol.collateral())).decimals()
         );
         if (collateralDecimals >= 0 && collateralDecimals < 18) {
-            initPoolSupply =
-                initPoolSupply *
+            initPoolSupply = initPoolSupply *
                 (10**(18 - collateralDecimals));
         }
 
