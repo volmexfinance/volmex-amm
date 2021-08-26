@@ -24,6 +24,8 @@ interface IERC20Modified {
 
     function name() external view returns (string memory);
 
+    function decimals() external view returns (uint8);
+
     function mint(address _toWhom, uint256 amount) external;
 
     function burn(address _whose, uint256 amount) external;

@@ -267,13 +267,13 @@ contract Pool is
 
         bind(
             0,
-            address(derivativeVault.primaryToken()),
+            address(protocol.volatilityToken()),
             _primaryBalance,
             _primaryLeverage
         );
         bind(
             1,
-            address(derivativeVault.complementToken()),
+            address(protocol.inverseVolatilityToken()),
             _complementBalance,
             _complementLeverage
         );
@@ -282,8 +282,7 @@ contract Pool is
             _primaryBalance;
 
         uint256 collateralDecimals = uint256(
-            IERC20Metadata(address(derivativeVault.collateralToken()))
-                .decimals()
+            IERC20Modified(address(protocol.collateral())).decimals()
         );
         if (collateralDecimals >= 0 && collateralDecimals < 18) {
             initPoolSupply =
@@ -425,7 +424,7 @@ contract Pool is
             complementRecord.leverage,
             estPricePrimary,
             estPriceComplement,
-            derivativeVault.underlyingStarts(0)
+            derivativeVault.underlyingStarts(0) // TODO: Need to understand this
         );
     }
 
@@ -814,13 +813,17 @@ contract Pool is
         view
         returns (uint256 denomination)
     {
-        denomination =
-            derivativeVault
-                .derivativeSpecification()
-                .primaryNominalValue() +
-            derivativeVault
-                .derivativeSpecification()
-                .complementNominalValue();
+        // TODO: As per the inspection denomination equals 2,
+        // the amount of collateral used to mint both derivatives.
+        // denomination =
+        //     derivativeVault
+        //         .derivativeSpecification()
+        //         .primaryNominalValue() +
+        //     derivativeVault
+        //         .derivativeSpecification()
+        //         .complementNominalValue();
+
+        denomination = protocol.volatilityCapRatio();
     }
 
     function _getPrimaryDerivativeAddress()
