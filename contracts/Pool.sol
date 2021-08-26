@@ -23,11 +23,6 @@ contract Pool is
     Math,
     TokenMetadataGenerator
 {
-    struct Record {
-        uint256 leverage;
-        uint256 balance;
-    }
-
     event LOG_SWAP(
         address indexed caller,
         address indexed tokenIn,
@@ -79,6 +74,47 @@ contract Pool is
         bytes data
     ) anonymous;
 
+    struct Record {
+        uint256 leverage;
+        uint256 balance;
+    }
+
+    bool private _mutex;
+
+    address private controller; // has CONTROL role
+
+    // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
+    bool private _finalized;
+
+    uint256 public constant BOUND_TOKENS = 2;
+    address[BOUND_TOKENS] private _tokens;
+    mapping(address => Record) internal _records;
+
+    uint256 public repricingBlock;
+    uint256 public upperBoundary;
+
+    uint256 public baseFee;
+    uint256 public feeAmpPrimary;
+    uint256 public feeAmpComplement;
+    uint256 public maxFee;
+
+    // TODO: Understand the pMin, exposureLimitPrimary and exposureLimitComplement
+    uint256 public pMin;
+    uint256 public qMin;
+    uint256 public exposureLimitPrimary;
+    uint256 public exposureLimitComplement;
+
+    // Currently not is use
+    // uint256 public repricerParam1;
+    // uint256 public repricerParam2;
+
+    IVault public derivativeVault;
+    IDynamicFee public dynamicFee;
+    IVolmexRepricer public repricer;
+    IVolmexProtocol public protocol;
+
+    string private volatilitySymbol;
+
     modifier _logs_() {
         emit LOG_CALL(msg.sig, msg.sender, msg.data);
         _;
@@ -109,40 +145,6 @@ contract Pool is
     function requireLock() internal view {
         require(!_mutex, "REENTRY");
     }
-
-    bool private _mutex;
-
-    address private controller; // has CONTROL role
-
-    // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
-    bool private _finalized;
-
-    uint256 public constant BOUND_TOKENS = 2;
-    address[BOUND_TOKENS] private _tokens;
-    mapping(address => Record) internal _records;
-
-    uint256 public repricingBlock;
-    uint256 public upperBoundary;
-
-    uint256 public baseFee;
-    uint256 public feeAmpPrimary;
-    uint256 public feeAmpComplement;
-    uint256 public maxFee;
-
-    uint256 public pMin;
-    uint256 public qMin;
-    uint256 public exposureLimitPrimary;
-    uint256 public exposureLimitComplement;
-    uint256 public repricerParam1;
-    uint256 public repricerParam2;
-
-    IVault public derivativeVault;
-    IDynamicFee public dynamicFee;
-    IVolmexRepricer public repricer;
-    IVolmexProtocol public protocol;
-
-    uint256 public spotPrice;
-    string private volatilitySymbol;
 
     constructor(
         IVault _derivativeVault,
@@ -249,8 +251,6 @@ contract Pool is
         uint256 _exposureLimitComplement,
         uint256 _pMin,
         uint256 _qMin,
-        uint256 _repricerParam1,
-        uint256 _repricerParam2,
         string calldata _volatilitySymbol
     ) external _logs_ _lock_ onlyNotSettled {
         require(!_finalized, "IS_FINALIZED");
@@ -267,8 +267,6 @@ contract Pool is
         qMin = _qMin;
         exposureLimitPrimary = _exposureLimitPrimary;
         exposureLimitComplement = _exposureLimitComplement;
-        repricerParam1 = _repricerParam1;
-        repricerParam2 = _repricerParam2;
         volatilitySymbol = _volatilitySymbol;
 
         _finalized = true;
