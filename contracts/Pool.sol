@@ -163,15 +163,13 @@ contract Pool is
 
         setName(
             makeTokenName(
-                derivativeVault.derivativeSpecification().name(),
-                settlementDate,
+                IERC20Modified(protocol.volatilityToken()).name(),
                 " LP"
             )
         );
         setSymbol(
             makeTokenSymbol(
-                derivativeVault.derivativeSpecification().symbol(),
-                settlementDate,
+                IERC20Modified(protocol.volatilityToken()).symbol(),
                 "-LP"
             )
         );
