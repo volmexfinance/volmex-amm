@@ -22,6 +22,8 @@ interface IERC20Modified {
     // Custom Methods
     function symbol() external view returns (string memory);
 
+    function name() external view returns (string memory);
+
     function mint(address _toWhom, uint256 amount) external;
 
     function burn(address _whose, uint256 amount) external;
