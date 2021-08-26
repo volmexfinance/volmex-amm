@@ -161,10 +161,6 @@ contract Pool is
         require(_controller != address(0), "NOT_CONTROLLER");
         controller = _controller;
 
-        string memory settlementDate = formatDate(
-            derivativeVault.settleTime()
-        );
-
         setName(
             makeTokenName(
                 derivativeVault.derivativeSpecification().name(),
