@@ -42,7 +42,7 @@ contract VolmexOracle is OwnableUpgradeable {
 
         volatilityTokenPrice[
             _volatilityTokenSymbol
-        ] = _volatilityTokenPrice;
+        ] = _volatilityTokenPrice * 10**4;
 
         emit VolatilityTokenPriceUpdated(
             _volatilityTokenPrice,
