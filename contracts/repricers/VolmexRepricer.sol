@@ -11,19 +11,15 @@ import "../NumExtra.sol";
 contract VolmexRepricer is NumExtra {
     using SafeMath for uint256;
 
-    uint256 public leverageCoefficient;
-
     IVolmexOracle public oracle;
     IVolmexProtocol public protocol;
 
     constructor(
         IVolmexOracle _oracle,
-        IVolmexProtocol _protocol,
-        uint256 _leverageCoefficient
+        IVolmexProtocol _protocol
     ) {
         protocol = _protocol;
         oracle = _oracle;
-        leverageCoefficient = _leverageCoefficient;
     }
 
     function reprice(string calldata _volatilitySymbol)
