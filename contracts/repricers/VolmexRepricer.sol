@@ -14,12 +14,13 @@ contract VolmexRepricer is NumExtra {
     IVolmexOracle public oracle;
     IVolmexProtocol public protocol;
 
-    constructor(
-        IVolmexOracle _oracle,
-        IVolmexProtocol _protocol
-    ) {
+    uint256 public protocolVolatilityCapRatio;
+
+    constructor(IVolmexOracle _oracle, IVolmexProtocol _protocol) {
         protocol = _protocol;
         oracle = _oracle;
+
+        protocolVolatilityCapRatio = protocol.volatilityCapRatio();
     }
 
     function reprice(string calldata _volatilitySymbol)
@@ -28,20 +29,21 @@ contract VolmexRepricer is NumExtra {
         returns (
             uint256 estPrimaryPrice,
             uint256 estComplementPrice,
-            uint256 estPrice,
-            uint256 upperBoundary
+            uint256 estPrice
         )
     {
-        // Calculate the upperBoundary, volatilityCapRatio * 10^18
-        upperBoundary = protocol.volatilityCapRatio().mul(BONE);
-
         estPrimaryPrice = oracle.volatilityTokenPrice(
             _volatilitySymbol
         );
 
-        estComplementPrice = protocol.volatilityCapRatio().sub(
-            estPrimaryPrice
+        uint256 estPrimaryPriceWithoutPrecision = estPrimaryPrice.div(
+            VOLATILITY_PRICE_PRECISION
         );
+        estComplementPrice = (
+            protocolVolatilityCapRatio.sub(
+                estPrimaryPriceWithoutPrecision
+            )
+        ).mul(VOLATILITY_PRICE_PRECISION);
 
         estPrice = (estPrimaryPrice.mul(BONE)).div(
             estComplementPrice
