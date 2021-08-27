@@ -2,27 +2,20 @@
 
 pragma solidity 0.7.6;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Pausable.sol";
-import "./libs/complifi/tokens/IERC20Metadata.sol";
-import "./libs/complifi/tokens/EIP20NonStandardInterface.sol";
-import "./libs/complifi/tokens/TokenMetadataGenerator.sol";
+import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/utils/Pausable.sol';
+import './libs/complifi/tokens/IERC20Metadata.sol';
+import './libs/complifi/tokens/EIP20NonStandardInterface.sol';
+import './libs/complifi/tokens/TokenMetadataGenerator.sol';
 
-import "./Token.sol";
-import "./Math.sol";
-import "./repricers/IVolmexRepricer.sol";
-import "./IDynamicFee.sol";
-import "./libs/complifi/IVault.sol";
-import "./interfaces/IVolmexProtocol.sol";
+import './Token.sol';
+import './Math.sol';
+import './repricers/IVolmexRepricer.sol';
+import './IDynamicFee.sol';
+import './libs/complifi/IVault.sol';
+import './interfaces/IVolmexProtocol.sol';
 
-contract Pool is
-    Ownable,
-    Pausable,
-    Bronze,
-    Token,
-    Math,
-    TokenMetadataGenerator
-{
+contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator {
     event LOG_SWAP(
         address indexed caller,
         address indexed tokenIn,
@@ -36,17 +29,9 @@ contract Pool is
         uint256 tokenLeverageOut
     );
 
-    event LOG_JOIN(
-        address indexed caller,
-        address indexed tokenIn,
-        uint256 tokenAmountIn
-    );
+    event LOG_JOIN(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
 
-    event LOG_EXIT(
-        address indexed caller,
-        address indexed tokenOut,
-        uint256 tokenAmountOut
-    );
+    event LOG_EXIT(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
 
     event LOG_REPRICE(
         uint256 repricingBlock,
@@ -57,8 +42,7 @@ contract Pool is
         uint256 newLeveragePrimary,
         uint256 newLeverageComplement,
         uint256 estPricePrimary,
-        uint256 estPriceComplement,
-        int256 liveUnderlingValue
+        uint256 estPriceComplement
     );
 
     event LOG_SET_FEE_PARAMS(
@@ -66,13 +50,9 @@ contract Pool is
         uint256 maxFee,
         uint256 feeAmpPrimary,
         uint256 feeAmpComplement
-    );
+    ); // TODO: Understand what is Amp here.
 
-    event LOG_CALL(
-        bytes4 indexed sig,
-        address indexed caller,
-        bytes data
-    ) anonymous;
+    event LOG_CALL(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
 
     struct Record {
         uint256 leverage;
@@ -88,6 +68,7 @@ contract Pool is
 
     uint256 public constant BOUND_TOKENS = 2;
     address[BOUND_TOKENS] private _tokens;
+    // This is mapped by token addresses
     mapping(address => Record) internal _records;
 
     uint256 public repricingBlock;
@@ -134,17 +115,17 @@ contract Pool is
     }
 
     modifier onlyFinalized() {
-        require(_finalized, "NOT_FINALIZED");
+        require(_finalized, 'NOT_FINALIZED');
         _;
     }
 
     modifier onlyNotSettled() {
-        require(!protocol.isSettled(), "PROTOCOL_SETTLED");
+        require(!protocol.isSettled(), 'PROTOCOL_SETTLED');
         _;
     }
 
     function requireLock() internal view {
-        require(!_mutex, "REENTRY");
+        require(!_mutex, 'REENTRY');
     }
 
     constructor(
@@ -159,23 +140,13 @@ contract Pool is
         repricer = _repricer;
         protocol = _protocol;
 
-        require(_controller != address(0), "NOT_CONTROLLER");
+        require(_controller != address(0), 'NOT_CONTROLLER');
         controller = _controller;
 
-        setName(
-            makeTokenName(
-                IERC20Modified(protocol.volatilityToken()).name(),
-                "",
-                " LP"
-            )
-        );
-        setSymbol(
-            makeTokenSymbol(
-                IERC20Modified(protocol.volatilityToken()).symbol(),
-                "",
-                "-LP"
-            )
-        );
+        upperBoundary = repricer.protocolVolatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
+
+        setName(makeTokenName(IERC20Modified(protocol.volatilityToken()).name(), '', ' LP'));
+        setSymbol(makeTokenSymbol(IERC20Modified(protocol.volatilityToken()).symbol(), '', '-LP'));
     }
 
     function pause() external onlyOwner {
@@ -190,30 +161,15 @@ contract Pool is
         return _finalized;
     }
 
-    function getTokens()
-        external
-        view
-        _viewlock_
-        returns (address[BOUND_TOKENS] memory tokens)
-    {
+    function getTokens() external view _viewlock_ returns (address[BOUND_TOKENS] memory tokens) {
         return _tokens;
     }
 
-    function getLeverage(address token)
-        external
-        view
-        _viewlock_
-        returns (uint256)
-    {
+    function getLeverage(address token) external view _viewlock_ returns (uint256) {
         return _records[token].leverage;
     }
 
-    function getBalance(address token)
-        external
-        view
-        _viewlock_
-        returns (uint256)
-    {
+    function getBalance(address token) external view _viewlock_ returns (uint256) {
         return _records[token].balance;
     }
 
@@ -223,20 +179,15 @@ contract Pool is
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
     ) external _logs_ _lock_ onlyNotSettled {
-        require(!_finalized, "IS_FINALIZED");
-        require(msg.sender == controller, "NOT_CONTROLLER");
+        require(!_finalized, 'IS_FINALIZED');
+        require(msg.sender == controller, 'NOT_CONTROLLER');
 
         baseFee = _baseFee;
         maxFee = _maxFee;
         feeAmpPrimary = _feeAmpPrimary;
         feeAmpComplement = _feeAmpComplement;
 
-        emit LOG_SET_FEE_PARAMS(
-            _baseFee,
-            _maxFee,
-            _feeAmpPrimary,
-            _feeAmpComplement
-        );
+        emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
     function finalize(
@@ -250,15 +201,12 @@ contract Pool is
         uint256 _qMin,
         string calldata _volatilitySymbol
     ) external _logs_ _lock_ onlyNotSettled {
-        require(!_finalized, "IS_FINALIZED");
-        require(msg.sender == controller, "NOT_CONTROLLER");
+        require(!_finalized, 'IS_FINALIZED');
+        require(msg.sender == controller, 'NOT_CONTROLLER');
 
-        require(
-            _primaryBalance == _complementBalance,
-            "NOT_SYMMETRIC"
-        );
+        require(_primaryBalance == _complementBalance, 'NOT_SYMMETRIC');
 
-        require(baseFee > 0, "NOT_SET_FEE_PARAMS");
+        require(baseFee > 0, 'NOT_SET_FEE_PARAMS');
 
         pMin = _pMin;
         qMin = _qMin;
@@ -268,12 +216,7 @@ contract Pool is
 
         _finalized = true;
 
-        bind(
-            0,
-            address(protocol.volatilityToken()),
-            _primaryBalance,
-            _primaryLeverage
-        );
+        bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
         bind(
             1,
             address(protocol.inverseVolatilityToken()),
@@ -281,15 +224,13 @@ contract Pool is
             _complementLeverage
         );
 
-        uint256 initPoolSupply = getDerivativeDenomination() *
-            _primaryBalance;
+        uint256 initPoolSupply = getDerivativeDenomination() * _primaryBalance;
 
         uint256 collateralDecimals = uint256(
             IERC20Modified(address(protocol.collateral())).decimals()
         );
         if (collateralDecimals >= 0 && collateralDecimals < 18) {
-            initPoolSupply = initPoolSupply *
-                (10**(18 - collateralDecimals));
+            initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
         }
 
         _mintPoolShare(initPoolSupply);
@@ -302,37 +243,33 @@ contract Pool is
         uint256 balance,
         uint256 leverage
     ) internal {
-        require(balance >= qMin, "MIN_BALANCE");
-        require(leverage > 0, "ZERO_LEVERAGE");
+        require(balance >= qMin, 'MIN_BALANCE');
+        require(leverage > 0, 'ZERO_LEVERAGE');
 
-        _records[token] = Record({
-            leverage: leverage,
-            balance: balance
-        });
+        _records[token] = Record({ leverage: leverage, balance: balance });
 
         _tokens[index] = token;
 
         _pullUnderlying(token, msg.sender, balance);
     }
 
-    function joinPool(
-        uint256 poolAmountOut,
-        uint256[2] calldata maxAmountsIn
-    ) external _logs_ _lock_ onlyFinalized {
+    function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn)
+        external
+        _logs_
+        _lock_
+        onlyFinalized
+    {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountOut, poolTotal);
-        require(ratio != 0, "MATH_APPROX");
+        require(ratio != 0, 'MATH_APPROX');
 
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             address token = _tokens[i];
             uint256 bal = _records[token].balance;
-            require(bal > 0, "NO_BALANCE");
+            require(bal > 0, 'NO_BALANCE');
             uint256 tokenAmountIn = mul(ratio, bal);
-            require(tokenAmountIn <= maxAmountsIn[i], "LIMIT_IN");
-            _records[token].balance = add(
-                _records[token].balance,
-                tokenAmountIn
-            );
+            require(tokenAmountIn <= maxAmountsIn[i], 'LIMIT_IN');
+            _records[token].balance = add(_records[token].balance, tokenAmountIn);
             emit LOG_JOIN(msg.sender, token, tokenAmountIn);
             _pullUnderlying(token, msg.sender, tokenAmountIn);
         }
@@ -341,13 +278,15 @@ contract Pool is
         _pushPoolShare(msg.sender, poolAmountOut);
     }
 
-    function exitPool(
-        uint256 poolAmountIn,
-        uint256[2] calldata minAmountsOut
-    ) external _logs_ _lock_ onlyFinalized {
+    function exitPool(uint256 poolAmountIn, uint256[2] calldata minAmountsOut)
+        external
+        _logs_
+        _lock_
+        onlyFinalized
+    {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountIn, poolTotal);
-        require(ratio != 0, "MATH_APPROX");
+        require(ratio != 0, 'MATH_APPROX');
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(poolAmountIn);
@@ -355,13 +294,10 @@ contract Pool is
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             address token = _tokens[i];
             uint256 bal = _records[token].balance;
-            require(bal > 0, "NO_BALANCE");
+            require(bal > 0, 'NO_BALANCE');
             uint256 tokenAmountOut = mul(ratio, bal);
-            require(tokenAmountOut >= minAmountsOut[i], "LIMIT_OUT");
-            _records[token].balance = sub(
-                _records[token].balance,
-                tokenAmountOut
-            );
+            require(tokenAmountOut >= minAmountsOut[i], 'LIMIT_OUT');
+            _records[token].balance = sub(_records[token].balance, tokenAmountOut);
             emit LOG_EXIT(msg.sender, token, tokenAmountOut);
             _pushUnderlying(token, msg.sender, tokenAmountOut);
         }
@@ -371,26 +307,16 @@ contract Pool is
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
-        Record storage primaryRecord = _records[
-            _getPrimaryDerivativeAddress()
-        ];
-        Record storage complementRecord = _records[
-            _getComplementDerivativeAddress()
-        ];
+        Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
+        Record storage complementRecord = _records[_getComplementDerivativeAddress()];
 
         uint256 estPricePrimary;
         uint256 estPriceComplement;
         uint256 estPrice;
-        (
-            estPricePrimary,
-            estPriceComplement,
-            estPrice,
-            upperBoundary
-        ) = repricer.reprice(volatilitySymbol);
+        (estPricePrimary, estPriceComplement, estPrice) = repricer.reprice(volatilitySymbol);
 
         uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
-        uint256 complementRecordLeverageBefore = complementRecord
-            .leverage;
+        uint256 complementRecordLeverageBefore = complementRecord.leverage;
 
         uint256 leveragesMultiplied = mul(
             primaryRecordLeverageBefore,
@@ -402,19 +328,13 @@ contract Pool is
             repricer.sqrtWrapped(
                 int256(
                     div(
-                        mul(
-                            leveragesMultiplied,
-                            mul(complementRecord.balance, estPrice)
-                        ),
+                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
                         primaryRecord.balance
                     )
                 )
             )
         );
-        complementRecord.leverage = div(
-            leveragesMultiplied,
-            primaryRecord.leverage
-        );
+        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
 
         emit LOG_REPRICE(
             repricingBlock,
@@ -425,8 +345,9 @@ contract Pool is
             primaryRecord.leverage,
             complementRecord.leverage,
             estPricePrimary,
-            estPriceComplement,
-            derivativeVault.underlyingStarts(0) // TODO: Need to understand this
+            estPriceComplement
+            // underlyingStarts: Value of underlying assets (derivative) in USD in the beginning
+            // derivativeVault.underlyingStarts(0)
         );
     }
 
@@ -439,32 +360,18 @@ contract Pool is
     ) internal returns (uint256 fee, int256 expStart) {
         int256 ifee;
         (ifee, expStart) = dynamicFee.calc(
-            [
-                int256(inRecord.balance),
-                int256(inRecord.leverage),
-                int256(tokenAmountIn)
-            ],
-            [
-                int256(outRecord.balance),
-                int256(outRecord.leverage),
-                int256(tokenAmountOut)
-            ],
+            [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
+            [int256(outRecord.balance), int256(outRecord.leverage), int256(tokenAmountOut)],
             int256(baseFee),
             int256(feeAmp),
             int256(maxFee)
         );
-        require(ifee > 0, "BAD_FEE");
+        require(ifee > 0, 'BAD_FEE');
         fee = uint256(ifee);
     }
 
-    function calcExpStart(int256 _inBalance, int256 _outBalance)
-        internal
-        pure
-        returns (int256)
-    {
-        return
-            ((_inBalance - _outBalance) * iBONE) /
-            (_inBalance + _outBalance);
+    function calcExpStart(int256 _inBalance, int256 _outBalance) internal pure returns (int256) {
+        return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
     }
 
     function performSwap(
@@ -488,12 +395,7 @@ contract Pool is
                 : exposureLimitComplement
         );
 
-        updateLeverages(
-            inRecord,
-            tokenAmountIn,
-            outRecord,
-            tokenAmountOut
-        );
+        updateLeverages(inRecord, tokenAmountIn, outRecord, tokenAmountOut);
 
         inRecord.balance = add(inRecord.balance, tokenAmountIn);
         outRecord.balance = sub(outRecord.balance, tokenAmountOut);
@@ -504,11 +406,8 @@ contract Pool is
             0
         );
 
-        require(spotPriceAfter >= spotPriceBefore, "MATH_APPROX");
-        require(
-            spotPriceBefore <= div(tokenAmountIn, tokenAmountOut),
-            "MATH_APPROX_OTHER"
-        );
+        require(spotPriceAfter >= spotPriceBefore, 'MATH_APPROX');
+        require(spotPriceBefore <= div(tokenAmountIn, tokenAmountOut), 'MATH_APPROX_OTHER');
 
         emit LOG_SWAP(
             msg.sender,
@@ -532,15 +431,9 @@ contract Pool is
         uint256 tokenAmountIn,
         address tokenOut,
         uint256 minAmountOut
-    )
-        external
-        whenNotPaused
-        onlyFinalized
-        onlyNotSettled
-        returns (uint256 tokenAmountOut)
-    {
-        require(tokenIn != tokenOut, "SAME_TOKEN");
-        require(tokenAmountIn >= qMin, "MIN_TOKEN_IN");
+    ) external whenNotPaused onlyFinalized onlyNotSettled returns (uint256 tokenAmountOut) {
+        require(tokenIn != tokenOut, 'SAME_TOKEN');
+        require(tokenAmountIn >= qMin, 'MIN_TOKEN_IN');
 
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
@@ -548,13 +441,7 @@ contract Pool is
         reprice();
 
         uint256 fee;
-        (fee, ) = calcFee(
-            inRecord,
-            tokenAmountIn,
-            outRecord,
-            tokenAmountOut,
-            feeAmpPrimary
-        );
+        (fee, ) = calcFee(inRecord, tokenAmountIn, outRecord, tokenAmountOut, feeAmpPrimary);
 
         tokenAmountOut = calcOutGivenIn(
             getLeveragedBalance(inRecord),
@@ -562,18 +449,10 @@ contract Pool is
             tokenAmountIn,
             fee
         );
-        require(tokenAmountOut >= minAmountOut, "LIMIT_OUT");
-        require(
-            outRecord.balance >= tokenAmountOut,
-            "INSUFFICIENT_BALANCE"
-        );
+        require(tokenAmountOut >= minAmountOut, 'LIMIT_OUT');
+        require(outRecord.balance >= tokenAmountOut, 'INSUFFICIENT_BALANCE');
 
-        updateLeverages(
-            inRecord,
-            tokenAmountIn,
-            outRecord,
-            tokenAmountOut
-        );
+        updateLeverages(inRecord, tokenAmountIn, outRecord, tokenAmountOut);
 
         inRecord.balance = add(inRecord.balance, tokenAmountIn);
         outRecord.balance = sub(outRecord.balance, tokenAmountOut);
@@ -736,11 +615,7 @@ contract Pool is
     //        );
     //    }
 
-    function getLeveragedBalance(Record memory r)
-        internal
-        pure
-        returns (uint256)
-    {
+    function getLeveragedBalance(Record memory r) internal pure returns (uint256) {
         return mul(r.balance, r.leverage);
     }
 
@@ -751,14 +626,8 @@ contract Pool is
         uint256 tokenAmountOut,
         uint256 exposureLimit
     ) internal view {
-        require(
-            sub(getLeveragedBalance(outToken), tokenAmountOut) > qMin,
-            "BOUNDARY_LEVERAGED"
-        );
-        require(
-            sub(outToken.balance, tokenAmountOut) > qMin,
-            "BOUNDARY_NON_LEVERAGED"
-        );
+        require(sub(getLeveragedBalance(outToken), tokenAmountOut) > qMin, 'BOUNDARY_LEVERAGED');
+        require(sub(outToken.balance, tokenAmountOut) > qMin, 'BOUNDARY_NON_LEVERAGED');
 
         uint256 lowerBound = div(pMin, sub(upperBoundary, pMin));
         uint256 upperBound = div(sub(upperBoundary, pMin), pMin);
@@ -767,8 +636,8 @@ contract Pool is
             sub(getLeveragedBalance(outToken), tokenAmountOut)
         );
 
-        require(lowerBound < value, "BOUNDARY_LOWER");
-        require(value < upperBound, "BOUNDARY_UPPER");
+        require(lowerBound < value, 'BOUNDARY_LOWER');
+        require(value < upperBound, 'BOUNDARY_UPPER');
 
         (uint256 numerator, bool sign) = subSign(
             add(add(inToken.balance, tokenAmountIn), tokenAmountOut),
@@ -777,17 +646,11 @@ contract Pool is
 
         if (!sign) {
             uint256 denominator = sub(
-                add(
-                    add(inToken.balance, tokenAmountIn),
-                    outToken.balance
-                ),
+                add(add(inToken.balance, tokenAmountIn), outToken.balance),
                 tokenAmountOut
             );
 
-            require(
-                div(numerator, denominator) < exposureLimit,
-                "BOUNDARY_EXPOSURE"
-            );
+            require(div(numerator, denominator) < exposureLimit, 'BOUNDARY_EXPOSURE');
         }
     }
 
@@ -801,20 +664,16 @@ contract Pool is
             sub(getLeveragedBalance(outToken), tokenAmountOut),
             sub(outToken.balance, tokenAmountOut)
         );
-        require(outToken.leverage > 0, "ZERO_OUT_LEVERAGE");
+        require(outToken.leverage > 0, 'ZERO_OUT_LEVERAGE');
 
         inToken.leverage = div(
             add(getLeveragedBalance(inToken), tokenAmountIn),
             add(inToken.balance, tokenAmountIn)
         );
-        require(inToken.leverage > 0, "ZERO_IN_LEVERAGE");
+        require(inToken.leverage > 0, 'ZERO_IN_LEVERAGE');
     }
 
-    function getDerivativeDenomination()
-        internal
-        view
-        returns (uint256 denomination)
-    {
+    function getDerivativeDenomination() internal view returns (uint256 denomination) {
         // TODO: As per the inspection denomination equals 2,
         // the amount of collateral used to mint both derivatives.
         // denomination =
@@ -828,19 +687,11 @@ contract Pool is
         denomination = protocol.volatilityCapRatio();
     }
 
-    function _getPrimaryDerivativeAddress()
-        internal
-        view
-        returns (address)
-    {
+    function _getPrimaryDerivativeAddress() internal view returns (address) {
         return _tokens[0];
     }
 
-    function _getComplementDerivativeAddress()
-        internal
-        view
-        returns (address)
-    {
+    function _getComplementDerivativeAddress() internal view returns (address) {
         return _tokens[1];
     }
 
@@ -875,14 +726,8 @@ contract Pool is
         address from,
         uint256 amount
     ) internal returns (uint256) {
-        uint256 balanceBefore = IERC20(erc20).balanceOf(
-            address(this)
-        );
-        EIP20NonStandardInterface(erc20).transferFrom(
-            from,
-            address(this),
-            amount
-        );
+        uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
+        EIP20NonStandardInterface(erc20).transferFrom(from, address(this), amount);
 
         bool success;
         assembly {
@@ -901,14 +746,11 @@ contract Pool is
                 revert(0, 0)
             }
         }
-        require(success, "TOKEN_TRANSFER_IN_FAILED");
+        require(success, 'TOKEN_TRANSFER_IN_FAILED');
 
         // Calculate the amount that was *actually* transferred
         uint256 balanceAfter = IERC20(erc20).balanceOf(address(this));
-        require(
-            balanceAfter >= balanceBefore,
-            "TOKEN_TRANSFER_IN_OVERFLOW"
-        );
+        require(balanceAfter >= balanceBefore, 'TOKEN_TRANSFER_IN_OVERFLOW');
         return balanceAfter - balanceBefore; // underflow already checked above, just subtract
     }
 
@@ -942,6 +784,6 @@ contract Pool is
                 revert(0, 0)
             }
         }
-        require(success, "TOKEN_TRANSFER_OUT_FAILED");
+        require(success, 'TOKEN_TRANSFER_OUT_FAILED');
     }
 }
