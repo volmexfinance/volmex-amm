@@ -501,77 +501,77 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         );
     }
 
-    //    // Method temporary is not available for external usage.
-    //    function swapExactAmountOut(
-    //        address tokenIn,
-    //        uint256 maxAmountIn,
-    //        address tokenOut,
-    //        uint256 tokenAmountOut
-    //    )
-    //        private
-    //        _logs_
-    //        _lock_
-    //        whenNotPaused
-    //        onlyFinalized
-    //        onlyLiveDerivative
-    //        returns (uint256 tokenAmountIn, uint256 spotPriceAfter)
-    //    {
-    //        require(tokenIn != tokenOut, 'SAME_TOKEN');
-    //        require(tokenAmountOut >= qMin, 'MIN_TOKEN_OUT');
-    //
-    //        reprice();
-    //
-    //        Record memory inRecord = _records[tokenIn];
-    //        Record memory outRecord = _records[tokenOut];
-    //
-    //        require(
-    //            tokenAmountOut <=
-    //                mul(min(getLeveragedBalance(outRecord), outRecord.balance), MAX_OUT_RATIO),
-    //            'MAX_OUT_RATIO'
-    //        );
-    //
-    //        tokenAmountIn = calcInGivenOut(
-    //            getLeveragedBalance(inRecord),
-    //            getLeveragedBalance(outRecord),
-    //            tokenAmountOut,
-    //            0
-    //        );
-    //
-    //        uint256 fee;
-    //        int256 expStart;
-    //        (fee, expStart) = calcFee(
-    //            inRecord,
-    //            tokenAmountIn,
-    //            outRecord,
-    //            tokenAmountOut,
-    //            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
-    //        );
-    //
-    //        uint256 spotPriceBefore =
-    //            calcSpotPrice(
-    //                getLeveragedBalance(inRecord),
-    //                getLeveragedBalance(outRecord),
-    //                0
-    //            );
-    //
-    //        tokenAmountIn = calcInGivenOut(
-    //            getLeveragedBalance(inRecord),
-    //            getLeveragedBalance(outRecord),
-    //            tokenAmountOut,
-    //            fee
-    //        );
-    //
-    //        require(tokenAmountIn <= maxAmountIn, 'LIMIT_IN');
-    //
-    //        spotPriceAfter = performSwap(
-    //            tokenIn,
-    //            tokenAmountIn,
-    //            tokenOut,
-    //            tokenAmountOut,
-    //            spotPriceBefore,
-    //            fee
-    //        );
-    //    }
+//    // Method temporary is not available for external usage.
+//    function swapExactAmountOut(
+//        address tokenIn,
+//        uint256 maxAmountIn,
+//        address tokenOut,
+//        uint256 tokenAmountOut
+//    )
+//        private
+//        _logs_
+//        _lock_
+//        whenNotPaused
+//        onlyFinalized
+//        onlyLiveDerivative
+//        returns (uint256 tokenAmountIn, uint256 spotPriceAfter)
+//    {
+//        require(tokenIn != tokenOut, 'SAME_TOKEN');
+//        require(tokenAmountOut >= qMin, 'MIN_TOKEN_OUT');
+//
+//        reprice();
+//
+//        Record memory inRecord = _records[tokenIn];
+//        Record memory outRecord = _records[tokenOut];
+//
+//        require(
+//            tokenAmountOut <=
+//                mul(min(getLeveragedBalance(outRecord), outRecord.balance), MAX_OUT_RATIO),
+//            'MAX_OUT_RATIO'
+//        );
+//
+//        tokenAmountIn = calcInGivenOut(
+//            getLeveragedBalance(inRecord),
+//            getLeveragedBalance(outRecord),
+//            tokenAmountOut,
+//            0
+//        );
+//
+//        uint256 fee;
+//        int256 expStart;
+//        (fee, expStart) = calcFee(
+//            inRecord,
+//            tokenAmountIn,
+//            outRecord,
+//            tokenAmountOut,
+//            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+//        );
+//
+//        uint256 spotPriceBefore =
+//            calcSpotPrice(
+//                getLeveragedBalance(inRecord),
+//                getLeveragedBalance(outRecord),
+//                0
+//            );
+//
+//        tokenAmountIn = calcInGivenOut(
+//            getLeveragedBalance(inRecord),
+//            getLeveragedBalance(outRecord),
+//            tokenAmountOut,
+//            fee
+//        );
+//
+//        require(tokenAmountIn <= maxAmountIn, 'LIMIT_IN');
+//
+//        spotPriceAfter = performSwap(
+//            tokenIn,
+//            tokenAmountIn,
+//            tokenOut,
+//            tokenAmountOut,
+//            spotPriceBefore,
+//            fee
+//        );
+//    }
 
     function getLeveragedBalance(Record memory r) internal pure returns (uint256) {
         return mul(r.balance, r.leverage);
