@@ -4,6 +4,7 @@ pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
 import './libs/complifi/tokens/IERC20Metadata.sol';
 import './libs/complifi/tokens/EIP20NonStandardInterface.sol';
 import './libs/complifi/tokens/TokenMetadataGenerator.sol';
@@ -79,10 +80,12 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     uint256 public feeAmpComplement;
     uint256 public maxFee;
 
-    // TODO: Understand the pMin, exposureLimitPrimary and exposureLimitComplement
+    // TODO: Understand the pMin
     uint256 public pMin;
     uint256 public qMin;
+    // TODO: Need to understand exposureLimitPrimary
     uint256 public exposureLimitPrimary;
+    // TODO: Need to understand exposureLimitComplement
     uint256 public exposureLimitComplement;
 
     // Currently not is use. Required in x5Repricer and callOption
@@ -90,12 +93,11 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     // uint256 public repricerParam1;
     // uint256 public repricerParam2;
 
-    IVault public derivativeVault;
     IDynamicFee public dynamicFee;
     IVolmexRepricer public repricer;
     IVolmexProtocol public protocol;
 
-    string private volatilitySymbol;
+    string public volatilitySymbol;
 
     modifier _logs_() {
         emit LOG_CALL(msg.sig, msg.sender, msg.data);
@@ -129,21 +131,23 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     }
 
     constructor(
-        IVault _derivativeVault,
         IDynamicFee _dynamicFee,
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
         address _controller
     ) public {
-        derivativeVault = _derivativeVault;
         dynamicFee = _dynamicFee;
         repricer = _repricer;
+
+        require(Address.isContract(address(_protocol)), 'NOT_CONTRACT');
         protocol = _protocol;
 
         require(_controller != address(0), 'NOT_CONTROLLER');
         controller = _controller;
 
-        upperBoundary = repricer.protocolVolatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
+        upperBoundary = protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
+
+        volatilitySymbol = IERC20Modified(protocol.volatilityToken()).symbol();
 
         setName(makeTokenName(IERC20Modified(protocol.volatilityToken()).name(), '', ' LP'));
         setSymbol(makeTokenSymbol(IERC20Modified(protocol.volatilityToken()).symbol(), '', '-LP'));
@@ -199,7 +203,6 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 _exposureLimitComplement,
         uint256 _pMin,
         uint256 _qMin,
-        string calldata _volatilitySymbol
     ) external _logs_ _lock_ onlyNotSettled {
         require(!_finalized, 'IS_FINALIZED');
         require(msg.sender == controller, 'NOT_CONTROLLER');
@@ -212,7 +215,6 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         qMin = _qMin;
         exposureLimitPrimary = _exposureLimitPrimary;
         exposureLimitComplement = _exposureLimitComplement;
-        volatilitySymbol = _volatilitySymbol;
 
         _finalized = true;
 
