@@ -88,6 +88,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     // TODO: Need to understand exposureLimitComplement
     uint256 public exposureLimitComplement;
 
+    uint256 private denomination;
+
     // Currently not is use. Required in x5Repricer and callOption
     // TODO: Need to understand the use of these args in repricer
     // uint256 public repricerParam1;
@@ -148,6 +150,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         upperBoundary = protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
 
         volatilitySymbol = protocol.volatilityToken().symbol();
+
+        denomination = protocol.volatilityCapRatio();
 
         setName(makeTokenName(protocol.volatilityToken().name(), ' LP'));
         setSymbol(makeTokenSymbol(protocol.volatilityToken().symbol(), '-LP'));
@@ -309,8 +313,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
-        Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
-        Record storage complementRecord = _records[_getComplementDerivativeAddress()];
+        Record memory primaryRecord = _records[_getPrimaryDerivativeAddress()];
+        Record memory complementRecord = _records[_getComplementDerivativeAddress()];
 
         uint256 estPricePrimary;
         uint256 estPriceComplement;
@@ -384,8 +388,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 spotPriceBefore,
         uint256 fee
     ) internal returns (uint256 spotPriceAfter) {
-        Record storage inRecord = _records[tokenIn];
-        Record storage outRecord = _records[tokenOut];
+        Record memory inRecord = _records[tokenIn];
+        Record memory outRecord = _records[tokenOut];
 
         requireBoundaryConditions(
             inRecord,
@@ -433,17 +437,50 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 tokenAmountIn,
         address tokenOut,
         uint256 minAmountOut
-    ) external whenNotPaused onlyFinalized onlyNotSettled returns (uint256 tokenAmountOut) {
+    )
+        external
+        _logs_
+        _lock_
+        whenNotPaused
+        onlyFinalized
+        onlyNotSettled
+        returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
+    {
         require(tokenIn != tokenOut, 'SAME_TOKEN');
         require(tokenAmountIn >= qMin, 'MIN_TOKEN_IN');
 
-        Record storage inRecord = _records[tokenIn];
-        Record storage outRecord = _records[tokenOut];
-
         reprice();
 
-        uint256 fee;
-        (fee, ) = calcFee(inRecord, tokenAmountIn, outRecord, tokenAmountOut, feeAmpPrimary);
+        Record memory inRecord = _records[tokenIn];
+        Record memory outRecord = _records[tokenOut];
+
+        require(
+            tokenAmountIn <=
+                mul(min(getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
+            'MAX_IN_RATIO'
+        );
+
+        tokenAmountOut = calcOutGivenIn(
+            getLeveragedBalance(inRecord),
+            getLeveragedBalance(outRecord),
+            tokenAmountIn,
+            0
+        );
+
+        (uint256 fee,) = calcFee(
+            inRecord,
+            tokenAmountIn,
+            outRecord,
+            tokenAmountOut,
+            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+        );
+
+        uint256 spotPriceBefore =
+            calcSpotPrice(
+                getLeveragedBalance(inRecord),
+                getLeveragedBalance(outRecord),
+                0
+            );
 
         tokenAmountOut = calcOutGivenIn(
             getLeveragedBalance(inRecord),
@@ -452,98 +489,16 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
             fee
         );
         require(tokenAmountOut >= minAmountOut, 'LIMIT_OUT');
-        require(outRecord.balance >= tokenAmountOut, 'INSUFFICIENT_BALANCE');
 
-        updateLeverages(inRecord, tokenAmountIn, outRecord, tokenAmountOut);
-
-        inRecord.balance = add(inRecord.balance, tokenAmountIn);
-        outRecord.balance = sub(outRecord.balance, tokenAmountOut);
-
-        emit LOG_SWAP(
-            msg.sender,
+        spotPriceAfter = performSwap(
             tokenIn,
-            tokenOut,
             tokenAmountIn,
+            tokenOut,
             tokenAmountOut,
-            baseFee,
-            inRecord.balance,
-            outRecord.balance,
-            inRecord.leverage,
-            outRecord.leverage
+            spotPriceBefore,
+            fee
         );
-
-        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
-
-    // function swapExactAmountIn(
-    //     address tokenIn,
-    //     uint256 tokenAmountIn,
-    //     address tokenOut,
-    //     uint256 minAmountOut
-    // )
-    //     external
-    //     _logs_
-    //     _lock_
-    //     whenNotPaused
-    //     onlyFinalized
-    //     returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
-    // {
-    //     require(tokenIn != tokenOut, 'SAME_TOKEN');
-    //     require(tokenAmountIn >= qMin, 'MIN_TOKEN_IN');
-
-    //     reprice();
-
-    //     Record memory inRecord = _records[tokenIn];
-    //     Record memory outRecord = _records[tokenOut];
-
-    //     require(
-    //         tokenAmountIn <=
-    //             mul(min(getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
-    //         'MAX_IN_RATIO'
-    //     );
-
-    //     tokenAmountOut = calcOutGivenIn(
-    //         getLeveragedBalance(inRecord),
-    //         getLeveragedBalance(outRecord),
-    //         tokenAmountIn,
-    //         0
-    //     );
-
-    //     uint256 fee;
-    //     int256 expStart;
-    //     (fee, expStart) = calcFee(
-    //         inRecord,
-    //         tokenAmountIn,
-    //         outRecord,
-    //         tokenAmountOut,
-    //         _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
-    //     );
-
-    //     uint256 spotPriceBefore =
-    //         calcSpotPrice(
-    //             getLeveragedBalance(inRecord),
-    //             getLeveragedBalance(outRecord),
-    //             0
-    //         );
-
-    //     tokenAmountOut = calcOutGivenIn(
-    //         getLeveragedBalance(inRecord),
-    //         getLeveragedBalance(outRecord),
-    //         tokenAmountIn,
-    //         fee
-    //     );
-    //     require(tokenAmountOut >= minAmountOut, 'LIMIT_OUT');
-
-    //     spotPriceAfter = performSwap(
-    //         tokenIn,
-    //         tokenAmountIn,
-    //         tokenOut,
-    //         tokenAmountOut,
-    //         spotPriceBefore,
-    //         fee
-    //     );
-    // }
 
     //    // Method temporary is not available for external usage.
     //    function swapExactAmountOut(
@@ -622,9 +577,9 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     }
 
     function requireBoundaryConditions(
-        Record storage inToken,
+        Record memory inToken,
         uint256 tokenAmountIn,
-        Record storage outToken,
+        Record memory outToken,
         uint256 tokenAmountOut,
         uint256 exposureLimit
     ) internal view {
@@ -657,11 +612,11 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     }
 
     function updateLeverages(
-        Record storage inToken,
+        Record memory inToken,
         uint256 tokenAmountIn,
-        Record storage outToken,
+        Record memory outToken,
         uint256 tokenAmountOut
-    ) internal {
+    ) internal pure {
         outToken.leverage = div(
             sub(getLeveragedBalance(outToken), tokenAmountOut),
             sub(outToken.balance, tokenAmountOut)
@@ -675,7 +630,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         require(inToken.leverage > 0, 'ZERO_IN_LEVERAGE');
     }
 
-    function getDerivativeDenomination() internal view returns (uint256 denomination) {
+    function getDerivativeDenomination() internal view returns (uint256) {
         // TODO: As per the inspection denomination equals 2,
         // the amount of collateral used to mint both derivatives.
         // denomination =
@@ -686,7 +641,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         //         .derivativeSpecification()
         //         .complementNominalValue();
 
-        denomination = protocol.volatilityCapRatio();
+        return denomination;
     }
 
     function _getPrimaryDerivativeAddress() internal view returns (address) {
