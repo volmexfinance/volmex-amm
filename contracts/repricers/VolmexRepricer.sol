@@ -36,12 +36,9 @@ contract VolmexRepricer is NumExtra {
             _volatilitySymbol
         );
 
-        uint256 estPrimaryPriceWithoutPrecision = estPrimaryPrice.div(
-            VOLATILITY_PRICE_PRECISION
-        );
         estComplementPrice = (
-            protocolVolatilityCapRatio.sub(
-                estPrimaryPriceWithoutPrecision
+            (protocolVolatilityCapRatio.mul(VOLATILITY_PRICE_PRECISION)).sub(
+                estPrimaryPrice
             )
         ).mul(VOLATILITY_PRICE_PRECISION);
 
