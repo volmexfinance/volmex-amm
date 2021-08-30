@@ -147,10 +147,10 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
 
         upperBoundary = protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
 
-        volatilitySymbol = IERC20Modified(protocol.volatilityToken()).symbol();
+        volatilitySymbol = protocol.volatilityToken().symbol();
 
-        setName(makeTokenName(IERC20Modified(protocol.volatilityToken()).name(), '', ' LP'));
-        setSymbol(makeTokenSymbol(IERC20Modified(protocol.volatilityToken()).symbol(), '', '-LP'));
+        setName(makeTokenName(protocol.volatilityToken().name(), ' LP'));
+        setSymbol(makeTokenSymbol(protocol.volatilityToken().symbol(), '-LP'));
     }
 
     function pause() external onlyOwner {
@@ -202,7 +202,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 _exposureLimitPrimary,
         uint256 _exposureLimitComplement,
         uint256 _pMin,
-        uint256 _qMin,
+        uint256 _qMin
     ) external _logs_ _lock_ onlyNotSettled {
         require(!_finalized, 'IS_FINALIZED');
         require(msg.sender == controller, 'NOT_CONTROLLER');
@@ -229,7 +229,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 initPoolSupply = getDerivativeDenomination() * _primaryBalance;
 
         uint256 collateralDecimals = uint256(
-            IERC20Modified(address(protocol.collateral())).decimals()
+            protocol.collateral().decimals()
         );
         if (collateralDecimals >= 0 && collateralDecimals < 18) {
             initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
