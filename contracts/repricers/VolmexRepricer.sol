@@ -2,11 +2,12 @@
 
 pragma solidity =0.7.6;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import '@openzeppelin/contracts/math/SafeMath.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
 
-import "../oracles/IVolmexOracle.sol";
-import "../interfaces/IVolmexProtocol.sol";
-import "../NumExtra.sol";
+import '../oracles/IVolmexOracle.sol';
+import '../interfaces/IVolmexProtocol.sol';
+import '../NumExtra.sol';
 
 contract VolmexRepricer is NumExtra {
     using SafeMath for uint256;
@@ -17,10 +18,13 @@ contract VolmexRepricer is NumExtra {
     uint256 public protocolVolatilityCapRatio;
 
     constructor(IVolmexOracle _oracle, IVolmexProtocol _protocol) {
-        protocol = _protocol;
+        require(Address.isContract(address(_oracle)), 'Repricer: Not an oracle contract');
         oracle = _oracle;
 
-        protocolVolatilityCapRatio = protocol.volatilityCapRatio();
+        require(Address.isContract(address(_protocol)), 'Repricer: Not a protocol contract');
+        protocol = _protocol;
+
+        protocolVolatilityCapRatio = protocol.volatilityCapRatio().mul(VOLATILITY_PRICE_PRECISION);
     }
 
     function reprice(string calldata _volatilitySymbol)
@@ -32,22 +36,14 @@ contract VolmexRepricer is NumExtra {
             uint256 estPrice
         )
     {
-        estPrimaryPrice = oracle.volatilityTokenPrice(
-            _volatilitySymbol
-        );
+        estPrimaryPrice = oracle.volatilityTokenPrice(_volatilitySymbol);
 
-        estComplementPrice = (
-            (protocolVolatilityCapRatio.mul(VOLATILITY_PRICE_PRECISION)).sub(
-                estPrimaryPrice
-            )
-        ).mul(VOLATILITY_PRICE_PRECISION);
+        estComplementPrice = protocolVolatilityCapRatio.sub(estPrimaryPrice);
 
-        estPrice = (estPrimaryPrice.mul(BONE)).div(
-            estComplementPrice
-        );
+        estPrice = estPrimaryPrice.mul(BONE).div(estComplementPrice);
     }
 
     function sqrtWrapped(int256 x) external pure returns (int256) {
-        return sqrt(x); // Need to understand the sqrt method from abdk-libraries
+        return sqrt(x); // TODO: Need to understand the sqrt method from abdk-libraries
     }
 }
