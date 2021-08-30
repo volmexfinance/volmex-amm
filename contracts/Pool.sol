@@ -391,6 +391,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         Record memory inRecord = _records[tokenIn];
         Record memory outRecord = _records[tokenOut];
 
+        // TODO: Need to understand this and it's sub/used method
         requireBoundaryConditions(
             inRecord,
             tokenAmountIn,
