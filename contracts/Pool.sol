@@ -313,8 +313,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
-        Record memory primaryRecord = _records[_getPrimaryDerivativeAddress()];
-        Record memory complementRecord = _records[_getComplementDerivativeAddress()];
+        Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
+        Record storage complementRecord = _records[_getComplementDerivativeAddress()];
 
         uint256 estPricePrimary;
         uint256 estPriceComplement;
@@ -388,8 +388,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 spotPriceBefore,
         uint256 fee
     ) internal returns (uint256 spotPriceAfter) {
-        Record memory inRecord = _records[tokenIn];
-        Record memory outRecord = _records[tokenOut];
+        Record storage inRecord = _records[tokenIn];
+        Record storage outRecord = _records[tokenOut];
 
         // TODO: Need to understand this and it's sub/used method
         requireBoundaryConditions(
@@ -578,9 +578,9 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     }
 
     function requireBoundaryConditions(
-        Record memory inToken,
+        Record storage inToken,
         uint256 tokenAmountIn,
-        Record memory outToken,
+        Record storage outToken,
         uint256 tokenAmountOut,
         uint256 exposureLimit
     ) internal view {
