@@ -5,17 +5,21 @@ pragma solidity 0.7.6;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
+import 'hardhat/console.sol';
+
 import './libs/complifi/tokens/IERC20Metadata.sol';
 import './libs/complifi/tokens/EIP20NonStandardInterface.sol';
 import './libs/complifi/tokens/TokenMetadataGenerator.sol';
-
 import './Token.sol';
 import './Math.sol';
 import './repricers/IVolmexRepricer.sol';
-import './IDynamicFee.sol';
 import './libs/complifi/IVault.sol';
 import './interfaces/IVolmexProtocol.sol';
 
+/**
+ * @title Volmex Pool Contract
+ * @author volmex.finance [security@volmexlabs.com]
+ */
 contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator {
     event LOG_SWAP(
         address indexed caller,
@@ -60,24 +64,34 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 balance;
     }
 
+    // Used to prevent the re-entry
     bool private _mutex;
 
+    // Address of the pool controller
     address private controller; // has CONTROL role
 
     // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
     bool private _finalized;
 
+    // Number of tokens the pool can hold
     uint256 public constant BOUND_TOKENS = 2;
+    // Address of the pool tokens
     address[BOUND_TOKENS] private _tokens;
     // This is mapped by token addresses
     mapping(address => Record) internal _records;
 
+    // Value of the current block number while repricing
     uint256 public repricingBlock;
+    // Value of upper boundary, set in reference of volatility cap ratio { 250 * 10**18 }
     uint256 public upperBoundary;
 
+    // fee of the pool, used to calculate the swap fee
     uint256 public baseFee;
+    // fee on the primary token, used to calculate swap fee, when the swap in asset is primary
     uint256 public feeAmpPrimary;
+    // fee on the complement token, used to calculate swap fee, when the swap in asset is complement
     uint256 public feeAmpComplement;
+    // Max fee on the swap operation
     uint256 public maxFee;
 
     // TODO: Understand the pMin
@@ -87,7 +101,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     uint256 public exposureLimitPrimary;
     // TODO: Need to understand exposureLimitComplement
     uint256 public exposureLimitComplement;
-
+    // The amount of collateral required to mint both the volatility tokens
     uint256 private denomination;
 
     // Currently not is use. Required in x5Repricer and callOption
@@ -95,17 +109,25 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     // uint256 public repricerParam1;
     // uint256 public repricerParam2;
 
-    IDynamicFee public dynamicFee;
+    // Address of the volmex repricer contract
     IVolmexRepricer public repricer;
+    // Address of the volmex protocol contract
     IVolmexProtocol public protocol;
 
+    // String value of the volatility token symbol
     string public volatilitySymbol;
 
+    /**
+     * @notice Used to log the callee's sig, address and data
+     */
     modifier _logs_() {
         emit LOG_CALL(msg.sig, msg.sender, msg.data);
         _;
     }
 
+    /**
+     * @notice Used to prevent the re-entry
+     */
     modifier _lock_() {
         requireLock();
         _mutex = true;
@@ -113,32 +135,54 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _mutex = false;
     }
 
+    /**
+     * @notice Used to prevent multiple call to view methods
+     */
     modifier _viewlock_() {
         requireLock();
         _;
     }
 
+    /**
+     * @notice Used to check the pool is finalised
+     */
     modifier onlyFinalized() {
         require(_finalized, 'NOT_FINALIZED');
         _;
     }
 
+    /**
+     * @notice Used to check the protocol is not settled
+     */
     modifier onlyNotSettled() {
         require(!protocol.isSettled(), 'PROTOCOL_SETTLED');
         _;
     }
 
+    /**
+     * @notice Internal method for re-entry check
+     */
     function requireLock() internal view {
         require(!_mutex, 'REENTRY');
     }
 
+    /**
+     * @notice Constructs the pool contract with required elements
+     *
+     * @dev Checks, the protocol is a contract
+     * @dev Sets repricer, protocol and controller addresses
+     * @dev Sets upperBoundary, volatilitySymbol and denomination
+     * @dev Make the Pool token name and symbol
+     *
+     * @param _repricer Address of the volmex repricer contract
+     * @param _protocol Address of the volmex protocol contract
+     * @param _controller Address of the pool contract controller
+     */
     constructor(
-        IDynamicFee _dynamicFee,
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
         address _controller
     ) public {
-        dynamicFee = _dynamicFee;
         repricer = _repricer;
 
         require(Address.isContract(address(_protocol)), 'NOT_CONTRACT');
@@ -147,7 +191,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         require(_controller != address(0), 'NOT_CONTROLLER');
         controller = _controller;
 
-        upperBoundary = protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
+        upperBoundary = protocol.volatilityCapRatio() * BONE;
 
         volatilitySymbol = protocol.volatilityToken().symbol();
 
@@ -157,30 +201,62 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         setSymbol(makeTokenSymbol(protocol.volatilityToken().symbol(), '-LP'));
     }
 
+    /**
+     * @notice Used to puase the contract
+     */
     function pause() external onlyOwner {
         _pause();
     }
 
+    /**
+     * @notice Used to unpause the contract, if paused
+     */
     function unpause() external onlyOwner {
         _unpause();
     }
 
+    /**
+     * @notice Used to check the pool is finalized
+     */
     function isFinalized() external view returns (bool) {
         return _finalized;
     }
 
+    /**
+     * @notice Used to get the token addresses
+     */
     function getTokens() external view _viewlock_ returns (address[BOUND_TOKENS] memory tokens) {
         return _tokens;
     }
 
+    /**
+     * @notice Used to get the leverage of provided token address
+     *
+     * @param token Address of the token, either primary or complement
+     */
     function getLeverage(address token) external view _viewlock_ returns (uint256) {
         return _records[token].leverage;
     }
 
+    /**
+     * @notice Used to get the balance of provided token address
+     *
+     * @param token Address of the token. either primary or complement
+     */
     function getBalance(address token) external view _viewlock_ returns (uint256) {
         return _records[token].balance;
     }
 
+    /**
+     * @notice Sets all type of fees
+     *
+     * @dev Checks the contract is finalised and caller is controller of the pool
+     *
+     * @param _baseFee Fee of the pool contract
+     * @param _maxFee Max fee of the pool while swap
+     * @param _feeAmpPrimary Fee on the primary token
+     * @param _feeAmpComplement Fee on the complement token
+     */
     function setFeeParams(
         uint256 _baseFee,
         uint256 _maxFee,
@@ -198,6 +274,23 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
+    /**
+     * @notice Used to finalise the pool with the required attributes and operations
+     *
+     * @dev Checks, pool is finalised, caller is controller, supplied token balance
+     * should be equal
+     * @dev Binds the token, and its leverage and balance
+     * @dev Calculates the iniyial pool supply, mints and transfer to the controller
+     *
+     * @param _primaryBalance Balance amount of primary token
+     * @param _primaryLeverage Leverage value of primary token
+     * @param _complementBalance  Balance amount of complement token
+     * @param _complementLeverage  Leverage value of complement token
+     * @param _exposureLimitPrimary TODO: Need to check this
+     * @param _exposureLimitComplement TODO: Need to check this
+     * @param _pMin TODO: Need to check this
+     * @param _qMin TODO: Need to check this
+     */
     function finalize(
         uint256 _primaryBalance,
         uint256 _primaryLeverage,
@@ -243,6 +336,11 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _pushPoolShare(msg.sender, initPoolSupply);
     }
 
+    /**
+     * @notice Used to bind the token, and its leverage and balance
+     *
+     * @dev This method will transfer the provided assets balance to pool from controller
+     */
     function bind(
         uint256 index,
         address token,
@@ -259,6 +357,14 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _pullUnderlying(token, msg.sender, balance);
     }
 
+    /**
+     * @notice Used to add liquidity to the pool
+     *
+     * @dev The token amount in of the pool will be calculated and pulled from LP
+     *
+     * @param poolAmountOut Amount of pool token mint and transfer to LP
+     * @param maxAmountsIn Max amount of pool assets an LP can supply
+     */
     function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn)
         external
         _logs_
@@ -284,6 +390,15 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         _pushPoolShare(msg.sender, poolAmountOut);
     }
 
+    /**
+     * @notice Used to remove liquidity from the pool
+     *
+     * @dev The token amount out of the pool will be calculated and pushed to LP,
+     * and pool token are pulled and burned
+     *
+     * @param poolAmountIn Amount of pool token transfer to the pool
+     * @param minAmountsOut Min amount of pool assets an LP wish to redeem
+     */
     function exitPool(uint256 poolAmountIn, uint256[2] calldata minAmountsOut)
         external
         _logs_
@@ -309,130 +424,20 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         }
     }
 
-    function reprice() internal virtual {
-        if (repricingBlock == block.number) return;
-        repricingBlock = block.number;
-
-        Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
-        Record storage complementRecord = _records[_getComplementDerivativeAddress()];
-
-        uint256 estPricePrimary;
-        uint256 estPriceComplement;
-        uint256 estPrice;
-        (estPricePrimary, estPriceComplement, estPrice) = repricer.reprice(volatilitySymbol);
-
-        uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
-        uint256 complementRecordLeverageBefore = complementRecord.leverage;
-
-        uint256 leveragesMultiplied = mul(
-            primaryRecordLeverageBefore,
-            complementRecordLeverageBefore
-        );
-
-        // TODO: Need to lookover the sqrtWrapped equation and calculation
-        primaryRecord.leverage = uint256(
-            repricer.sqrtWrapped(
-                int256(
-                    div(
-                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
-                        primaryRecord.balance
-                    )
-                )
-            )
-        );
-        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
-
-        emit LOG_REPRICE(
-            repricingBlock,
-            primaryRecord.balance,
-            complementRecord.balance,
-            primaryRecordLeverageBefore,
-            complementRecordLeverageBefore,
-            primaryRecord.leverage,
-            complementRecord.leverage,
-            estPricePrimary,
-            estPriceComplement
-            // underlyingStarts: Value of underlying assets (derivative) in USD in the beginning
-            // derivativeVault.underlyingStarts(0)
-        );
-    }
-
-    function calcFee(
-        Record memory inRecord,
-        uint256 tokenAmountIn,
-        Record memory outRecord,
-        uint256 tokenAmountOut,
-        uint256 feeAmp
-    ) internal returns (uint256 fee, int256 expStart) {
-        int256 ifee;
-        (ifee, expStart) = dynamicFee.calc(
-            [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
-            [int256(outRecord.balance), int256(outRecord.leverage), int256(tokenAmountOut)],
-            int256(baseFee),
-            int256(feeAmp),
-            int256(maxFee)
-        );
-        require(ifee > 0, 'BAD_FEE');
-        fee = uint256(ifee);
-    }
-
-    function calcExpStart(int256 _inBalance, int256 _outBalance) internal pure returns (int256) {
-        return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
-    }
-
-    function performSwap(
-        address tokenIn,
-        uint256 tokenAmountIn,
-        address tokenOut,
-        uint256 tokenAmountOut,
-        uint256 spotPriceBefore,
-        uint256 fee
-    ) internal returns (uint256 spotPriceAfter) {
-        Record storage inRecord = _records[tokenIn];
-        Record storage outRecord = _records[tokenOut];
-
-        // TODO: Need to understand this and it's sub/used method
-        requireBoundaryConditions(
-            inRecord,
-            tokenAmountIn,
-            outRecord,
-            tokenAmountOut,
-            _getPrimaryDerivativeAddress() == tokenIn
-                ? exposureLimitPrimary
-                : exposureLimitComplement
-        );
-
-        updateLeverages(inRecord, tokenAmountIn, outRecord, tokenAmountOut);
-
-        inRecord.balance = add(inRecord.balance, tokenAmountIn);
-        outRecord.balance = sub(outRecord.balance, tokenAmountOut);
-
-        spotPriceAfter = calcSpotPrice(
-            getLeveragedBalance(inRecord),
-            getLeveragedBalance(outRecord),
-            0
-        );
-
-        require(spotPriceAfter >= spotPriceBefore, 'MATH_APPROX');
-        require(spotPriceBefore <= div(tokenAmountIn, tokenAmountOut), 'MATH_APPROX_OTHER');
-
-        emit LOG_SWAP(
-            msg.sender,
-            tokenIn,
-            tokenOut,
-            tokenAmountIn,
-            tokenAmountOut,
-            fee,
-            inRecord.balance,
-            outRecord.balance,
-            inRecord.leverage,
-            outRecord.leverage
-        );
-
-        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
-    }
-
+    /**
+     * @notice Used to swap the pool asset
+     *
+     * @dev Checks the token address, should be different
+     * @dev token amoint in should be greater than qMin
+     * @dev reprices the assets
+     * @dev Calculates the token amount out and spot price
+     * @dev Perform swaps
+     *
+     * @param tokenIn Address of the pool asset which the user supply
+     * @param tokenAmountIn Amount of asset the user supply
+     * @param tokenOut Address of the pool asset which the user wants
+     * @param minAmountOut Minimum amount of asset the user wants
+     */
     function swapExactAmountIn(
         address tokenIn,
         uint256 tokenAmountIn,
@@ -499,6 +504,114 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
             spotPriceBefore,
             fee
         );
+    }
+
+    /**
+     * @notice Used to calculate the leverage of primary and complement token
+     *
+     * @dev checks if the repricing block is same, returns for true
+     * @dev Fetches the est price of primary, complement and averaged
+     * @dev Calculates the primary and complement leverage
+     */
+    function reprice() internal virtual {
+        if (repricingBlock == block.number) return;
+        repricingBlock = block.number;
+
+        Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
+        Record storage complementRecord = _records[_getComplementDerivativeAddress()];
+
+        uint256 estPricePrimary;
+        uint256 estPriceComplement;
+        uint256 estPrice;
+        (estPricePrimary, estPriceComplement, estPrice) = repricer.reprice(volatilitySymbol);
+
+        uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
+        uint256 complementRecordLeverageBefore = complementRecord.leverage;
+
+        uint256 leveragesMultiplied = mul(
+            primaryRecordLeverageBefore,
+            complementRecordLeverageBefore
+        );
+
+        // TODO: Need to lookover the sqrtWrapped equation and calculation
+        primaryRecord.leverage = uint256(
+            repricer.sqrtWrapped(
+                int256(
+                    div(
+                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
+                        primaryRecord.balance
+                    )
+                )
+            )
+        );
+        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
+
+        emit LOG_REPRICE(
+            repricingBlock,
+            primaryRecord.balance,
+            complementRecord.balance,
+            primaryRecordLeverageBefore,
+            complementRecordLeverageBefore,
+            primaryRecord.leverage,
+            complementRecord.leverage,
+            estPricePrimary,
+            estPriceComplement
+            // underlyingStarts: Value of underlying assets (derivative) in USD in the beginning
+            // derivativeVault.underlyingStarts(0)
+        );
+    }
+
+    function performSwap(
+        address tokenIn,
+        uint256 tokenAmountIn,
+        address tokenOut,
+        uint256 tokenAmountOut,
+        uint256 spotPriceBefore,
+        uint256 fee
+    ) internal returns (uint256 spotPriceAfter) {
+        Record storage inRecord = _records[tokenIn];
+        Record storage outRecord = _records[tokenOut];
+
+        // TODO: Need to understand this and it's sub/used method
+        requireBoundaryConditions(
+            inRecord,
+            tokenAmountIn,
+            outRecord,
+            tokenAmountOut,
+            _getPrimaryDerivativeAddress() == tokenIn
+                ? exposureLimitPrimary
+                : exposureLimitComplement
+        );
+
+        updateLeverages(inRecord, tokenAmountIn, outRecord, tokenAmountOut);
+
+        inRecord.balance = add(inRecord.balance, tokenAmountIn);
+        outRecord.balance = sub(outRecord.balance, tokenAmountOut);
+
+        spotPriceAfter = calcSpotPrice(
+            getLeveragedBalance(inRecord),
+            getLeveragedBalance(outRecord),
+            0
+        );
+
+        require(spotPriceAfter >= spotPriceBefore, 'MATH_APPROX');
+        require(spotPriceBefore <= div(tokenAmountIn, tokenAmountOut), 'MATH_APPROX_OTHER');
+
+        emit LOG_SWAP(
+            msg.sender,
+            tokenIn,
+            tokenOut,
+            tokenAmountIn,
+            tokenAmountOut,
+            fee,
+            inRecord.balance,
+            outRecord.balance,
+            inRecord.leverage,
+            outRecord.leverage
+        );
+
+        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
+        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
     }
 
 //    // Method temporary is not available for external usage.
@@ -743,5 +856,95 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
             }
         }
         require(success, 'TOKEN_TRANSFER_OUT_FAILED');
+    }
+
+
+    function spow3(int256 _value) internal pure returns (int256) {
+        return (((_value * _value) / iBONE) * _value) / iBONE;
+    }
+
+    function calcExpEndFee(
+        int256[3] memory _inRecord,
+        int256[3] memory _outRecord,
+        int256 _baseFee,
+        int256 _feeAmp,
+        int256 _expEnd
+    ) internal pure returns (int256) {
+        int256 inBalanceLeveraged = getLeveragedBalanceOfFee(_inRecord[0], _inRecord[1]);
+        int256 tokenAmountIn1 =
+            inBalanceLeveraged * (_outRecord[0] - _inRecord[0]) /
+                (inBalanceLeveraged + getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]));
+
+        int256 inBalanceLeveragedChanged = inBalanceLeveraged + _inRecord[2] * iBONE;
+        int256 tokenAmountIn2 =
+            inBalanceLeveragedChanged * (_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) /
+            (inBalanceLeveragedChanged + getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]) - _outRecord[2] * iBONE);
+
+        return (tokenAmountIn1 * _baseFee + tokenAmountIn2 * (_baseFee + _feeAmp * (_expEnd * _expEnd / iBONE) / 3)) /
+            (tokenAmountIn1 + tokenAmountIn2);
+    }
+
+    function getLeveragedBalanceOfFee(int256 _balance, int256 _leverage)
+        internal
+        pure
+        returns (int256)
+    {
+        return _balance * _leverage;
+    }
+
+    function calc(
+        int256[3] memory _inRecord,
+        int256[3] memory _outRecord,
+        int256 _baseFee,
+        int256 _feeAmp,
+        int256 _maxFee
+    ) internal pure returns (int256 fee, int256 expStart) {
+        expStart = calcExpStart(_inRecord[0], _outRecord[0]);
+
+        int256 _expEnd =
+            ((_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) * iBONE) /
+                (_inRecord[0] + _outRecord[0] + _inRecord[2] - _outRecord[2]);
+
+        if (expStart >= 0) {
+            fee =
+                _baseFee +
+                (((_feeAmp) * (spow3(_expEnd) - spow3(expStart))) * iBONE) /
+                (3 * (_expEnd - expStart));
+        } else if (_expEnd <= 0) {
+            fee = _baseFee;
+        } else {
+            fee = calcExpEndFee(_inRecord, _outRecord, _baseFee, _feeAmp, _expEnd);
+        }
+
+        if (_maxFee < fee) {
+            fee = _maxFee;
+        }
+
+        if (iBONE / 1000 > fee) {
+            fee = iBONE / 1000;
+        }
+    }
+
+    function calcFee(
+        Record memory inRecord,
+        uint256 tokenAmountIn,
+        Record memory outRecord,
+        uint256 tokenAmountOut,
+        uint256 feeAmp
+    ) internal returns (uint256 fee, int256 expStart) {
+        int256 ifee;
+        (ifee, expStart) = calc(
+            [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
+            [int256(outRecord.balance), int256(outRecord.leverage), int256(tokenAmountOut)],
+            int256(baseFee),
+            int256(feeAmp),
+            int256(maxFee)
+        );
+        require(ifee > 0, 'BAD_FEE');
+        fee = uint256(ifee);
+    }
+
+    function calcExpStart(int256 _inBalance, int256 _outBalance) internal pure returns (int256) {
+        return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
     }
 }
