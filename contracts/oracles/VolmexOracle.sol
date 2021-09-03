@@ -30,6 +30,9 @@ contract VolmexOracle is OwnableUpgradeable {
      * @dev Check if volatility token price is greater than zero (0)
      * @dev Update the volatility token price corresponding to the volatility token symbol
      * @dev Store the volatility token price corresponding to the block number
+     *
+     * @param _volatilityTokenSymbol String value of the volatility symbol. { eg. ETHV }
+     * @param _volatilityTokenPrice Price of volatility token, between {0, 250}
      */
     function updateVolatilityTokenPrice(
         string calldata _volatilityTokenSymbol,
