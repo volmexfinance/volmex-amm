@@ -197,8 +197,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
 
         denomination = protocol.volatilityCapRatio();
 
-        setName(makeTokenName(protocol.volatilityToken().name(), ' LP'));
-        setSymbol(makeTokenSymbol(protocol.volatilityToken().symbol(), '-LP'));
+        setName(makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
+        setSymbol(makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol()));
     }
 
     /**
