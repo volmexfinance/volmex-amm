@@ -36,7 +36,7 @@ describe("Volmex Oracle", function () {
 
     expect((await receipt.wait()).confirmations).not.equal(0);
 
-    expect(await volmexOracle.volatilityTokenPrice("ETHV")).equal("105");
+    expect(await volmexOracle.volatilityTokenPrice("ETHV")).equal("1050000");
   });
 
   it ("Should revert when volatility price is not in range", async () => {
