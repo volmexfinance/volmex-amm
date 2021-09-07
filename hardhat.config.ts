@@ -10,6 +10,7 @@ import "@openzeppelin/hardhat-upgrades";
 
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
+import "solidity-coverage";
 
 import { config as dotEnvConfig } from "dotenv";
 dotEnvConfig();
@@ -37,7 +38,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1000000,
+            runs: 200,
           },
         },
       },
@@ -49,7 +50,7 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       url: "http://127.0.0.1:8545", // same address and port for both Buidler and Ganache node
-      accounts: ['0xfd70339075a2b35b739074f5fd21464dea33faa47f3b3884724139dcdaad58fe'],
+      accounts: [/* will be provided by ganache */],
       gas: 8000000,
       gasPrice: 1,
     },
