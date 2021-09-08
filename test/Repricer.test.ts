@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
 import { Signer } from 'ethers';
+const { expectRevert } = require("@openzeppelin/test-helpers");
 
 describe('Repricer', function () {
   let accounts: Signer[];
@@ -79,5 +80,25 @@ describe('Repricer', function () {
 
     reciept = await repricer.reprice('ETHV');
     expect(await reciept).not.equal(null);
+  });
+
+  it('Should revert on not contract', async () => {
+    const [ other ] = accounts;
+
+    await expectRevert(
+      repricerFactory.deploy(
+        await other.getAddress(),
+        protocol.address
+      ),
+      'Repricer: Not an oracle contract'
+    );
+
+    await expectRevert(
+      repricerFactory.deploy(
+        volmexOracle.address,
+        await other.getAddress(),
+      ),
+      'Repricer: Not a protocol contract'
+    );
   });
 });
