@@ -30,19 +30,19 @@ describe("Volmex Oracle", function () {
 
   it ("Should update the volatility price", async () => {
     const receipt = await volmexOracle.updateVolatilityTokenPrice(
-      "ETHV",
+      "0",
       "105"
     );
 
     expect((await receipt.wait()).confirmations).not.equal(0);
 
-    expect(await volmexOracle.volatilityTokenPrice("ETHV")).equal("1050000");
+    expect(await volmexOracle.volatilityTokenPriceByIndex("0")).equal("1050000");
   });
 
   it ("Should revert when volatility price is not in range", async () => {
     await expectRevert(
       volmexOracle.updateVolatilityTokenPrice(
-        "ETHV",
+        "0",
         "250"
       ),
       "VolmexOracle: _volatilityTokenPrice should be greater than 0"
@@ -50,7 +50,7 @@ describe("Volmex Oracle", function () {
 
     await expectRevert(
       volmexOracle.updateVolatilityTokenPrice(
-        "BTCV",
+        "1",
         "0"
       ),
       "VolmexOracle: _volatilityTokenPrice should be greater than 0"

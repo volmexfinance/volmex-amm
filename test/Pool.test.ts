@@ -75,7 +75,7 @@ describe('Pool', function () {
     await repricer.deployed();
 
     owner = await accounts[0].getAddress();
-    pool = await poolFactory.deploy(repricer.address, protocol.address, owner);
+    pool = await poolFactory.deploy(repricer.address, protocol.address, owner, '0');
 
     const baseFee = (0.02 * Math.pow(10, 18)).toString();
     const maxFee = (0.4 * Math.pow(10, 18)).toString();
@@ -295,7 +295,8 @@ describe('Pool', function () {
       poolFactory.deploy(
         repricer.address,
         await other.getAddress(),
-        owner
+        owner,
+        '0'
       ),
       'NOT_CONTRACT'
     );
@@ -304,7 +305,8 @@ describe('Pool', function () {
       poolFactory.deploy(
         repricer.address,
         protocol.address,
-        '0x0000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000',
+        '0'
       ),
       'NOT_CONTROLLER'
     );

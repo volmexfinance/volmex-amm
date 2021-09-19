@@ -75,10 +75,10 @@ describe('Repricer', function () {
   });
 
   it('Should call the reprice method', async () => {
-    let reciept = await volmexOracle.updateVolatilityTokenPrice('ETHV', '125');
+    let reciept = await volmexOracle.updateVolatilityTokenPrice('0', '125');
     await reciept.wait();
 
-    reciept = await repricer.reprice('ETHV');
+    reciept = await repricer.reprice('0');
     expect(await reciept).not.equal(null);
   });
 
