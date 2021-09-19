@@ -11,12 +11,8 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 contract VolmexOracle is OwnableUpgradeable {
     event VolatilityTokenPriceUpdated(
         uint256 volatilityTokenPrice,
-        string volatilityTokenSymbol,
-        uint256 indexed priceIndex
+        uint256 indexed volatilityIndex
     );
-
-    // Store the price of volatility of ETHV and BTCV
-    mapping(string => uint256) public volatilityTokenPrice;
 
     // Store the price of volatility by indexes { 0 - ETHV, 1 = BTCV }
     mapping(uint256 => uint256) public volatilityTokenPriceByIndex;
@@ -26,12 +22,12 @@ contract VolmexOracle is OwnableUpgradeable {
      */
     function initialize() external initializer {
         __Ownable_init();
-        volatilityTokenPrice[
-            "ETHV"
+        volatilityTokenPriceByIndex[
+            0
         ] = 125 * 10**4;
 
-        volatilityTokenPrice[
-            "BTCV"
+        volatilityTokenPriceByIndex[
+            1
         ] = 125 * 10**4;
     }
 
@@ -42,12 +38,11 @@ contract VolmexOracle is OwnableUpgradeable {
      * @dev Update the volatility token price corresponding to the volatility token symbol
      * @dev Store the volatility token price corresponding to the block number
      *
-     * @param _volatilityTokenSymbol String value of the volatility symbol. { eg. ETHV }
+     * @param _volatilityIndex Number value of the volatility index. { eg. 0 }
      * @param _volatilityTokenPrice Price of volatility token, between {0, 250}
      */
     function updateVolatilityTokenPrice(
-        string calldata _volatilityTokenSymbol,
-        uint256 _priceIndex,
+        uint256 _volatilityIndex,
         uint256 _volatilityTokenPrice
     ) external onlyOwner {
         require(
@@ -55,18 +50,13 @@ contract VolmexOracle is OwnableUpgradeable {
             "VolmexOracle: _volatilityTokenPrice should be greater than 0"
         );
 
-        volatilityTokenPrice[
-            _volatilityTokenSymbol
-        ] = _volatilityTokenPrice * 10**4;
-
         volatilityTokenPriceByIndex[
-            _priceIndex
+            _volatilityIndex
         ] = _volatilityTokenPrice * 10**4;
 
         emit VolatilityTokenPriceUpdated(
             _volatilityTokenPrice,
-            _volatilityTokenSymbol,
-            _priceIndex
+            _volatilityIndex
         );
     }
 }
