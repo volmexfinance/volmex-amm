@@ -114,8 +114,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     // Address of the volmex protocol contract
     IVolmexProtocol public protocol;
 
-    // String value of the volatility token symbol
-    string public volatilitySymbol;
+    // Number value of the volatility token index at oracle { 0 - ETHV, 1 - BTCV }
+    uint256 public volatilityIndex;
 
     /**
      * @notice Used to log the callee's sig, address and data
@@ -171,7 +171,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
      *
      * @dev Checks, the protocol is a contract
      * @dev Sets repricer, protocol and controller addresses
-     * @dev Sets upperBoundary, volatilitySymbol and denomination
+     * @dev Sets upperBoundary, volatilityIndex and denomination
      * @dev Make the Pool token name and symbol
      *
      * @param _repricer Address of the volmex repricer contract
@@ -181,7 +181,8 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     constructor(
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
-        address _controller
+        address _controller,
+        uint256 _volatilityIndex
     ) public {
         repricer = _repricer;
 
@@ -193,7 +194,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
 
         upperBoundary = protocol.volatilityCapRatio() * BONE;
 
-        volatilitySymbol = protocol.volatilityToken().symbol();
+        volatilityIndex = _volatilityIndex;
 
         denomination = protocol.volatilityCapRatio();
 
@@ -526,7 +527,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         uint256 estPricePrimary;
         uint256 estPriceComplement;
         uint256 estPrice;
-        (estPricePrimary, estPriceComplement, estPrice) = repricer.reprice(volatilitySymbol);
+        (estPricePrimary, estPriceComplement, estPrice) = repricer.reprice(volatilityIndex);
 
         uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
         uint256 complementRecordLeverageBefore = complementRecord.leverage;
