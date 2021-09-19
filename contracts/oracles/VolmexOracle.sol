@@ -11,11 +11,15 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 contract VolmexOracle is OwnableUpgradeable {
     event VolatilityTokenPriceUpdated(
         uint256 volatilityTokenPrice,
-        string volatilityTokenSymbol
+        string volatilityTokenSymbol,
+        uint256 indexed priceIndex
     );
 
     // Store the price of volatility of ETHV and BTCV
     mapping(string => uint256) public volatilityTokenPrice;
+
+    // Store the price of volatility by indexes { 0 - ETHV, 1 = BTCV }
+    mapping(uint256 => uint256) public volatilityTokenPriceByIndex;
 
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
@@ -43,6 +47,7 @@ contract VolmexOracle is OwnableUpgradeable {
      */
     function updateVolatilityTokenPrice(
         string calldata _volatilityTokenSymbol,
+        uint256 _priceIndex,
         uint256 _volatilityTokenPrice
     ) external onlyOwner {
         require(
@@ -54,9 +59,14 @@ contract VolmexOracle is OwnableUpgradeable {
             _volatilityTokenSymbol
         ] = _volatilityTokenPrice * 10**4;
 
+        volatilityTokenPriceByIndex[
+            _priceIndex
+        ] = _volatilityTokenPrice * 10**4;
+
         emit VolatilityTokenPriceUpdated(
             _volatilityTokenPrice,
-            _volatilityTokenSymbol
+            _volatilityTokenSymbol,
+            _priceIndex
         );
     }
 }
