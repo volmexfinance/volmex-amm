@@ -5,7 +5,7 @@ pragma solidity =0.7.6;
 interface IVolmexRepricer {
     function protocolVolatilityCapRatio() external view returns (uint256);
 
-    function reprice(string calldata _volatilitySymbol)
+    function reprice(uint256 _volatilityIndex)
         external
         view
         returns (

@@ -45,9 +45,9 @@ contract VolmexRepricer is NumExtra {
      *
      * @dev Calculates the price of complement asset. { volatility cap ratio - primary asset price }
      *
-     * @param _volatilitySymbol String value of volatility token symbol { eg. ETHV }
+     * @param _volatilityIndex Number value of the volatility index. { eg. 0 }
      */
-    function reprice(string calldata _volatilitySymbol)
+    function reprice(uint256 _volatilityIndex)
         external
         view
         returns (
@@ -56,7 +56,7 @@ contract VolmexRepricer is NumExtra {
             uint256 estPrice
         )
     {
-        estPrimaryPrice = oracle.volatilityTokenPrice(_volatilitySymbol);
+        estPrimaryPrice = oracle.volatilityTokenPriceByIndex(_volatilityIndex);
 
         estComplementPrice = protocolVolatilityCapRatio.sub(estPrimaryPrice);
 
