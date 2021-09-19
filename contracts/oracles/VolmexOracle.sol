@@ -22,6 +22,13 @@ contract VolmexOracle is OwnableUpgradeable {
      */
     function initialize() external initializer {
         __Ownable_init();
+        volatilityTokenPrice[
+            "ETHV"
+        ] = 125 * 10**4;
+
+        volatilityTokenPrice[
+            "BTCV"
+        ] = 125 * 10**4;
     }
 
     /**
