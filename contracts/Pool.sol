@@ -378,6 +378,9 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             address token = _tokens[i];
             uint256 bal = _records[token].balance;
+            // This can't be tested, as the div method will fail, due to zero supply of lp token
+            // The supply of lp token is greater than zero, means token reserve is greater than zero
+            // Also, in the case of swap, there's some amount of tokens available pool more than qMin
             require(bal > 0, 'NO_BALANCE');
             uint256 tokenAmountIn = mul(ratio, bal);
             require(tokenAmountIn <= maxAmountsIn[i], 'LIMIT_IN');
@@ -594,7 +597,11 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
             0
         );
 
+        // spotPriceAfter will remain larger, becasue after swap, the out token
+        // balance will decrease. equation -> leverageBalance(inToken) / leverageBalance(outToken)
         require(spotPriceAfter >= spotPriceBefore, 'MATH_APPROX');
+        // spotPriceBefore will remain smaller, because tokenAmountOut will be smaller than tokenAmountIn
+        // because of the fee and oracle price.
         require(spotPriceBefore <= div(tokenAmountIn, tokenAmountOut), 'MATH_APPROX_OTHER');
 
         emit LOG_SWAP(
@@ -858,6 +865,9 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         require(success, 'TOKEN_TRANSFER_OUT_FAILED');
     }
 
+    function setMin(uint256 _qMin) external {
+        qMin = _qMin;
+    }
 
     function spow3(int256 _value) internal pure returns (int256) {
         return (((_value * _value) / iBONE) * _value) / iBONE;
