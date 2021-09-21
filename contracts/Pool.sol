@@ -5,6 +5,7 @@ pragma solidity 0.7.6;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Pausable.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
+import '@openzeppelin/contracts/introspection/ERC165Checker.sol';
 import 'hardhat/console.sol';
 
 import './libs/complifi/tokens/IERC20Metadata.sol';
@@ -182,10 +183,12 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
         address _controller,
-        uint256 _volatilityIndex
+        uint256 _volatilityIndex,
+        bytes4 _interfaceId
     ) public {
         repricer = _repricer;
 
+        ERC165Checker.supportsInterface(address(_protocol), _interfaceId);
         require(Address.isContract(address(_protocol)), 'NOT_CONTRACT');
         protocol = _protocol;
 
