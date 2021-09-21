@@ -66,7 +66,10 @@ describe('Repricer', function () {
     volmexOracle = await upgrades.deployProxy(volmexOracleFactory);
     await volmexOracle.deployed();
 
-    repricer = await repricerFactory.deploy(volmexOracle.address, protocol.address);
+    repricer = await upgrades.deployProxy(repricerFactory, [
+      volmexOracle.address,
+      protocol.address
+    ]);
   });
 
   it('Should deploy repricer', async () => {
@@ -86,18 +89,18 @@ describe('Repricer', function () {
     const [ other ] = accounts;
 
     await expectRevert(
-      repricerFactory.deploy(
+      upgrades.deployProxy(repricerFactory, [
         await other.getAddress(),
         protocol.address
-      ),
+      ]),
       'Repricer: Not an oracle contract'
     );
 
     await expectRevert(
-      repricerFactory.deploy(
+      upgrades.deployProxy(repricerFactory, [
         volmexOracle.address,
         await other.getAddress(),
-      ),
+      ]),
       'Repricer: Not a protocol contract'
     );
   });
