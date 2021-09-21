@@ -2,8 +2,9 @@
 
 pragma solidity =0.7.6;
 
+import '@openzeppelin/contracts-upgradeable/proxy/Initializable.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
-import '@openzeppelin/contracts/utils/Address.sol';
+import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
 
 import '../oracles/IVolmexOracle.sol';
 import '../interfaces/IVolmexProtocol.sol';
@@ -13,7 +14,7 @@ import '../NumExtra.sol';
  * @title Volmex Repricer contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexRepricer is NumExtra {
+contract VolmexRepricer is Initializable, NumExtra {
     using SafeMath for uint256;
 
     // Instance of oracle contract
@@ -25,16 +26,16 @@ contract VolmexRepricer is NumExtra {
     uint256 public protocolVolatilityCapRatio;
 
     /**
-     * @notice Constructs the contract, setting the required state variables
+     * @notice Initializes the contract, setting the required state variables
      *
      * @param _oracle Address of the Volmex Oracle contract
      * @param _protocol Address of the Volmex Protocol contract
      */
-    constructor(IVolmexOracle _oracle, IVolmexProtocol _protocol) {
-        require(Address.isContract(address(_oracle)), 'Repricer: Not an oracle contract');
+    function initialize(IVolmexOracle _oracle, IVolmexProtocol _protocol) external initializer {
+        require(AddressUpgradeable.isContract(address(_oracle)), 'Repricer: Not an oracle contract');
         oracle = _oracle;
 
-        require(Address.isContract(address(_protocol)), 'Repricer: Not a protocol contract');
+        require(AddressUpgradeable.isContract(address(_protocol)), 'Repricer: Not a protocol contract');
         protocol = _protocol;
 
         protocolVolatilityCapRatio = protocol.volatilityCapRatio().mul(VOLATILITY_PRICE_PRECISION);
