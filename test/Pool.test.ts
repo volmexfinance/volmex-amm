@@ -71,11 +71,20 @@ describe('Pool', function () {
     volmexOracle = await upgrades.deployProxy(volmexOracleFactory);
     await volmexOracle.deployed();
 
-    repricer = await repricerFactory.deploy(volmexOracle.address, protocol.address);
+    repricer = await upgrades.deployProxy(repricerFactory, [
+      volmexOracle.address,
+      protocol.address
+    ]);
     await repricer.deployed();
 
     owner = await accounts[0].getAddress();
-    pool = await poolFactory.deploy(repricer.address, protocol.address, owner, '0');
+    pool = await upgrades.deployProxy(poolFactory, [
+      repricer.address,
+      protocol.address,
+      owner,
+      '0',
+      '0xffffffff'
+    ]);
 
     const baseFee = (0.02 * Math.pow(10, 18)).toString();
     const maxFee = (0.4 * Math.pow(10, 18)).toString();
@@ -292,22 +301,24 @@ describe('Pool', function () {
     const [ other ] = accounts;
 
     await expectRevert(
-      poolFactory.deploy(
+      upgrades.deployProxy(poolFactory, [
         repricer.address,
         await other.getAddress(),
         owner,
-        '0'
-      ),
+        '0',
+        '0x01ffc9a7'
+      ]),
       'NOT_CONTRACT'
     );
 
     await expectRevert(
-      poolFactory.deploy(
+      upgrades.deployProxy(poolFactory, [
         repricer.address,
         protocol.address,
         '0x0000000000000000000000000000000000000000',
-        '0'
-      ),
+        '0',
+        '0x01ffc9a7'
+      ]),
       'NOT_CONTROLLER'
     );
   });
