@@ -2,11 +2,10 @@
 
 pragma solidity 0.7.6;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/utils/Pausable.sol';
-import '@openzeppelin/contracts/utils/Address.sol';
-import '@openzeppelin/contracts/introspection/ERC165Checker.sol';
-import 'hardhat/console.sol';
+import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/introspection/ERC165CheckerUpgradeable.sol';
 
 import './libs/complifi/tokens/IERC20Metadata.sol';
 import './libs/complifi/tokens/EIP20NonStandardInterface.sol';
@@ -21,7 +20,7 @@ import './interfaces/IVolmexProtocol.sol';
  * @title Volmex Pool Contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator {
+contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, TokenMetadataGenerator {
     event LOG_SWAP(
         address indexed caller,
         address indexed tokenIn,
@@ -168,7 +167,7 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
     }
 
     /**
-     * @notice Constructs the pool contract with required elements
+     * @notice Initialize the pool contract with required elements
      *
      * @dev Checks, the protocol is a contract
      * @dev Sets repricer, protocol and controller addresses
@@ -178,22 +177,27 @@ contract Pool is Ownable, Pausable, Bronze, Token, Math, TokenMetadataGenerator 
      * @param _repricer Address of the volmex repricer contract
      * @param _protocol Address of the volmex protocol contract
      * @param _controller Address of the pool contract controller
+     * @param _volatilityIndex Index of the volatility price in oracle
+     * @param _protocolInterfaceId Bytes4 hash of the protocol's interface
      */
-    constructor(
+    function initialize(
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
         address _controller,
         uint256 _volatilityIndex,
-        bytes4 _interfaceId
-    ) public {
+        bytes4 _protocolInterfaceId
+    ) external initializer {
         repricer = _repricer;
 
-        ERC165Checker.supportsInterface(address(_protocol), _interfaceId);
-        require(Address.isContract(address(_protocol)), 'NOT_CONTRACT');
+        ERC165CheckerUpgradeable.supportsInterface(address(_protocol), _protocolInterfaceId);
+        require(AddressUpgradeable.isContract(address(_protocol)), 'NOT_CONTRACT');
         protocol = _protocol;
 
         require(_controller != address(0), 'NOT_CONTROLLER');
         controller = _controller;
+
+        __Ownable_init();
+        __Pausable_init_unchained();
 
         upperBoundary = protocol.volatilityCapRatio() * BONE;
 
