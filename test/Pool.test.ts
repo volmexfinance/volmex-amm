@@ -82,8 +82,7 @@ describe('Pool', function () {
       repricer.address,
       protocol.address,
       owner,
-      '0',
-      '0xffffffff'
+      '0'
     ]);
 
     const baseFee = (0.02 * Math.pow(10, 18)).toString();
@@ -305,8 +304,7 @@ describe('Pool', function () {
         repricer.address,
         await other.getAddress(),
         owner,
-        '0',
-        '0x01ffc9a7'
+        '0'
       ]),
       'NOT_CONTRACT'
     );
@@ -316,8 +314,7 @@ describe('Pool', function () {
         repricer.address,
         protocol.address,
         '0x0000000000000000000000000000000000000000',
-        '0',
-        '0x01ffc9a7'
+        '0'
       ]),
       'NOT_CONTROLLER'
     );

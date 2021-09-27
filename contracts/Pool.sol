@@ -5,7 +5,7 @@ pragma solidity 0.7.6;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/introspection/ERC165CheckerUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/introspection/ERC165Upgradeable.sol';
 
 import './libs/complifi/tokens/IERC20Metadata.sol';
 import './libs/complifi/tokens/EIP20NonStandardInterface.sol';
@@ -13,8 +13,8 @@ import './libs/complifi/tokens/TokenMetadataGenerator.sol';
 import './Token.sol';
 import './Math.sol';
 import './repricers/IVolmexRepricer.sol';
-import './libs/complifi/IVault.sol';
 import './interfaces/IVolmexProtocol.sol';
+import './IPool.sol';
 
 /**
  * @title Volmex Pool Contract
@@ -184,13 +184,10 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
         address _controller,
-        uint256 _volatilityIndex,
-        bytes4 _protocolInterfaceId
+        uint256 _volatilityIndex
     ) external initializer {
         repricer = _repricer;
 
-        ERC165CheckerUpgradeable.supportsInterface(address(_protocol), _protocolInterfaceId);
-        require(AddressUpgradeable.isContract(address(_protocol)), 'NOT_CONTRACT');
         protocol = _protocol;
 
         require(_controller != address(0), 'NOT_CONTROLLER');
@@ -207,6 +204,14 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
 
         setName(makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
         setSymbol(makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol()));
+    }
+
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
+        return
+            interfaceId == type(IPool).interfaceId;
     }
 
     /**

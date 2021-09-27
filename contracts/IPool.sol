@@ -13,10 +13,13 @@
 
 pragma solidity 0.7.6;
 
-import './Token.sol';
-import './libs/complifi/IVault.sol';
+import '@openzeppelin/contracts-upgradeable/introspection/IERC165Upgradeable.sol';
 
-interface IPool is IERC20 {
+import './Token.sol';
+import './interfaces/IVolmexProtocol.sol';
+import './repricers/IVolmexRepricer.sol';
+
+interface IPool is IERC20, IERC165Upgradeable {
     function repricingBlock() external view returns (uint256);
 
     function baseFee() external view returns (uint256);
@@ -35,15 +38,9 @@ interface IPool is IERC20 {
 
     function exposureLimitComplement() external view returns (uint256);
 
-    function repricerParam1() external view returns (uint256);
+    function protocol() external view returns (IVolmexProtocol);
 
-    function repricerParam2() external view returns (uint256);
-
-    function derivativeVault() external view returns (IVault);
-
-    function dynamicFee() external view returns (address);
-
-    function repricer() external view returns (address);
+    function repricer() external view returns (IVolmexRepricer);
 
     function isFinalized() external view returns (bool);
 
@@ -54,10 +51,6 @@ interface IPool is IERC20 {
     function getLeverage(address token) external view returns (uint256);
 
     function getBalance(address token) external view returns (uint256);
-
-    function getController() external view returns (address);
-
-    function setController(address manager) external;
 
     function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn) external;
 
