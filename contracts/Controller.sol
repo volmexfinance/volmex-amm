@@ -11,10 +11,7 @@ import './interfaces/IERC20Modified.sol';
 contract Controller is OwnableUpgradeable {
     event AdminFeeUpdated(uint256 adminFee);
 
-    event AssetSwaped(
-        uint256 stablecoinQuantity,
-        uint256 volatilityTokenOut
-    );
+    event AssetSwaped(uint256 stablecoinQuantity, uint256 volatilityTokenOut);
 
     IERC20Modified public stablecoin;
     IPool public pool;
@@ -53,32 +50,67 @@ contract Controller is OwnableUpgradeable {
 
         protocol.collateralize(_amount);
 
-        uint256 swapAmount = calculateAssetQuantity(_amount, protocol.issuanceFees());
+        uint256 volatilityAmount = calculateAssetQuantity(_amount, protocol.issuanceFees(), true);
 
         IERC20Modified volatilityToken = protocol.volatilityToken();
         IERC20Modified inverseVolatilityToken = protocol.inverseVolatilityToken();
-        inverseVolatilityToken.approve(address(pool), swapAmount);
+        inverseVolatilityToken.approve(address(pool), volatilityAmount);
         uint256 tokenAmountOut;
         (tokenAmountOut, ) = pool.swapExactAmountIn(
             address(protocol.inverseVolatilityToken()),
-            swapAmount,
+            volatilityAmount,
             address(protocol.volatilityToken()),
-            swapAmount / 2
+            volatilityAmount / 2
         );
 
-        volatilityToken.transfer(msg.sender, swapAmount + tokenAmountOut);
+        transferAsset(volatilityToken, volatilityAmount + tokenAmountOut);
 
-        emit AssetSwaped(
-            _amount,
-            swapAmount + tokenAmountOut
+        emit AssetSwaped(_amount, volatilityAmount + tokenAmountOut);
+    }
+
+    function swapVolatilityToCollateral(uint256 _amount) external {
+        IERC20Modified volatilityToken = protocol.volatilityToken();
+        IERC20Modified inverseVolatilityToken = protocol.inverseVolatilityToken();
+
+        volatilityToken.transferFrom(msg.sender, address(this), _amount);
+
+        volatilityToken.approve(address(pool), _amount / 2);
+
+        uint256 tokenAmountOut;
+        (tokenAmountOut, ) = pool.swapExactAmountIn(
+            address(protocol.volatilityToken()),
+            _amount / 2,
+            address(protocol.inverseVolatilityToken()),
+            _amount / 3
         );
+
+        uint256 collateralAmount = calculateAssetQuantity(
+            tokenAmountOut * _volatilityCapRatio,
+            protocol.redeemFees(),
+            false
+        );
+
+        protocol.redeem(tokenAmountOut);
+
+        transferAsset(stablecoin, collateralAmount);
+        transferAsset(volatilityToken, (_amount / 2) - tokenAmountOut);
+
+        emit AssetSwaped(_amount, collateralAmount);
     }
 
     //solium-disable-next-line
-    function calculateAssetQuantity(uint256 _amount, uint256 _feePercent) internal view returns (uint256) {
+    function calculateAssetQuantity(
+        uint256 _amount,
+        uint256 _feePercent,
+        bool isVolatility
+    ) internal view returns (uint256) {
         uint256 fee = (_amount * _feePercent) / 10000;
         _amount = _amount - fee;
 
-        return _amount / _volatilityCapRatio;
+        return isVolatility ? _amount / _volatilityCapRatio : _amount;
+    }
+
+    function transferAsset(IERC20Modified _token, uint256 _amount) internal {
+        _token.transfer(msg.sender, _amount);
     }
 }
