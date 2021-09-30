@@ -3,6 +3,7 @@
 pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import 'hardhat/console.sol';
 
 import './IPool.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -11,7 +12,7 @@ import './interfaces/IERC20Modified.sol';
 contract Controller is OwnableUpgradeable {
     event AdminFeeUpdated(uint256 adminFee);
 
-    event AssetSwaped(uint256 stablecoinQuantity, uint256 volatilityTokenOut);
+    event AssetSwaped(uint256 assetInAmount, uint256 assetOutAmount);
 
     IERC20Modified public stablecoin;
     IPool public pool;
@@ -44,7 +45,7 @@ contract Controller is OwnableUpgradeable {
         emit AdminFeeUpdated(_adminFee);
     }
 
-    function swapCollateralToVolatility(uint256 _amount) external {
+    function swapCollateralToVolatility(uint256 _amount, bool _isInverseRequired) external {
         stablecoin.transferFrom(msg.sender, address(this), _amount);
         stablecoin.approve(address(protocol), _amount);
 
@@ -54,16 +55,30 @@ contract Controller is OwnableUpgradeable {
 
         IERC20Modified volatilityToken = protocol.volatilityToken();
         IERC20Modified inverseVolatilityToken = protocol.inverseVolatilityToken();
-        inverseVolatilityToken.approve(address(pool), volatilityAmount);
-        uint256 tokenAmountOut;
-        (tokenAmountOut, ) = pool.swapExactAmountIn(
-            address(protocol.inverseVolatilityToken()),
-            volatilityAmount,
-            address(protocol.volatilityToken()),
-            volatilityAmount / 2
-        );
 
-        transferAsset(volatilityToken, volatilityAmount + tokenAmountOut);
+        uint256 tokenAmountOut;
+        if (_isInverseRequired) {
+            volatilityToken.approve(address(pool), volatilityAmount);
+            (tokenAmountOut, ) = pool.swapExactAmountIn(
+                address(protocol.volatilityToken()),
+                volatilityAmount,
+                address(protocol.inverseVolatilityToken()),
+                volatilityAmount / 2
+            );
+        } else {
+            inverseVolatilityToken.approve(address(pool), volatilityAmount);
+            (tokenAmountOut, ) = pool.swapExactAmountIn(
+                address(protocol.inverseVolatilityToken()),
+                volatilityAmount,
+                address(protocol.volatilityToken()),
+                volatilityAmount / 2
+            );
+        }
+
+        transferAsset(
+            _isInverseRequired ? inverseVolatilityToken : volatilityToken,
+            volatilityAmount + tokenAmountOut
+        );
 
         emit AssetSwaped(_amount, volatilityAmount + tokenAmountOut);
     }
