@@ -178,7 +178,6 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
      * @param _protocol Address of the volmex protocol contract
      * @param _controller Address of the pool contract controller
      * @param _volatilityIndex Index of the volatility price in oracle
-     * @param _protocolInterfaceId Bytes4 hash of the protocol's interface
      */
     function initialize(
         IVolmexRepricer _repricer,
