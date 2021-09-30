@@ -19,6 +19,8 @@ describe('Pool', function () {
   let volatilityFactory: any;
   let volatility: any;
   let inverseVolatility: any;
+  let controllerFactory:  any;
+  let controller: any;
 
   this.beforeAll(async function () {
     accounts = await ethers.getSigners();
@@ -34,6 +36,8 @@ describe('Pool', function () {
     volatilityFactory = await ethers.getContractFactory('VolmexPositionToken');
 
     protocolFactory = await ethers.getContractFactory('VolmexProtocol');
+
+    controllerFactory = await ethers.getContractFactory('Controller');
   });
 
   this.beforeEach(async function () {
@@ -58,6 +62,7 @@ describe('Pool', function () {
       '250',
     ]);
     await protocol.deployed();
+    await (await protocol.updateFees('10', '30')).wait();
 
     const VOLMEX_PROTOCOL_ROLE =
       '0x33ba6006595f7ad5c59211bde33456cab351f47602fc04f644c8690bc73c4e16';
@@ -208,6 +213,13 @@ describe('Pool', function () {
       qMin
     );
     await finalizeReceipt.wait();
+
+    controller = await upgrades.deployProxy(controllerFactory, [
+      collateral.address,
+      pool.address,
+      protocol.address
+    ]);
+    await controller.deployed();
   });
 
   it('should deploy pool', async () => {
@@ -457,5 +469,25 @@ describe('Pool', function () {
       ),
       'BOUNDARY_EXPOSURE'
     );
+  });
+
+  it('should deploy controller', async () => {
+    const controllerReceipt = await controller.deployed();
+    expect(controllerReceipt.confirmations).not.equal(0);
+  });
+
+  it('Should swap the collateral to volatility', async () => {
+    const joinReceipt = await pool.joinPool(
+      '4000000000000000000000',
+      ['16000000000000000000','16000000000000000000']
+    );
+    await joinReceipt.wait();
+
+    await (await collateral.approve(controller.address, '10000000000000000000000')).wait();
+
+    const swapReceipt = await controller.swapCollateralToVolatility(
+      '250000000000000000000',
+    );
+    const {events} = await swapReceipt.wait();
   });
 });
