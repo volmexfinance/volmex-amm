@@ -3,7 +3,6 @@
 pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import 'hardhat/console.sol';
 
 import './IPool.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -83,21 +82,32 @@ contract Controller is OwnableUpgradeable {
         emit AssetSwaped(_amount, volatilityAmount + tokenAmountOut);
     }
 
-    function swapVolatilityToCollateral(uint256 _amount) external {
+    function swapVolatilityToCollateral(uint256 _amount, bool _isInverseRequired) external {
         IERC20Modified volatilityToken = protocol.volatilityToken();
         IERC20Modified inverseVolatilityToken = protocol.inverseVolatilityToken();
 
-        volatilityToken.transferFrom(msg.sender, address(this), _amount);
-
-        volatilityToken.approve(address(pool), _amount / 2);
-
         uint256 tokenAmountOut;
-        (tokenAmountOut, ) = pool.swapExactAmountIn(
-            address(protocol.volatilityToken()),
-            _amount / 2,
-            address(protocol.inverseVolatilityToken()),
-            _amount / 3
-        );
+        if (_isInverseRequired) {
+            volatilityToken.transferFrom(msg.sender, address(this), _amount);
+            volatilityToken.approve(address(pool), _amount / 2);
+
+            (tokenAmountOut, ) = pool.swapExactAmountIn(
+                address(protocol.volatilityToken()),
+                _amount / 2,
+                address(protocol.inverseVolatilityToken()),
+                _amount / 10
+            );
+        } else {
+            inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
+            inverseVolatilityToken.approve(address(pool), _amount / 2);
+
+            (tokenAmountOut, ) = pool.swapExactAmountIn(
+                address(protocol.inverseVolatilityToken()),
+                _amount / 2,
+                address(protocol.volatilityToken()),
+                _amount / 10
+            );
+        }
 
         uint256 collateralAmount = calculateAssetQuantity(
             tokenAmountOut * _volatilityCapRatio,
@@ -108,7 +118,10 @@ contract Controller is OwnableUpgradeable {
         protocol.redeem(tokenAmountOut);
 
         transferAsset(stablecoin, collateralAmount);
-        transferAsset(volatilityToken, (_amount / 2) - tokenAmountOut);
+        transferAsset(
+            _isInverseRequired ? volatilityToken : inverseVolatilityToken,
+            (_amount / 2) - tokenAmountOut
+        );
 
         emit AssetSwaped(_amount, collateralAmount);
     }
