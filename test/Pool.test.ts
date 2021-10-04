@@ -487,7 +487,51 @@ describe('Pool', function () {
 
     const swapReceipt = await controller.swapCollateralToVolatility(
       '250000000000000000000',
+      true
     );
     const {events} = await swapReceipt.wait();
+    let data;
+    events.forEach((log: any) => {
+      if (log['event'] == 'AssetSwaped') {
+        data = log['data'];
+      }
+    })
+    const logData = ethers.utils.defaultAbiCoder.decode(
+      [ 'uint256' , 'uint256' ],
+      data
+    );
+    console.log(logData.toString());
+  });
+
+  it('Should swap volatility to collateral', async () => {
+    const joinReceipt = await pool.joinPool(
+      '4000000000000000000000',
+      ['16000000000000000000','16000000000000000000']
+    );
+    await joinReceipt.wait();
+
+    await (await inverseVolatility.approve(controller.address, '10000000000000000000')).wait();
+    await (await volatility.approve(controller.address, '10000000000000000000')).wait();
+
+    const collateralBefore = Number(await collateral.balanceOf(owner));
+
+    const swapReceipt = await controller.swapVolatilityToCollateral(
+      '2000000000000000000', false
+    );
+    const {events} = await swapReceipt.wait();
+    const collateralAfter = Number(await collateral.balanceOf(owner));
+
+    let data;
+    events.forEach((log: any) => {
+      if (log['event'] == 'AssetSwaped') {
+        data = log['data'];
+      }
+    })
+    const logData = ethers.utils.defaultAbiCoder.decode(
+      [ 'uint256' , 'uint256' ],
+      data
+    );
+
+    expect(collateralAfter - collateralBefore).be.closeTo(Number(logData[1].toString()), 60000);
   });
 });
