@@ -820,6 +820,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         EIP20NonStandardInterface(erc20).transferFrom(from, address(this), amount);
 
         bool success;
+        //solium-disable-next-line
         assembly {
             switch returndatasize()
             case 0 {
@@ -858,6 +859,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         EIP20NonStandardInterface(erc20).transfer(to, amount);
 
         bool success;
+        //solium-disable-next-line
         assembly {
             switch returndatasize()
             case 0 {
