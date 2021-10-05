@@ -7,9 +7,9 @@ import '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/introspection/ERC165Upgradeable.sol';
 
-import './libs/complifi/tokens/IERC20Metadata.sol';
-import './libs/complifi/tokens/EIP20NonStandardInterface.sol';
-import './libs/complifi/tokens/TokenMetadataGenerator.sol';
+import './libs/tokens/IERC20Metadata.sol';
+import './libs/tokens/EIP20NonStandardInterface.sol';
+import './libs/tokens/TokenMetadataGenerator.sol';
 import './Token.sol';
 import './Math.sol';
 import './repricers/IVolmexRepricer.sol';
