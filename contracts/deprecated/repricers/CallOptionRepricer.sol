@@ -5,9 +5,9 @@ pragma solidity 0.7.6;
 import '@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import './IRepricer.sol';
-import '../Const.sol';
-import '../Num.sol';
-import '../NumExtra.sol';
+import '../../Const.sol';
+import '../../Num.sol';
+import '../../NumExtra.sol';
 
 contract CallOptionRepricer is IRepricer, Const, Num, NumExtra {
     int256 public constant NEGATIVE_INFINITY = type(int256).min;
