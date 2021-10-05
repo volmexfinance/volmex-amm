@@ -885,10 +885,6 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         require(success, 'TOKEN_TRANSFER_OUT_FAILED');
     }
 
-    function setMin(uint256 _qMin) external {
-        qMin = _qMin;
-    }
-
     function spow3(int256 _value) internal pure returns (int256) {
         return (((_value * _value) / iBONE) * _value) / iBONE;
     }
