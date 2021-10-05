@@ -4,8 +4,7 @@ pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/introspection/ERC165Upgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/introspection/ERC165CheckerUpgradeable.sol';
 
 import './libs/tokens/IERC20Metadata.sol';
 import './libs/tokens/EIP20NonStandardInterface.sol';
@@ -117,6 +116,8 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
     // Number value of the volatility token index at oracle { 0 - ETHV, 1 - BTCV }
     uint256 public volatilityIndex;
 
+    bytes4 private constant _INTERFACE_ID_ERC165 = 0x01ffc9a7;
+
     /**
      * @notice Used to log the callee's sig, address and data
      */
@@ -185,12 +186,17 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         address _controller,
         uint256 _volatilityIndex
     ) external initializer {
+        require(
+            ERC165CheckerUpgradeable.supportsInterface(address(_repricer), _INTERFACE_ID_ERC165),
+            'NOT_SUPPORTED'
+        );
         repricer = _repricer;
-
-        protocol = _protocol;
 
         require(_controller != address(0), 'NOT_CONTROLLER');
         controller = _controller;
+
+        // NOTE: Intentionally skipped require check for protocol
+        protocol = _protocol;
 
         __Ownable_init();
         __Pausable_init_unchained();

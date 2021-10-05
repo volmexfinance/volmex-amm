@@ -2,7 +2,9 @@
 
 pragma solidity =0.7.6;
 
-interface IVolmexRepricer {
+import '@openzeppelin/contracts-upgradeable/introspection/IERC165Upgradeable.sol';
+
+interface IVolmexRepricer is IERC165Upgradeable {
     function protocolVolatilityCapRatio() external view returns (uint256);
 
     function reprice(uint256 _volatilityIndex)

@@ -2,9 +2,9 @@
 
 pragma solidity =0.7.6;
 
-import '@openzeppelin/contracts-upgradeable/proxy/Initializable.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/introspection/ERC165Upgradeable.sol';
 
 import '../oracles/IVolmexOracle.sol';
 import '../interfaces/IVolmexProtocol.sol';
@@ -14,7 +14,7 @@ import '../NumExtra.sol';
  * @title Volmex Repricer contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexRepricer is Initializable, NumExtra {
+contract VolmexRepricer is ERC165Upgradeable, NumExtra {
     using SafeMath for uint256;
 
     // Instance of oracle contract
@@ -39,6 +39,7 @@ contract VolmexRepricer is Initializable, NumExtra {
         protocol = _protocol;
 
         protocolVolatilityCapRatio = protocol.volatilityCapRatio().mul(VOLATILITY_PRICE_PRECISION);
+        __ERC165_init();
     }
 
     /**
