@@ -71,6 +71,12 @@ const config: HardhatUserConfig = {
       gasPrice: 200000000000,
       blockGasLimit: 8000000,
       timeout: 10800000
+    },
+    kovan: {
+      url: `https://eth-kovan.alchemyapi.io/v2/${process.env.KOVAN_ALCHEMY_API_KEY}`,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      throwOnTransactionFailures: true,
+      loggingEnabled: true,
     }
   },
   etherscan: {
