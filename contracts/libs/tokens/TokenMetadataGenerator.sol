@@ -2,7 +2,7 @@
 
 pragma solidity 0.7.6;
 
-import "../libs/BokkyPooBahsDateTimeLibrary/BokkyPooBahsDateTimeLibrary.sol";
+import "../BokkyPooBahsDateTimeLibrary/BokkyPooBahsDateTimeLibrary.sol";
 
 contract TokenMetadataGenerator {
     function formatDate(uint256 _posixDate)
