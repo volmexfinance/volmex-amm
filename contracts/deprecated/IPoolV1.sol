@@ -13,7 +13,7 @@
 
 pragma solidity 0.7.6;
 
-import './Token.sol';
+import '../Token.sol';
 import './libs/complifi/IVault.sol';
 
 interface IPoolV1 is IERC20 {

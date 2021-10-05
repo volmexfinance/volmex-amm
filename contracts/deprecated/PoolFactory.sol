@@ -17,8 +17,8 @@ pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import './IPoolBuilder.sol';
-import './IPool.sol';
-import './Color.sol';
+import '../IPool.sol';
+import '../Color.sol';
 import './IPausablePool.sol';
 import './libs/complifi/registries/IAddressRegistry.sol';
 
