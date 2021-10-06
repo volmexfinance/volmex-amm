@@ -3,6 +3,7 @@
 pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol';
 
 import './IPool.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -13,6 +14,8 @@ import './interfaces/IERC20Modified.sol';
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract Controller is OwnableUpgradeable {
+    using SafeMathUpgradeable for uint256;
+
     event AdminFeeUpdated(uint256 adminFee);
 
     event AssetSwaped(uint256 assetInAmount, uint256 assetOutAmount);
@@ -79,7 +82,7 @@ contract Controller is OwnableUpgradeable {
                 address(protocol.volatilityToken()),
                 volatilityAmount,
                 address(protocol.inverseVolatilityToken()),
-                volatilityAmount / 2
+                volatilityAmount.div(2)
             );
         } else {
             inverseVolatilityToken.approve(address(pool), volatilityAmount);
@@ -87,16 +90,16 @@ contract Controller is OwnableUpgradeable {
                 address(protocol.inverseVolatilityToken()),
                 volatilityAmount,
                 address(protocol.volatilityToken()),
-                volatilityAmount / 2
+                volatilityAmount.div(2)
             );
         }
 
         transferAsset(
             _isInverseRequired ? inverseVolatilityToken : volatilityToken,
-            volatilityAmount + tokenAmountOut
+            volatilityAmount.add(tokenAmountOut)
         );
 
-        emit AssetSwaped(_amount, volatilityAmount + tokenAmountOut);
+        emit AssetSwaped(_amount, volatilityAmount.add(tokenAmountOut));
     }
 
     /**
@@ -117,28 +120,28 @@ contract Controller is OwnableUpgradeable {
         uint256 tokenAmountOut;
         if (_isInverseRequired) {
             volatilityToken.transferFrom(msg.sender, address(this), _amount);
-            volatilityToken.approve(address(pool), _amount / 2);
+            volatilityToken.approve(address(pool), _amount.div(2));
 
             (tokenAmountOut, ) = pool.swapExactAmountIn(
                 address(protocol.volatilityToken()),
-                _amount / 2,
+                _amount.div(2),
                 address(protocol.inverseVolatilityToken()),
-                _amount / 10
+                _amount.div(10)
             );
         } else {
             inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
-            inverseVolatilityToken.approve(address(pool), _amount / 2);
+            inverseVolatilityToken.approve(address(pool), _amount.div(2));
 
             (tokenAmountOut, ) = pool.swapExactAmountIn(
                 address(protocol.inverseVolatilityToken()),
-                _amount / 2,
+                _amount.div(2),
                 address(protocol.volatilityToken()),
-                _amount / 10
+                _amount.div(10)
             );
         }
 
         uint256 collateralAmount = calculateAssetQuantity(
-            tokenAmountOut * _volatilityCapRatio,
+            tokenAmountOut.mul(_volatilityCapRatio),
             protocol.redeemFees(),
             false
         );
@@ -148,7 +151,7 @@ contract Controller is OwnableUpgradeable {
         transferAsset(stablecoin, collateralAmount);
         transferAsset(
             _isInverseRequired ? volatilityToken : inverseVolatilityToken,
-            (_amount / 2) - tokenAmountOut
+            (_amount.div(2)).sub(tokenAmountOut)
         );
 
         emit AssetSwaped(_amount, collateralAmount);
@@ -160,10 +163,10 @@ contract Controller is OwnableUpgradeable {
         uint256 _feePercent,
         bool isVolatility
     ) internal view returns (uint256) {
-        uint256 fee = (_amount * _feePercent) / 10000;
-        _amount = _amount - fee;
+        uint256 fee = (_amount.mul(_feePercent)).div(10000);
+        _amount = _amount.sub(fee);
 
-        return isVolatility ? _amount / _volatilityCapRatio : _amount;
+        return isVolatility ? _amount.div(_volatilityCapRatio) : _amount;
     }
 
     function transferAsset(IERC20Modified _token, uint256 _amount) internal {
