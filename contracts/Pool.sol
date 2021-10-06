@@ -762,48 +762,6 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         require(inToken.leverage > 0, 'ZERO_IN_LEVERAGE');
     }
 
-    function getDerivativeDenomination() internal view returns (uint256) {
-        // TODO: As per the inspection denomination equals 2,
-        // the amount of collateral used to mint both derivatives.
-        // denomination =
-        //     derivativeVault
-        //         .derivativeSpecification()
-        //         .primaryNominalValue() +
-        //     derivativeVault
-        //         .derivativeSpecification()
-        //         .complementNominalValue();
-
-        return denomination;
-    }
-
-    function _getPrimaryDerivativeAddress() internal view returns (address) {
-        return _tokens[0];
-    }
-
-    function _getComplementDerivativeAddress() internal view returns (address) {
-        return _tokens[1];
-    }
-
-    // ==
-    // 'Underlying' token-manipulation functions make external calls but are NOT locked
-    // You must `_lock_` or otherwise ensure reentry-safety
-
-    function _pullPoolShare(address from, uint256 amount) internal {
-        _pull(from, amount);
-    }
-
-    function _pushPoolShare(address to, uint256 amount) internal {
-        _push(to, amount);
-    }
-
-    function _mintPoolShare(uint256 amount) internal {
-        _mint(amount);
-    }
-
-    function _burnPoolShare(uint256 amount) internal {
-        _burn(amount);
-    }
-
     /// @dev Similar to EIP20 transfer, except it handles a False result from `transferFrom` and reverts in that case.
     /// This will revert due to insufficient balance or insufficient allowance.
     /// This function returns the actual amount received,
@@ -965,5 +923,47 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
 
     function calcExpStart(int256 _inBalance, int256 _outBalance) internal pure returns (int256) {
         return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
+    }
+
+        function getDerivativeDenomination() internal view returns (uint256) {
+        // TODO: As per the inspection denomination equals 2,
+        // the amount of collateral used to mint both derivatives.
+        // denomination =
+        //     derivativeVault
+        //         .derivativeSpecification()
+        //         .primaryNominalValue() +
+        //     derivativeVault
+        //         .derivativeSpecification()
+        //         .complementNominalValue();
+
+        return denomination;
+    }
+
+    function _getPrimaryDerivativeAddress() internal view returns (address) {
+        return _tokens[0];
+    }
+
+    function _getComplementDerivativeAddress() internal view returns (address) {
+        return _tokens[1];
+    }
+
+    // ==
+    // 'Underlying' token-manipulation functions make external calls but are NOT locked
+    // You must `_lock_` or otherwise ensure reentry-safety
+
+    function _pullPoolShare(address from, uint256 amount) internal {
+        _pull(from, amount);
+    }
+
+    function _pushPoolShare(address to, uint256 amount) internal {
+        _push(to, amount);
+    }
+
+    function _mintPoolShare(uint256 amount) internal {
+        _mint(amount);
+    }
+
+    function _burnPoolShare(uint256 amount) internal {
+        _burn(amount);
     }
 }
