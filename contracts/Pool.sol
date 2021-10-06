@@ -130,7 +130,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
      * @notice Used to prevent the re-entry
      */
     modifier _lock_() {
-        requireLock();
+        require(!_mutex, 'REENTRY');
         _mutex = true;
         _;
         _mutex = false;
@@ -140,7 +140,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
      * @notice Used to prevent multiple call to view methods
      */
     modifier _viewlock_() {
-        requireLock();
+        require(!_mutex, 'REENTRY');
         _;
     }
 
@@ -158,13 +158,6 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
     modifier onlyNotSettled() {
         require(!protocol.isSettled(), 'PROTOCOL_SETTLED');
         _;
-    }
-
-    /**
-     * @notice Internal method for re-entry check
-     */
-    function requireLock() internal view {
-        require(!_mutex, 'REENTRY');
     }
 
     /**
