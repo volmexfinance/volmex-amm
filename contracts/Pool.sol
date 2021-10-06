@@ -326,8 +326,8 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
 
         _finalized = true;
 
-        bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
-        bind(
+        _bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
+        _bind(
             1,
             address(protocol.inverseVolatilityToken()),
             _complementBalance,
@@ -345,27 +345,6 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
 
         _mintPoolShare(initPoolSupply);
         _pushPoolShare(msg.sender, initPoolSupply);
-    }
-
-    /**
-     * @notice Used to bind the token, and its leverage and balance
-     *
-     * @dev This method will transfer the provided assets balance to pool from controller
-     */
-    function bind(
-        uint256 index,
-        address token,
-        uint256 balance,
-        uint256 leverage
-    ) internal {
-        require(balance >= qMin, 'MIN_BALANCE');
-        require(leverage > 0, 'ZERO_LEVERAGE');
-
-        _records[token] = Record({ leverage: leverage, balance: balance });
-
-        _tokens[index] = token;
-
-        _pullUnderlying(token, msg.sender, balance);
     }
 
     /**
@@ -469,20 +448,20 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         require(tokenIn != tokenOut, 'SAME_TOKEN');
         require(tokenAmountIn >= qMin, 'MIN_TOKEN_IN');
 
-        reprice();
+        _reprice();
 
         Record memory inRecord = _records[tokenIn];
         Record memory outRecord = _records[tokenOut];
 
         require(
             tokenAmountIn <=
-                mul(min(getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
+                mul(min(_getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
             'MAX_IN_RATIO'
         );
 
         tokenAmountOut = calcOutGivenIn(
-            getLeveragedBalance(inRecord),
-            getLeveragedBalance(outRecord),
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
             tokenAmountIn,
             0
         );
@@ -497,20 +476,20 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
 
         uint256 spotPriceBefore =
             calcSpotPrice(
-                getLeveragedBalance(inRecord),
-                getLeveragedBalance(outRecord),
+                _getLeveragedBalance(inRecord),
+                _getLeveragedBalance(outRecord),
                 0
             );
 
         tokenAmountOut = calcOutGivenIn(
-            getLeveragedBalance(inRecord),
-            getLeveragedBalance(outRecord),
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
             tokenAmountIn,
             fee
         );
         require(tokenAmountOut >= minAmountOut, 'LIMIT_OUT');
 
-        spotPriceAfter = performSwap(
+        spotPriceAfter = _performSwap(
             tokenIn,
             tokenAmountIn,
             tokenOut,
@@ -527,7 +506,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
      * @dev Fetches the est price of primary, complement and averaged
      * @dev Calculates the primary and complement leverage
      */
-    function reprice() internal virtual {
+    function _reprice() internal virtual {
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
@@ -575,7 +554,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         );
     }
 
-    function performSwap(
+    function _performSwap(
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut,
@@ -587,7 +566,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         Record storage outRecord = _records[tokenOut];
 
         // TODO: Need to understand this and it's sub/used method
-        requireBoundaryConditions(
+        _requireBoundaryConditions(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -597,14 +576,14 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
                 : exposureLimitComplement
         );
 
-        updateLeverages(inRecord, tokenAmountIn, outRecord, tokenAmountOut);
+        _updateLeverages(inRecord, tokenAmountIn, outRecord, tokenAmountOut);
 
         inRecord.balance = add(inRecord.balance, tokenAmountIn);
         outRecord.balance = sub(outRecord.balance, tokenAmountOut);
 
         spotPriceAfter = calcSpotPrice(
-            getLeveragedBalance(inRecord),
-            getLeveragedBalance(outRecord),
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
             0
         );
 
@@ -650,20 +629,20 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
 //        require(tokenIn != tokenOut, 'SAME_TOKEN');
 //        require(tokenAmountOut >= qMin, 'MIN_TOKEN_OUT');
 //
-//        reprice();
+//        _reprice();
 //
 //        Record memory inRecord = _records[tokenIn];
 //        Record memory outRecord = _records[tokenOut];
 //
 //        require(
 //            tokenAmountOut <=
-//                mul(min(getLeveragedBalance(outRecord), outRecord.balance), MAX_OUT_RATIO),
+//                mul(min(_getLeveragedBalance(outRecord), outRecord.balance), MAX_OUT_RATIO),
 //            'MAX_OUT_RATIO'
 //        );
 //
 //        tokenAmountIn = calcInGivenOut(
-//            getLeveragedBalance(inRecord),
-//            getLeveragedBalance(outRecord),
+//            _getLeveragedBalance(inRecord),
+//            _getLeveragedBalance(outRecord),
 //            tokenAmountOut,
 //            0
 //        );
@@ -680,21 +659,21 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
 //
 //        uint256 spotPriceBefore =
 //            calcSpotPrice(
-//                getLeveragedBalance(inRecord),
-//                getLeveragedBalance(outRecord),
+//                _getLeveragedBalance(inRecord),
+//                _getLeveragedBalance(outRecord),
 //                0
 //            );
 //
 //        tokenAmountIn = calcInGivenOut(
-//            getLeveragedBalance(inRecord),
-//            getLeveragedBalance(outRecord),
+//            _getLeveragedBalance(inRecord),
+//            _getLeveragedBalance(outRecord),
 //            tokenAmountOut,
 //            fee
 //        );
 //
 //        require(tokenAmountIn <= maxAmountIn, 'LIMIT_IN');
 //
-//        spotPriceAfter = performSwap(
+//        spotPriceAfter = _performSwap(
 //            tokenIn,
 //            tokenAmountIn,
 //            tokenOut,
@@ -704,25 +683,25 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
 //        );
 //    }
 
-    function getLeveragedBalance(Record memory r) internal pure returns (uint256) {
+    function _getLeveragedBalance(Record memory r) internal pure returns (uint256) {
         return mul(r.balance, r.leverage);
     }
 
-    function requireBoundaryConditions(
+    function _requireBoundaryConditions(
         Record storage inToken,
         uint256 tokenAmountIn,
         Record storage outToken,
         uint256 tokenAmountOut,
         uint256 exposureLimit
     ) internal view {
-        require(sub(getLeveragedBalance(outToken), tokenAmountOut) > qMin, 'BOUNDARY_LEVERAGED');
+        require(sub(_getLeveragedBalance(outToken), tokenAmountOut) > qMin, 'BOUNDARY_LEVERAGED');
         require(sub(outToken.balance, tokenAmountOut) > qMin, 'BOUNDARY_NON_LEVERAGED');
 
         uint256 lowerBound = div(pMin, sub(upperBoundary, pMin));
         uint256 upperBound = div(sub(upperBoundary, pMin), pMin);
         uint256 value = div(
-            add(getLeveragedBalance(inToken), tokenAmountIn),
-            sub(getLeveragedBalance(outToken), tokenAmountOut)
+            add(_getLeveragedBalance(inToken), tokenAmountIn),
+            sub(_getLeveragedBalance(outToken), tokenAmountOut)
         );
 
         require(lowerBound < value, 'BOUNDARY_LOWER');
@@ -743,20 +722,20 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         }
     }
 
-    function updateLeverages(
+    function _updateLeverages(
         Record memory inToken,
         uint256 tokenAmountIn,
         Record memory outToken,
         uint256 tokenAmountOut
     ) internal pure {
         outToken.leverage = div(
-            sub(getLeveragedBalance(outToken), tokenAmountOut),
+            sub(_getLeveragedBalance(outToken), tokenAmountOut),
             sub(outToken.balance, tokenAmountOut)
         );
         require(outToken.leverage > 0, 'ZERO_OUT_LEVERAGE');
 
         inToken.leverage = div(
-            add(getLeveragedBalance(inToken), tokenAmountIn),
+            add(_getLeveragedBalance(inToken), tokenAmountIn),
             add(inToken.balance, tokenAmountIn)
         );
         require(inToken.leverage > 0, 'ZERO_IN_LEVERAGE');
@@ -836,32 +815,53 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         require(success, 'TOKEN_TRANSFER_OUT_FAILED');
     }
 
-    function spow3(int256 _value) internal pure returns (int256) {
+    /**
+     * @notice Used to bind the token, and its leverage and balance
+     *
+     * @dev This method will transfer the provided assets balance to pool from controller
+     */
+    function _bind(
+        uint256 index,
+        address token,
+        uint256 balance,
+        uint256 leverage
+    ) internal {
+        require(balance >= qMin, 'MIN_BALANCE');
+        require(leverage > 0, 'ZERO_LEVERAGE');
+
+        _records[token] = Record({ leverage: leverage, balance: balance });
+
+        _tokens[index] = token;
+
+        _pullUnderlying(token, msg.sender, balance);
+    }
+
+    function _spow3(int256 _value) internal pure returns (int256) {
         return (((_value * _value) / iBONE) * _value) / iBONE;
     }
 
-    function calcExpEndFee(
+    function _calcExpEndFee(
         int256[3] memory _inRecord,
         int256[3] memory _outRecord,
         int256 _baseFee,
         int256 _feeAmp,
         int256 _expEnd
     ) internal pure returns (int256) {
-        int256 inBalanceLeveraged = getLeveragedBalanceOfFee(_inRecord[0], _inRecord[1]);
+        int256 inBalanceLeveraged = _getLeveragedBalanceOfFee(_inRecord[0], _inRecord[1]);
         int256 tokenAmountIn1 =
             inBalanceLeveraged * (_outRecord[0] - _inRecord[0]) /
-                (inBalanceLeveraged + getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]));
+                (inBalanceLeveraged + _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]));
 
         int256 inBalanceLeveragedChanged = inBalanceLeveraged + _inRecord[2] * iBONE;
         int256 tokenAmountIn2 =
             inBalanceLeveragedChanged * (_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) /
-            (inBalanceLeveragedChanged + getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]) - _outRecord[2] * iBONE);
+            (inBalanceLeveragedChanged + _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]) - _outRecord[2] * iBONE);
 
         return (tokenAmountIn1 * _baseFee + tokenAmountIn2 * (_baseFee + _feeAmp * (_expEnd * _expEnd / iBONE) / 3)) /
             (tokenAmountIn1 + tokenAmountIn2);
     }
 
-    function getLeveragedBalanceOfFee(int256 _balance, int256 _leverage)
+    function _getLeveragedBalanceOfFee(int256 _balance, int256 _leverage)
         internal
         pure
         returns (int256)
@@ -885,12 +885,12 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, T
         if (expStart >= 0) {
             fee =
                 _baseFee +
-                (((_feeAmp) * (spow3(_expEnd) - spow3(expStart))) * iBONE) /
+                (((_feeAmp) * (_spow3(_expEnd) - _spow3(expStart))) * iBONE) /
                 (3 * (_expEnd - expStart));
         } else if (_expEnd <= 0) {
             fee = _baseFee;
         } else {
-            fee = calcExpEndFee(_inRecord, _outRecord, _baseFee, _feeAmp, _expEnd);
+            fee = _calcExpEndFee(_inRecord, _outRecord, _baseFee, _feeAmp, _expEnd);
         }
 
         if (_maxFee < fee) {
