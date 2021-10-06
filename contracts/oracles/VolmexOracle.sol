@@ -20,15 +20,15 @@ contract VolmexOracle is OwnableUpgradeable {
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
      */
-    function initialize() external initializer {
+    function initialize(uint256 _initialTokenPrice) external initializer {
         __Ownable_init();
         volatilityTokenPriceByIndex[
             0
-        ] = 125 * 10**4;
+        ] = _initialTokenPrice;
 
         volatilityTokenPriceByIndex[
             1
-        ] = 125 * 10**4;
+        ] = _initialTokenPrice;
     }
 
     /**
@@ -52,7 +52,7 @@ contract VolmexOracle is OwnableUpgradeable {
 
         volatilityTokenPriceByIndex[
             _volatilityIndex
-        ] = _volatilityTokenPrice * 10**4;
+        ] = _volatilityTokenPrice * 10000;
 
         emit VolatilityTokenPriceUpdated(
             _volatilityTokenPrice,

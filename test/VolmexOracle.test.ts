@@ -18,7 +18,9 @@ describe("Volmex Oracle", function () {
   });
 
   this.beforeEach(async function () {
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [
+      '1250000'
+    ]);
 
     await volmexOracle.deployed();
   });
