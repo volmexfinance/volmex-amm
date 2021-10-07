@@ -64,4 +64,6 @@ interface IPool is IERC20, IERC165Upgradeable {
     ) external returns (uint256 tokenAmountOut, uint256 spotPriceAfter);
 
     function paused() external view returns (bool);
+
+    function transferOwnership(address newOwner) external;
 }
