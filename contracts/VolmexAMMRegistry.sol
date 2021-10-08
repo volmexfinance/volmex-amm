@@ -30,7 +30,6 @@ contract VolmexAMMRegistry is OwnableUpgradeable {
     function registerNewPool(address _newPool) external {
         _pools.push(_newPool);
         _isPool[_newPool] = true;
-        IPool(_newPool).transferOwnership(address(this));
         index++;
         emit LOG_NEW_POOL(msg.sender, _newPool, index);
     }
