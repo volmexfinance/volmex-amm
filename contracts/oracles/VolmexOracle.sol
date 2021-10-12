@@ -3,12 +3,15 @@
 pragma solidity =0.7.6;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 /**
  * @title Volmex Oracle contract
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract VolmexOracle is OwnableUpgradeable {
+    using SafeMathUpgradeable for uint256;
+
     event VolatilityTokenPriceUpdated(
         uint256 volatilityTokenPrice,
         uint256 indexed volatilityIndex
@@ -52,7 +55,7 @@ contract VolmexOracle is OwnableUpgradeable {
 
         volatilityTokenPriceByIndex[
             _volatilityIndex
-        ] = _volatilityTokenPrice * 10000;
+        ] = _volatilityTokenPrice.mul(10000);
 
         emit VolatilityTokenPriceUpdated(
             _volatilityTokenPrice,
