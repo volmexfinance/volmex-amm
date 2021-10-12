@@ -13,9 +13,7 @@
 
 pragma solidity 0.7.6;
 
-import './Color.sol';
-
-contract Const is Bronze {
+contract Const {
     uint256 public constant BONE = 10**18;
     int256 public constant iBONE = int256(BONE);
 

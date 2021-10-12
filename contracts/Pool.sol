@@ -19,7 +19,7 @@ import './IPool.sol';
  * @title Volmex Pool Contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract Pool is OwnableUpgradeable, PausableUpgradeable, Bronze, Token, Math, TokenMetadataGenerator {
+contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMetadataGenerator {
     event LOG_SWAP(
         address indexed caller,
         address indexed tokenIn,
