@@ -402,9 +402,6 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         uint256 ratio = div(poolAmountIn, poolTotal);
         require(ratio != 0, 'MATH_APPROX');
 
-        _pullPoolShare(msg.sender, poolAmountIn);
-        _burnPoolShare(poolAmountIn);
-
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             address token = _tokens[i];
             uint256 bal = _records[token].balance;
@@ -415,6 +412,9 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
             emit LOG_EXIT(msg.sender, token, tokenAmountOut);
             _pushUnderlying(token, msg.sender, tokenAmountOut);
         }
+
+        _pullPoolShare(msg.sender, poolAmountIn);
+        _burnPoolShare(poolAmountIn);
     }
 
     /**
