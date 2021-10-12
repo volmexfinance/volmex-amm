@@ -82,7 +82,7 @@ contract Controller is OwnableUpgradeable {
                 address(protocol.volatilityToken()),
                 volatilityAmount,
                 address(protocol.inverseVolatilityToken()),
-                volatilityAmount.div(2)
+                volatilityAmount >> 1
             );
         } else {
             inverseVolatilityToken.approve(address(pool), volatilityAmount);
@@ -90,16 +90,17 @@ contract Controller is OwnableUpgradeable {
                 address(protocol.inverseVolatilityToken()),
                 volatilityAmount,
                 address(protocol.volatilityToken()),
-                volatilityAmount.div(2)
+                volatilityAmount >> 1
             );
         }
 
+        uint256 totalVolatilityAmount = volatilityAmount.add(tokenAmountOut);
         transferAsset(
             _isInverseRequired ? inverseVolatilityToken : volatilityToken,
-            volatilityAmount.add(tokenAmountOut)
+            totalVolatilityAmount
         );
 
-        emit AssetSwaped(_amount, volatilityAmount.add(tokenAmountOut));
+        emit AssetSwaped(_amount, totalVolatilityAmount);
     }
 
     /**
@@ -120,21 +121,21 @@ contract Controller is OwnableUpgradeable {
         uint256 tokenAmountOut;
         if (_isInverseRequired) {
             volatilityToken.transferFrom(msg.sender, address(this), _amount);
-            volatilityToken.approve(address(pool), _amount.div(2));
+            volatilityToken.approve(address(pool), _amount >> 1);
 
             (tokenAmountOut, ) = pool.swapExactAmountIn(
                 address(protocol.volatilityToken()),
-                _amount.div(2),
+                _amount >> 1,
                 address(protocol.inverseVolatilityToken()),
                 _amount.div(10)
             );
         } else {
             inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
-            inverseVolatilityToken.approve(address(pool), _amount.div(2));
+            inverseVolatilityToken.approve(address(pool), _amount >> 1);
 
             (tokenAmountOut, ) = pool.swapExactAmountIn(
                 address(protocol.inverseVolatilityToken()),
-                _amount.div(2),
+                _amount >> 1,
                 address(protocol.volatilityToken()),
                 _amount.div(10)
             );
@@ -151,7 +152,7 @@ contract Controller is OwnableUpgradeable {
         transferAsset(stablecoin, collateralAmount);
         transferAsset(
             _isInverseRequired ? volatilityToken : inverseVolatilityToken,
-            (_amount.div(2)).sub(tokenAmountOut)
+            (_amount >> 1).sub(tokenAmountOut)
         );
 
         emit AssetSwaped(_amount, collateralAmount);
