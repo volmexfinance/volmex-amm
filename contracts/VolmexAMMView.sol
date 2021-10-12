@@ -31,21 +31,18 @@ contract VolmexAMMView is Initializable {
     /// @notice Contains key information about a Pool's configuration
     struct Config {
         address protocol;
-        // address dynamicFee;
         address repricer;
+        bool isPaused;
+        uint8 qMinDecimals;
+        uint8 decimals;
         uint256 exposureLimitPrimary;
         uint256 exposureLimitComplement;
-        // uint256 repricerParam1;
-        // uint256 repricerParam2;
         uint256 pMin;
         uint256 qMin;
-        uint8 qMinDecimals;
         uint256 baseFee;
         uint256 maxFee;
         uint256 feeAmpPrimary;
         uint256 feeAmpComplement;
-        uint8 decimals;
-        bool isPaused;
     }
 
     function initialize() external initializer {}
@@ -95,21 +92,18 @@ contract VolmexAMMView is Initializable {
 
         config = Config(
             address(pool.protocol()),
-            // address(pool.dynamicFee()),
             address(pool.repricer()),
+            pool.paused(),
+            IERC20Modified(_primaryAddress).decimals(),
+            IERC20Modified(_pool).decimals(),
             pool.exposureLimitPrimary(),
             pool.exposureLimitComplement(),
-            // pool.repricerParam1(),
-            // pool.repricerParam2(),
             pool.pMin(),
             pool.qMin(),
-            IERC20Modified(_primaryAddress).decimals(),
             pool.baseFee(),
             pool.maxFee(),
             pool.feeAmpPrimary(),
-            pool.feeAmpComplement(),
-            IERC20Modified(_pool).decimals(),
-            pool.paused()
+            pool.feeAmpComplement()
         );
     }
 
