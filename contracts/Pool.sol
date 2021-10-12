@@ -205,60 +205,6 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
     }
 
     /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
-        return
-            interfaceId == type(IPool).interfaceId;
-    }
-
-    /**
-     * @notice Used to puase the contract
-     */
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    /**
-     * @notice Used to unpause the contract, if paused
-     */
-    function unpause() external onlyOwner {
-        _unpause();
-    }
-
-    /**
-     * @notice Used to check the pool is finalized
-     */
-    function isFinalized() external view returns (bool) {
-        return _finalized;
-    }
-
-    /**
-     * @notice Used to get the token addresses
-     */
-    function getTokens() external view _viewlock_ returns (address[BOUND_TOKENS] memory tokens) {
-        return _tokens;
-    }
-
-    /**
-     * @notice Used to get the leverage of provided token address
-     *
-     * @param token Address of the token, either primary or complement
-     */
-    function getLeverage(address token) external view _viewlock_ returns (uint256) {
-        return _records[token].leverage;
-    }
-
-    /**
-     * @notice Used to get the balance of provided token address
-     *
-     * @param token Address of the token. either primary or complement
-     */
-    function getBalance(address token) external view _viewlock_ returns (uint256) {
-        return _records[token].balance;
-    }
-
-    /**
      * @notice Sets all type of fees
      *
      * @dev Checks the contract is finalised and caller is controller of the pool
@@ -421,7 +367,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
      * @notice Used to swap the pool asset
      *
      * @dev Checks the token address, should be different
-     * @dev token amoint in should be greater than qMin
+     * @dev token amount in should be greater than qMin
      * @dev reprices the assets
      * @dev Calculates the token amount out and spot price
      * @dev Perform swaps
@@ -925,17 +871,61 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
     }
 
-        function getDerivativeDenomination() internal view returns (uint256) {
-        // TODO: As per the inspection denomination equals 2,
-        // the amount of collateral used to mint both derivatives.
-        // denomination =
-        //     derivativeVault
-        //         .derivativeSpecification()
-        //         .primaryNominalValue() +
-        //     derivativeVault
-        //         .derivativeSpecification()
-        //         .complementNominalValue();
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
+        return
+            interfaceId == type(IPool).interfaceId;
+    }
 
+    /**
+     * @notice Used to puase the contract
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Used to unpause the contract, if paused
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /**
+     * @notice Used to check the pool is finalized
+     */
+    function isFinalized() external view returns (bool) {
+        return _finalized;
+    }
+
+    /**
+     * @notice Used to get the token addresses
+     */
+    function getTokens() external view _viewlock_ returns (address[BOUND_TOKENS] memory tokens) {
+        return _tokens;
+    }
+
+    /**
+     * @notice Used to get the leverage of provided token address
+     *
+     * @param token Address of the token, either primary or complement
+     */
+    function getLeverage(address token) external view _viewlock_ returns (uint256) {
+        return _records[token].leverage;
+    }
+
+    /**
+     * @notice Used to get the balance of provided token address
+     *
+     * @param token Address of the token. either primary or complement
+     */
+    function getBalance(address token) external view _viewlock_ returns (uint256) {
+        return _records[token].balance;
+    }
+
+    function getDerivativeDenomination() internal view returns (uint256) {
         return denomination;
     }
 
