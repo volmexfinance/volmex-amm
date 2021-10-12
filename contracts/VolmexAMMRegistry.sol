@@ -28,6 +28,8 @@ contract VolmexAMMRegistry is OwnableUpgradeable {
     }
 
     function registerNewPool(address _newPool) external {
+        require(!_isPool[_newPool], 'VolmexAMMRegistry: Pool already exist');
+
         _pools.push(_newPool);
         _isPool[_newPool] = true;
         index++;
