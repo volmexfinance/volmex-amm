@@ -229,6 +229,21 @@ describe('Pool', function () {
     expect(poolreceipt.confirmations).not.equal(0);
   });
 
+  it('Should get out amount', async () => {
+    const joinReceipt = await pool.joinPool(
+      '3000000000000000000000',
+      ['20000000000000000000','20000000000000000000']
+    );
+    await joinReceipt.wait();
+
+    const amount = await pool.getTokenAmountOut(
+      volatility.address,
+      '10000000000000000000',
+      inverseVolatility.address
+    );
+    console.log('amount', amount.toString());
+  });
+
   it('should swap the assets', async () => {
     const joinReceipt = await pool.joinPool(
       '3000000000000000000000',

@@ -445,6 +445,39 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         );
     }
 
+    function getTokenAmountOut(
+        address tokenIn,
+        uint256 tokenAmountIn,
+        address tokenOut
+    ) external view returns (uint256) {
+        Record memory inRecord = _records[tokenIn];
+        Record memory outRecord = _records[tokenOut];
+        uint256 tokenAmountOut;
+        tokenAmountOut = calcOutGivenIn(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            tokenAmountIn,
+            0
+        );
+
+        (uint256 fee,) = calcFee(
+            inRecord,
+            tokenAmountIn,
+            outRecord,
+            tokenAmountOut,
+            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+        );
+
+        tokenAmountOut = calcOutGivenIn(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            tokenAmountIn,
+            fee
+        );
+
+        return tokenAmountOut;
+    }
+
     /**
      * @notice Used to calculate the leverage of primary and complement token
      *
@@ -702,7 +735,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         EIP20NonStandardInterface(erc20).transferFrom(from, address(this), amount);
 
         bool success;
-        //solium-disable-next-line
+        //solium-disable-next-line security/no-inline-assembly
         assembly {
             switch returndatasize()
             case 0 {
@@ -741,7 +774,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         EIP20NonStandardInterface(erc20).transfer(to, amount);
 
         bool success;
-        //solium-disable-next-line
+        //solium-disable-next-line security/no-inline-assembly
         assembly {
             switch returndatasize()
             case 0 {
@@ -854,7 +887,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         Record memory outRecord,
         uint256 tokenAmountOut,
         uint256 feeAmp
-    ) internal returns (uint256 fee, int256 expStart) {
+    ) internal view returns (uint256 fee, int256 expStart) {
         int256 ifee;
         (ifee, expStart) = calc(
             [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
