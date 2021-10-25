@@ -1,0 +1,109 @@
+const { expect } = require('chai');
+const { ethers, upgrades } = require('hardhat');
+import { Signer } from 'ethers';
+const { expectRevert } = require("@openzeppelin/test-helpers");
+
+describe('Repricer', function () {
+  let accounts: Signer[];
+  let volmexOracleFactory: any;
+  let volmexOracle: any;
+  let repricerFactory: any;
+  let repricer: any;
+  let protocolFactory: any;
+  let protocol: any;
+  let collateralFactory: any;
+  let collateral: any;
+  let volatilityFactory: any;
+  let volatility: any;
+  let inverseVolatility: any;
+
+  this.beforeAll(async function () {
+    accounts = await ethers.getSigners();
+
+    repricerFactory = await ethers.getContractFactory('VolmexRepricer');
+
+    volmexOracleFactory = await ethers.getContractFactory('VolmexOracle');
+
+    collateralFactory = await ethers.getContractFactory('TestCollateralToken');
+
+    volatilityFactory = await ethers.getContractFactory('VolmexPositionToken');
+
+    protocolFactory = await ethers.getContractFactory('VolmexProtocol');
+  });
+
+  this.beforeEach(async function () {
+    collateral = await collateralFactory.deploy();
+    await collateral.deployed();
+
+    volatility = await volatilityFactory.deploy();
+    await volatility.deployed();
+    let volReciept = await volatility.initialize('ETH Volatility Index', 'ETHV');
+    await volReciept.wait();
+
+    inverseVolatility = await volatilityFactory.deploy();
+    await inverseVolatility.deployed();
+    volReciept = await inverseVolatility.initialize('Inverse ETH Volatility Index', 'iETHV');
+    await volReciept.wait();
+
+    protocol = await upgrades.deployProxy(protocolFactory, [
+      `${collateral.address}`,
+      `${volatility.address}`,
+      `${inverseVolatility.address}`,
+      '25000000000000000000',
+      '250',
+    ]);
+    await protocol.deployed();
+
+    const VOLMEX_PROTOCOL_ROLE =
+      '0x33ba6006595f7ad5c59211bde33456cab351f47602fc04f644c8690bc73c4e16';
+
+    volReciept = await volatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
+    await volReciept.wait();
+
+    volReciept = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
+    await volReciept.wait();
+  
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [
+      '1250000'
+    ]);
+    await volmexOracle.deployed();
+
+    repricer = await upgrades.deployProxy(repricerFactory, [
+      volmexOracle.address,
+      protocol.address
+    ]);
+  });
+
+  it('Should deploy repricer', async () => {
+    const receipt = await repricer.deployed();
+    expect(receipt.confirmations).not.equal(0);
+  });
+
+  it('Should call the reprice method', async () => {
+    let reciept = await volmexOracle.updateVolatilityTokenPrice('0', '125');
+    await reciept.wait();
+
+    reciept = await repricer.reprice('0');
+    expect(await reciept).not.equal(null);
+  });
+
+  it('Should revert on not contract', async () => {
+    const [ other ] = accounts;
+
+    await expectRevert(
+      upgrades.deployProxy(repricerFactory, [
+        await other.getAddress(),
+        protocol.address
+      ]),
+      'Repricer: Not an oracle contract'
+    );
+
+    await expectRevert(
+      upgrades.deployProxy(repricerFactory, [
+        volmexOracle.address,
+        await other.getAddress(),
+      ]),
+      'Repricer: Not a protocol contract'
+    );
+  });
+});

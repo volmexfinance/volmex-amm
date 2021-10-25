@@ -17,7 +17,7 @@ pragma experimental ABIEncoderV2;
 import './Num.sol';
 import './IDynamicFee.sol';
 
-contract DynamicFee is IDynamicFee, Bronze, Num {
+contract DynamicFee is IDynamicFee, Num {
     function spow3(int256 _value) internal pure returns (int256) {
         return (((_value * _value) / iBONE) * _value) / iBONE;
     }
