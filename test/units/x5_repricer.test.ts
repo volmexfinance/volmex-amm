@@ -10,9 +10,9 @@ const [wallet, otherWallet] = provider.getWallets();
 
 import chai from 'chai';
 
-import Vault from '../abi/Vault.json';
-import Oracle from '../abi/Oracle.json';
-import DerivativeSpecification from '../abi/DerivativeSpecification.json';
+import Vault from '../Abi/Vault.json';
+import Oracle from '../Abi/Oracle.json';
+import DerivativeSpecification from '../Abi/DerivativeSpecification.json';
 
 import { X5Repricer } from '../../typechain/X5Repricer';
 

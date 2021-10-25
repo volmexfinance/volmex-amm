@@ -1,24 +1,15 @@
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity 0.7.6;
 pragma abicoder v2;
 
-import './IPoolV1.sol';
-import './libs/complifi/tokens/IERC20Metadata.sol';
+import '@openzeppelin/contracts-upgradeable/proxy/Initializable.sol';
+
+import './IPool.sol';
+import './interfaces/IERC20Modified.sol';
 
 /// @title Reading key data from specified derivative trading Pool
-contract PoolViewV1 {
+contract VolmexAMMView is Initializable {
 
     /// @notice Contains key information about a derivative token
     struct TokenRecord {
@@ -39,20 +30,22 @@ contract PoolViewV1 {
 
     /// @notice Contains key information about a Pool's configuration
     struct Config {
-        address derivativeVault;
-        address dynamicFee;
+        address protocol;
         address repricer;
-        uint256 exposureLimit;
-        uint256 volatility;
+        bool isPaused;
+        uint8 qMinDecimals;
+        uint8 decimals;
+        uint256 exposureLimitPrimary;
+        uint256 exposureLimitComplement;
         uint256 pMin;
         uint256 qMin;
-        uint8 qMinDecimals;
         uint256 baseFee;
         uint256 maxFee;
-        uint256 feeAmp;
-        uint8 decimals;
-        bool isPaused;
+        uint256 feeAmpPrimary;
+        uint256 feeAmpComplement;
     }
+
+    function initialize() external initializer {}
 
     /// @notice Getting information about Pool configuration, it's derivative and pool(LP) tokens
     /// @param _pool the vault address
@@ -70,47 +63,47 @@ contract PoolViewV1 {
             Config memory config
         )
     {
-        IPoolV1 pool = IPoolV1(_pool);
+        IPool pool = IPool(_pool);
 
-        address _primaryAddress = address(pool.derivativeVault().primaryToken());
+        address _primaryAddress = address(pool.protocol().volatilityToken());
         primary = TokenRecord(
             _primaryAddress,
             pool.getBalance(_primaryAddress),
             pool.getLeverage(_primaryAddress),
-            IERC20Metadata(_primaryAddress).decimals(),
+            IERC20Modified(_primaryAddress).decimals(),
             _sender == address(0) ? 0 : IERC20(_primaryAddress).balanceOf(_sender)
         );
 
-        address _complementAddress = address(pool.derivativeVault().complementToken());
+        address _complementAddress = address(pool.protocol().inverseVolatilityToken());
         complement = TokenRecord(
             _complementAddress,
             pool.getBalance(_complementAddress),
             pool.getLeverage(_complementAddress),
-            IERC20Metadata(_complementAddress).decimals(),
+            IERC20Modified(_complementAddress).decimals(),
             _sender == address(0) ? 0 : IERC20(_complementAddress).balanceOf(_sender)
         );
 
         poolToken = Token(
             _pool,
             pool.totalSupply(),
-            IERC20Metadata(_pool).decimals(),
+            IERC20Modified(_pool).decimals(),
             _sender == address(0) ? 0 : IERC20(_pool).balanceOf(_sender)
         );
 
         config = Config(
-            address(pool.derivativeVault()),
-            address(pool.dynamicFee()),
+            address(pool.protocol()),
             address(pool.repricer()),
-            pool.exposureLimit(),
-            pool.volatility(),
+            pool.paused(),
+            IERC20Modified(_primaryAddress).decimals(),
+            IERC20Modified(_pool).decimals(),
+            pool.exposureLimitPrimary(),
+            pool.exposureLimitComplement(),
             pool.pMin(),
             pool.qMin(),
-            IERC20Metadata(_primaryAddress).decimals(),
             pool.baseFee(),
             pool.maxFee(),
-            pool.feeAmp(),
-            IERC20Metadata(_pool).decimals(),
-            pool.paused()
+            pool.feeAmpPrimary(),
+            pool.feeAmpComplement()
         );
     }
 
@@ -142,21 +135,21 @@ contract PoolViewV1 {
             uint8 lpDecimals
         )
     {
-        IPoolV1 pool = IPoolV1(_pool);
+        IPool pool = IPool(_pool);
 
-        primary = address(pool.derivativeVault().primaryToken());
-        complement = address(pool.derivativeVault().complementToken());
+        primary = address(pool.protocol().volatilityToken());
+        complement = address(pool.protocol().inverseVolatilityToken());
 
         primaryBalance = pool.getBalance(primary);
         primaryLeverage = pool.getLeverage(primary);
-        primaryDecimals = IERC20Metadata(primary).decimals();
+        primaryDecimals = IERC20Modified(primary).decimals();
 
         complementBalance = pool.getBalance(complement);
         complementLeverage = pool.getLeverage(complement);
-        complementDecimals = IERC20Metadata(complement).decimals();
+        complementDecimals = IERC20Modified(complement).decimals();
 
         lpTotalSupply = pool.totalSupply();
-        lpDecimals = IERC20Metadata(_pool).decimals();
+        lpDecimals = IERC20Modified(_pool).decimals();
     }
 
     /// @notice Getting Pool configuration only to reduce data loading time
@@ -164,28 +157,34 @@ contract PoolViewV1 {
         external
         view
         returns (
-            address derivativeVault,
-            address dynamicFee,
+            address protocol,
+            // address dynamicFee,
             address repricer,
-            uint256 exposureLimit,
-            uint256 volatility,
+            uint256 exposureLimitPrimary,
+            uint256 exposureLimitComplement,
+            // uint256 repricerParam1,
+            // uint256 repricerParam2,
             uint256 pMin,
             uint256 qMin,
             uint256 baseFee,
             uint256 maxFee,
-            uint256 feeAmp
+            uint256 feeAmpPrimary,
+            uint256 feeAmpComplement
         )
     {
-        IPoolV1 pool = IPoolV1(_pool);
-        derivativeVault = address(pool.derivativeVault());
-        dynamicFee = address(pool.dynamicFee());
+        IPool pool = IPool(_pool);
+        protocol = address(pool.protocol());
+        // dynamicFee = address(pool.dynamicFee());
         repricer = address(pool.repricer());
         pMin = pool.pMin();
         qMin = pool.qMin();
-        exposureLimit = pool.exposureLimit();
+        exposureLimitPrimary = pool.exposureLimitPrimary();
+        exposureLimitComplement = pool.exposureLimitComplement();
         baseFee = pool.baseFee();
-        feeAmp = pool.feeAmp();
+        feeAmpPrimary = pool.feeAmpPrimary();
+        feeAmpComplement = pool.feeAmpComplement();
         maxFee = pool.maxFee();
-        volatility = pool.volatility();
+        // repricerParam1 = pool.repricerParam1();
+        // repricerParam2 = pool.repricerParam2();
     }
 }

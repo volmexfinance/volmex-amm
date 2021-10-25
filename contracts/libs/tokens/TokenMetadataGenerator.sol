@@ -2,7 +2,7 @@
 
 pragma solidity 0.7.6;
 
-import "../libs/BokkyPooBahsDateTimeLibrary/BokkyPooBahsDateTimeLibrary.sol";
+import "../BokkyPooBahsDateTimeLibrary/BokkyPooBahsDateTimeLibrary.sol";
 
 contract TokenMetadataGenerator {
     function formatDate(uint256 _posixDate)
@@ -30,26 +30,23 @@ contract TokenMetadataGenerator {
     function formatMeta(
         string memory _prefix,
         string memory _concatenator,
-        string memory _date,
         string memory _postfix
     ) internal pure returns (string memory) {
-        return concat(_prefix, concat(_concatenator, concat(_date, _postfix)));
+        return concat(_prefix, concat(_concatenator, _postfix));
     }
 
     function makeTokenName(
         string memory _baseName,
-        string memory _date,
         string memory _postfix
     ) internal pure returns (string memory) {
-        return formatMeta(_baseName, " ", _date, _postfix);
+        return formatMeta(_baseName, " ", _postfix);
     }
 
     function makeTokenSymbol(
         string memory _baseName,
-        string memory _date,
         string memory _postfix
     ) internal pure returns (string memory) {
-        return formatMeta(_baseName, "-", _date, _postfix);
+        return formatMeta(_baseName, "-", _postfix);
     }
 
     function getCenturyYears(uint256 _year) internal pure returns (uint256) {
