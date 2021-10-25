@@ -31,6 +31,11 @@ contract Controller is OwnableUpgradeable {
     // Minimum amount of collateral amount needed to collateralize
     uint256 private _minimumCollateralQty;
 
+    uint256 public poolIndex;
+
+    mapping(uint256 => address) public pools;
+    mapping(uint256 => address) public protocols;
+
     /**
      * @notice Initializes the contract
      *
@@ -49,8 +54,19 @@ contract Controller is OwnableUpgradeable {
         pool = _pool;
         protocol = _protocol;
 
+        pools[poolIndex] = address(_pool);
+        protocols[poolIndex] = address(_protocol);
+
         _volatilityCapRatio = protocol.volatilityCapRatio();
         _minimumCollateralQty = protocol.minimumCollateralQty();
+    }
+
+    /** Add comments
+     */
+    function setPoolAndProtocol(address _pool, address _protocol) external onlyOwner {
+        poolIndex++;
+        pools[poolIndex] = _pool;
+        protocols[poolIndex] = address(_protocol);
     }
 
     /**
@@ -158,7 +174,61 @@ contract Controller is OwnableUpgradeable {
         emit AssetSwaped(_amount, collateralAmount);
     }
 
-    //solium-disable-next-line
+    function swapAssets(
+        IERC20Modified _tokenIn,
+        uint256 _amountIn,
+        address _tokenOut,
+        uint256 _tokenInPoolIndex,
+        uint256 _tokenOutPoolIndex
+    ) external {
+        _tokenIn.transfer(address(this), _amountIn);
+        _tokenIn.approve(address(pool), _amountIn);
+
+        IPool _pool = IPool(pools[_tokenInPoolIndex]);
+
+        uint256 tokenAmount = _swap(
+            _pool,
+            address(_tokenIn),
+            _amountIn >> 1,
+            _pool.getPrimaryDerivativeAddress() == address(_tokenIn)
+                ? _pool.getComplementDerivativeAddress()
+                : _pool.getPrimaryDerivativeAddress(),
+            _amountIn.div(10)
+        );
+
+        IVolmexProtocol _protocol = IVolmexProtocol(protocols[_tokenInPoolIndex]);
+        _protocol.redeem(tokenAmount);
+
+        uint256 _collateralAmount = calculateAssetQuantity(
+            tokenAmount.mul(_volatilityCapRatio),
+            _protocol.redeemFees(),
+            false
+        );
+
+        IVolmexProtocol _protocol2 = IVolmexProtocol(protocols[_tokenOutPoolIndex]);
+        _protocol2.collateralize(_collateralAmount);
+        uint256 _volatilityAmount = calculateAssetQuantity(
+            _collateralAmount,
+            protocol.issuanceFees(),
+            true
+        );
+
+        _pool = IPool(pools[_tokenOutPoolIndex]);
+        uint256 tokenAmountOut = _swap(
+            _pool,
+            _pool.getPrimaryDerivativeAddress() == address(_tokenOut)
+                ? _pool.getComplementDerivativeAddress()
+                : _pool.getPrimaryDerivativeAddress(),
+            _volatilityAmount >> 1,
+            _tokenOut,
+            _volatilityAmount.div(10)
+        );
+
+        transferAsset(_tokenIn, (_amountIn >> 1).sub(tokenAmount));
+        transferAsset(IERC20Modified(_tokenOut), tokenAmountOut);
+    }
+
+    //solium-disable-next-line security/no-assign-params
     function calculateAssetQuantity(
         uint256 _amount,
         uint256 _feePercent,
@@ -172,5 +242,20 @@ contract Controller is OwnableUpgradeable {
 
     function transferAsset(IERC20Modified _token, uint256 _amount) internal {
         _token.transfer(msg.sender, _amount);
+    }
+
+    function _swap(
+        IPool _pool,
+        address _tokenIn,
+        uint256 _amountIn,
+        address _tokenOut,
+        uint256 _amountOut
+    ) internal returns (uint256 exactTokenAmountOut) {
+        (exactTokenAmountOut, ) = _pool.swapExactAmountIn(
+            _tokenIn,
+            _amountIn,
+            _tokenOut,
+            _amountOut
+        );
     }
 }

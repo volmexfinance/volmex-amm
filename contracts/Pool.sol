@@ -958,6 +958,14 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         return _records[token].balance;
     }
 
+    function getPrimaryDerivativeAddress() external view returns (address) {
+        return _getPrimaryDerivativeAddress();
+    }
+
+    function getComplementDerivativeAddress() external view returns (address) {
+        return _getComplementDerivativeAddress();
+    }
+
     function getDerivativeDenomination() internal view returns (uint256) {
         return denomination;
     }

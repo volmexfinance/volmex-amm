@@ -52,6 +52,10 @@ interface IPool is IERC20, IERC165Upgradeable {
 
     function getBalance(address token) external view returns (uint256);
 
+    function getPrimaryDerivativeAddress() external view returns (address);
+
+    function getComplementDerivativeAddress() external view returns (address);
+
     function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn) external;
 
     function exitPool(uint256 poolAmountIn, uint256[2] calldata minAmountsOut) external;
