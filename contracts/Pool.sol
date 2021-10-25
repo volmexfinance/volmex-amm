@@ -118,6 +118,8 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
 
     bytes4 private constant _INTERFACE_ID_ERC165 = 0x01ffc9a7;
 
+    uint256 public adminFee;
+
     /**
      * @notice Used to log the callee's sig, address and data
      */
@@ -199,6 +201,8 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         volatilityIndex = _volatilityIndex;
 
         denomination = protocol.volatilityCapRatio();
+
+        adminFee = 30;
 
         setName(makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
         setSymbol(makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol()));
@@ -352,7 +356,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
             address token = _tokens[i];
             uint256 bal = _records[token].balance;
             require(bal > 0, 'NO_BALANCE');
-            uint256 tokenAmountOut = mul(ratio, bal);
+            uint256 tokenAmountOut = calculateAmountOut(poolAmountIn, ratio, bal);
             require(tokenAmountOut >= minAmountsOut[i], 'LIMIT_OUT');
             _records[token].balance = sub(_records[token].balance, tokenAmountOut);
             emit LOG_EXIT(msg.sender, token, tokenAmountOut);
@@ -361,6 +365,15 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
 
         _pullPoolShare(msg.sender, poolAmountIn);
         _burnPoolShare(poolAmountIn);
+    }
+
+    function calculateAmountOut(uint256 _poolAmountIn, uint256 _ratio, uint256 _tokenReserve) internal view returns (uint256 amountOut) {
+        uint256 tokenAmount = mul(div(_poolAmountIn, upperBoundary), BONE);
+        amountOut = mul(_ratio, _tokenReserve);
+        if (amountOut > tokenAmount) {
+            uint256 feeAmount = mul(tokenAmount, div(adminFee, 10000));
+            amountOut = sub(amountOut, feeAmount);
+        }
     }
 
     /**
