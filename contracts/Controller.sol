@@ -5,7 +5,7 @@ pragma solidity 0.7.6;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol';
 
-import './IPool.sol';
+import './interfaces/IPool.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IERC20Modified.sol';
 

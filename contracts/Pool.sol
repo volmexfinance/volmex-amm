@@ -13,7 +13,7 @@ import './Token.sol';
 import './Math.sol';
 import './repricers/IVolmexRepricer.sol';
 import './interfaces/IVolmexProtocol.sol';
-import './IPool.sol';
+import './interfaces/IPool.sol';
 
 /**
  * @title Volmex Pool Contract

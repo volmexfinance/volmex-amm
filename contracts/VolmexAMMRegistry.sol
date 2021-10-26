@@ -5,7 +5,7 @@ pragma solidity 0.7.6;
 // Builds new Pools, logging their addresses and providing `isPool(address) -> (bool)`
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import './IPool.sol';
+import './interfaces/IPool.sol';
 import './interfaces/IPausablePool.sol';
 
 contract VolmexAMMRegistry is OwnableUpgradeable {
