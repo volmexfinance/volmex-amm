@@ -5,7 +5,7 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts-upgradeable/proxy/Initializable.sol';
 
-import './IPool.sol';
+import './interfaces/IPool.sol';
 import './interfaces/IERC20Modified.sol';
 
 /// @title Reading key data from specified derivative trading Pool
