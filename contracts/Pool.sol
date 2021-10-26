@@ -11,7 +11,7 @@ import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
 import './Token.sol';
 import './Math.sol';
-import './repricers/IVolmexRepricer.sol';
+import './interfaces/IVolmexRepricer.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IPool.sol';
 

@@ -17,7 +17,7 @@ import '@openzeppelin/contracts-upgradeable/introspection/IERC165Upgradeable.sol
 
 import '../Token.sol';
 import './IVolmexProtocol.sol';
-import '../repricers/IVolmexRepricer.sol';
+import './IVolmexRepricer.sol';
 
 interface IPool is IERC20, IERC165Upgradeable {
     function repricingBlock() external view returns (uint256);
