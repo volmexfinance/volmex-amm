@@ -18,9 +18,7 @@ describe("Volmex Oracle", function () {
   });
 
   this.beforeEach(async function () {
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [
-      '1250000'
-    ]);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
 
     await volmexOracle.deployed();
   });
@@ -33,7 +31,8 @@ describe("Volmex Oracle", function () {
   it ("Should update the volatility price", async () => {
     const receipt = await volmexOracle.updateVolatilityTokenPrice(
       "0",
-      "105"
+      "105",
+      "0x6c00000000000000000000000000000000000000000000000000000000000000"
     );
 
     expect((await receipt.wait()).confirmations).not.equal(0);
@@ -45,7 +44,8 @@ describe("Volmex Oracle", function () {
     await expectRevert(
       volmexOracle.updateVolatilityTokenPrice(
         "0",
-        "250"
+        "250",
+        "0x6c00000000000000000000000000000000000000000000000000000000000000"
       ),
       "VolmexOracle: _volatilityTokenPrice should be greater than 0"
     );
@@ -53,7 +53,8 @@ describe("Volmex Oracle", function () {
     await expectRevert(
       volmexOracle.updateVolatilityTokenPrice(
         "1",
-        "0"
+        "0",
+        "0x6c00000000000000000000000000000000000000000000000000000000000000"
       ),
       "VolmexOracle: _volatilityTokenPrice should be greater than 0"
     );
