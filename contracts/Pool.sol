@@ -129,7 +129,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
 
     uint256 public adminFee;
 
-    uint256 public FLASHLOAN_PREMIUM_TOTAL = 9;
+    uint256 public FLASHLOAN_PREMIUM_TOTAL;
 
     /**
      * @notice Used to log the callee's sig, address and data
@@ -214,6 +214,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         denomination = protocol.volatilityCapRatio();
 
         adminFee = 30;
+        FLASHLOAN_PREMIUM_TOTAL = 9;
 
         setName(makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
         setSymbol(
