@@ -14,6 +14,7 @@ import './Math.sol';
 import './interfaces/IVolmexRepricer.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IPool.sol';
+import './interfaces/IFlashLoanReceiver.sol';
 
 /**
  * @title Volmex Pool Contract
@@ -57,6 +58,14 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
     ); // TODO: Understand what is Amp here.
 
     event LOG_CALL(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
+
+    event FlashLoan(
+        address indexed target,
+        address indexed initiator,
+        address indexed asset,
+        uint256 amount,
+        uint256 premium
+    );
 
     struct Record {
         uint256 leverage;
@@ -119,6 +128,8 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
     bytes4 private constant _INTERFACE_ID_ERC165 = 0x01ffc9a7;
 
     uint256 public adminFee;
+
+    uint256 public FLASHLOAN_PREMIUM_TOTAL = 9;
 
     /**
      * @notice Used to log the callee's sig, address and data
@@ -295,6 +306,53 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
 
         _mintPoolShare(initPoolSupply);
         _pushPoolShare(msg.sender, initPoolSupply);
+    }
+
+    /**
+     * @notice Used to update the flash loan premium percent
+     */
+    function updateFlashLoanPremium(uint256 _premium) external onlyOwner {
+        FLASHLOAN_PREMIUM_TOTAL = _premium;
+    }
+
+    /**
+     * @notice Used to get flash loan
+     *
+     * @dev Decrease the token amount from the record before transfer
+     * @dev Calculate the premium (fee) on the flash loan
+     * @dev Check if executor is valid
+     * @dev Increase the token amount of the record after pulling
+     */
+    function flashLoan(
+        address receiverAddress,
+        address assetToken,
+        uint256 amount,
+        bytes calldata params
+    ) external whenNotPaused {
+        _records[assetToken].balance = sub(_records[assetToken].balance, amount);
+        IERC20Modified(assetToken).transfer(receiverAddress, amount);
+
+        IFlashLoanReceiver receiver = IFlashLoanReceiver(receiverAddress);
+        uint256 premium = div(mul(amount, FLASHLOAN_PREMIUM_TOTAL), 10000);
+
+        require(
+            receiver.executeOperation(assetToken, amount, premium, msg.sender, params),
+            'AMM: Invalid flash loan executor'
+        );
+
+        uint256 amountWithPremium = add(amount, premium);
+
+        IERC20Modified(assetToken).transferFrom(receiverAddress, address(this), amountWithPremium);
+
+        _records[assetToken].balance = add(_records[assetToken].balance, amountWithPremium);
+
+        emit FlashLoan(
+            receiverAddress,
+            msg.sender,
+            assetToken,
+            amount,
+            premium
+        );
     }
 
     /**
