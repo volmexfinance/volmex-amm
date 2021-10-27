@@ -205,7 +205,9 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         adminFee = 30;
 
         setName(makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
-        setSymbol(makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol()));
+        setSymbol(
+            makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol())
+        );
     }
 
     /**
@@ -286,9 +288,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
 
         uint256 initPoolSupply = getDerivativeDenomination() * _primaryBalance;
 
-        uint256 collateralDecimals = uint256(
-            protocol.collateral().decimals()
-        );
+        uint256 collateralDecimals = uint256(protocol.collateral().decimals());
         if (collateralDecimals >= 0 && collateralDecimals < 18) {
             initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
         }
@@ -367,7 +367,11 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         _burnPoolShare(poolAmountIn);
     }
 
-    function calculateAmountOut(uint256 _poolAmountIn, uint256 _ratio, uint256 _tokenReserve) internal view returns (uint256 amountOut) {
+    function calculateAmountOut(
+        uint256 _poolAmountIn,
+        uint256 _ratio,
+        uint256 _tokenReserve
+    ) internal view returns (uint256 amountOut) {
         uint256 tokenAmount = mul(div(_poolAmountIn, upperBoundary), BONE);
         amountOut = mul(_ratio, _tokenReserve);
         if (amountOut > tokenAmount) {
@@ -425,7 +429,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
             0
         );
 
-        (uint256 fee,) = calcFee(
+        (uint256 fee, ) = calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -433,12 +437,11 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
             _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
-        uint256 spotPriceBefore =
-            calcSpotPrice(
-                _getLeveragedBalance(inRecord),
-                _getLeveragedBalance(outRecord),
-                0
-            );
+        uint256 spotPriceBefore = calcSpotPrice(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            0
+        );
 
         tokenAmountOut = calcOutGivenIn(
             _getLeveragedBalance(inRecord),
@@ -473,7 +476,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
             0
         );
 
-        (uint256 fee,) = calcFee(
+        (uint256 fee, ) = calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -840,16 +843,22 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
         int256 _expEnd
     ) internal pure returns (int256) {
         int256 inBalanceLeveraged = _getLeveragedBalanceOfFee(_inRecord[0], _inRecord[1]);
-        int256 tokenAmountIn1 =
-            inBalanceLeveraged * (_outRecord[0] - _inRecord[0]) /
-                (inBalanceLeveraged + _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]));
+        int256 tokenAmountIn1 = (inBalanceLeveraged * (_outRecord[0] - _inRecord[0])) /
+            (inBalanceLeveraged + _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]));
 
         int256 inBalanceLeveragedChanged = inBalanceLeveraged + _inRecord[2] * iBONE;
-        int256 tokenAmountIn2 =
-            inBalanceLeveragedChanged * (_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) /
-            (inBalanceLeveragedChanged + _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]) - _outRecord[2] * iBONE);
+        int256 tokenAmountIn2 = (inBalanceLeveragedChanged *
+            (_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2])) /
+            (inBalanceLeveragedChanged +
+                _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]) -
+                _outRecord[2] *
+                iBONE);
 
-        return (tokenAmountIn1 * _baseFee + tokenAmountIn2 * (_baseFee + _feeAmp * (_expEnd * _expEnd / iBONE) / 3)) /
+        return
+            (tokenAmountIn1 *
+                _baseFee +
+                tokenAmountIn2 *
+                (_baseFee + (_feeAmp * ((_expEnd * _expEnd) / iBONE)) / 3)) /
             (tokenAmountIn1 + tokenAmountIn2);
     }
 
@@ -870,9 +879,8 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
     ) internal pure returns (int256 fee, int256 expStart) {
         expStart = calcExpStart(_inRecord[0], _outRecord[0]);
 
-        int256 _expEnd =
-            ((_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) * iBONE) /
-                (_inRecord[0] + _outRecord[0] + _inRecord[2] - _outRecord[2]);
+        int256 _expEnd = ((_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) * iBONE) /
+            (_inRecord[0] + _outRecord[0] + _inRecord[2] - _outRecord[2]);
 
         if (expStart >= 0) {
             fee =
@@ -921,8 +929,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
      * @dev See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
-        return
-            interfaceId == type(IPool).interfaceId;
+        return interfaceId == type(IPool).interfaceId;
     }
 
     /**
