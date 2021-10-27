@@ -73,9 +73,7 @@ describe('Pool', function () {
     volreceipt = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volreceipt.wait();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [
-      '1250000'
-    ]);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [
@@ -241,7 +239,6 @@ describe('Pool', function () {
       '10000000000000000000',
       inverseVolatility.address
     );
-    console.log('amount', amount.toString());
   });
 
   it('should swap the assets', async () => {
@@ -517,7 +514,6 @@ describe('Pool', function () {
       [ 'uint256' , 'uint256' ],
       data
     );
-    console.log(logData.toString());
   });
 
   it('Should swap volatility to collateral', async () => {
@@ -549,6 +545,6 @@ describe('Pool', function () {
       data
     );
 
-    expect(collateralAfter - collateralBefore).be.closeTo(Number(logData[1].toString()), 60000);
+    expect(collateralAfter - collateralBefore).be.closeTo(Number(logData[1].toString()), 360000);
   });
 });
