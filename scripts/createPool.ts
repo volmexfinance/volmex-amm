@@ -4,7 +4,7 @@ const createPool = async () => {
   const accounts = await ethers.getSigners();
   const CONTROLLER = accounts[0];
 
-  const Pool = await ethers.getContractFactory('Pool');
+  const Pool = await ethers.getContractFactory('VolmexAMM');
   const VolmexRepricer = await ethers.getContractFactory('VolmexRepricer');
   const VolmexOracle = await ethers.getContractFactory('VolmexOracle');
   const VolmexAMMRegistry = await ethers.getContractFactory('VolmexAMMRegistry');
