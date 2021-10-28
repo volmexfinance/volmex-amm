@@ -5,7 +5,7 @@ pragma solidity 0.7.6;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol';
 
-import './interfaces/IPool.sol';
+import './interfaces/IVolmexAMM.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IERC20Modified.sol';
 
@@ -23,7 +23,7 @@ contract Controller is OwnableUpgradeable {
     // Address of the collateral used in protocol
     IERC20Modified public stablecoin;
     // Address on the pool contract
-    IPool public pool;
+    IVolmexAMM public pool;
     // Address of the protocol contract
     IVolmexProtocol public protocol;
     // Ratio of volatility to be minted per 250 collateral
@@ -47,7 +47,7 @@ contract Controller is OwnableUpgradeable {
      */
     function initialize(
         IERC20Modified _stablecoin,
-        IPool _pool,
+        IVolmexAMM _pool,
         IVolmexProtocol _protocol
     ) external initializer {
         stablecoin = _stablecoin;
@@ -184,7 +184,7 @@ contract Controller is OwnableUpgradeable {
         _tokenIn.transfer(address(this), _amountIn);
         _tokenIn.approve(address(pool), _amountIn);
 
-        IPool _pool = IPool(pools[_tokenInPoolIndex]);
+        IVolmexAMM _pool = IVolmexAMM(pools[_tokenInPoolIndex]);
 
         uint256 tokenAmount = _swap(
             _pool,
@@ -213,7 +213,7 @@ contract Controller is OwnableUpgradeable {
             true
         );
 
-        _pool = IPool(pools[_tokenOutPoolIndex]);
+        _pool = IVolmexAMM(pools[_tokenOutPoolIndex]);
         uint256 tokenAmountOut = _swap(
             _pool,
             _pool.getPrimaryDerivativeAddress() == address(_tokenOut)
@@ -245,7 +245,7 @@ contract Controller is OwnableUpgradeable {
     }
 
     function _swap(
-        IPool _pool,
+        IVolmexAMM _pool,
         address _tokenIn,
         uint256 _amountIn,
         address _tokenOut,

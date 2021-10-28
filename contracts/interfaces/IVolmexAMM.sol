@@ -19,7 +19,7 @@ import '../libs/tokens/Token.sol';
 import './IVolmexProtocol.sol';
 import './IVolmexRepricer.sol';
 
-interface IPool is IERC20, IERC165Upgradeable {
+interface IVolmexAMM is IERC20, IERC165Upgradeable {
     function repricingBlock() external view returns (uint256);
 
     function baseFee() external view returns (uint256);
