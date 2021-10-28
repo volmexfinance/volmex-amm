@@ -17,10 +17,10 @@ import './interfaces/IPool.sol';
 import './interfaces/IFlashLoanReceiver.sol';
 
 /**
- * @title Volmex Pool Contract
+ * @title Volmex AMM Contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMetadataGenerator {
+contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMetadataGenerator {
     event LOG_SWAP(
         address indexed caller,
         address indexed tokenIn,
@@ -179,7 +179,7 @@ contract Pool is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMeta
      * @dev Checks, the protocol is a contract
      * @dev Sets repricer, protocol and controller addresses
      * @dev Sets upperBoundary, volatilityIndex and denomination
-     * @dev Make the Pool token name and symbol
+     * @dev Make the AMM token name and symbol
      *
      * @param _repricer Address of the volmex repricer contract
      * @param _protocol Address of the volmex protocol contract
