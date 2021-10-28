@@ -426,19 +426,6 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         _burnPoolShare(poolAmountIn);
     }
 
-    function calculateAmountOut(
-        uint256 _poolAmountIn,
-        uint256 _ratio,
-        uint256 _tokenReserve
-    ) internal view returns (uint256 amountOut) {
-        uint256 tokenAmount = mul(div(_poolAmountIn, upperBoundary), BONE);
-        amountOut = mul(_ratio, _tokenReserve);
-        if (amountOut > tokenAmount) {
-            uint256 feeAmount = mul(tokenAmount, div(adminFee, 10000));
-            amountOut = sub(amountOut, feeAmount);
-        }
-    }
-
     /**
      * @notice Used to swap the pool asset
      *
@@ -989,6 +976,22 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
      */
     function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
         return interfaceId == type(IVolmexAMM).interfaceId;
+    }
+
+    /**
+     * @notice Used to calculate the out amount after fee deduction
+     */
+    function calculateAmountOut(
+        uint256 _poolAmountIn,
+        uint256 _ratio,
+        uint256 _tokenReserve
+    ) internal view returns (uint256 amountOut) {
+        uint256 tokenAmount = mul(div(_poolAmountIn, upperBoundary), BONE);
+        amountOut = mul(_ratio, _tokenReserve);
+        if (amountOut > tokenAmount) {
+            uint256 feeAmount = mul(tokenAmount, div(adminFee, 10000));
+            amountOut = sub(amountOut, feeAmount);
+        }
     }
 
     /**
