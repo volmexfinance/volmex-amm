@@ -3,7 +3,7 @@ const { ethers, upgrades } = require('hardhat');
 import { Signer } from 'ethers';
 const { expectRevert } = require("@openzeppelin/test-helpers");
 
-describe('Pool', function () {
+describe('VolmexAMM', function () {
   let accounts: Signer[];
   let owner: string;
   let volmexOracleFactory: any;
@@ -29,7 +29,7 @@ describe('Pool', function () {
 
     volmexOracleFactory = await ethers.getContractFactory('VolmexOracle');
 
-    poolFactory = await ethers.getContractFactory('Pool');
+    poolFactory = await ethers.getContractFactory('VolmexAMM');
 
     collateralFactory = await ethers.getContractFactory('TestCollateralToken');
 

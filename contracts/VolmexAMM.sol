@@ -13,7 +13,7 @@ import './libs/tokens/Token.sol';
 import './maths/Math.sol';
 import './interfaces/IVolmexRepricer.sol';
 import './interfaces/IVolmexProtocol.sol';
-import './interfaces/IPool.sol';
+import './interfaces/IVolmexAMM.sol';
 import './interfaces/IFlashLoanReceiver.sol';
 
 /**
@@ -988,7 +988,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
      * @dev See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
-        return interfaceId == type(IPool).interfaceId;
+        return interfaceId == type(IVolmexAMM).interfaceId;
     }
 
     /**
