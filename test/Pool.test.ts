@@ -501,7 +501,8 @@ describe('VolmexAMM', function () {
 
     const swapReceipt = await controller.swapCollateralToVolatility(
       '250000000000000000000',
-      true
+      true,
+      '0'
     );
     const {events} = await swapReceipt.wait();
     let data;
@@ -529,7 +530,7 @@ describe('VolmexAMM', function () {
     const collateralBefore = Number(await collateral.balanceOf(owner));
 
     const swapReceipt = await controller.swapVolatilityToCollateral(
-      '2000000000000000000', false
+      '2000000000000000000', false, '0'
     );
     const {events} = await swapReceipt.wait();
     const collateralAfter = Number(await collateral.balanceOf(owner));

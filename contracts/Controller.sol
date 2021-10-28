@@ -22,18 +22,16 @@ contract Controller is OwnableUpgradeable {
 
     // Address of the collateral used in protocol
     IERC20Modified public stablecoin;
-    // Address on the pool contract
-    IVolmexAMM public pool;
-    // Address of the protocol contract
-    IVolmexProtocol public protocol;
     // Ratio of volatility to be minted per 250 collateral
     uint256 private _volatilityCapRatio;
     // Minimum amount of collateral amount needed to collateralize
     uint256 private _minimumCollateralQty;
-
+    // Used to set the index of pool and protocol
     uint256 public poolIndex;
 
+    // Store the addresses of pools
     mapping(uint256 => address) public pools;
+    // Store the addresses of protocols
     mapping(uint256 => address) public protocols;
 
     /**
@@ -51,14 +49,12 @@ contract Controller is OwnableUpgradeable {
         IVolmexProtocol _protocol
     ) external initializer {
         stablecoin = _stablecoin;
-        pool = _pool;
-        protocol = _protocol;
 
         pools[poolIndex] = address(_pool);
         protocols[poolIndex] = address(_protocol);
 
-        _volatilityCapRatio = protocol.volatilityCapRatio();
-        _minimumCollateralQty = protocol.minimumCollateralQty();
+        _volatilityCapRatio = _protocol.volatilityCapRatio();
+        _minimumCollateralQty = _protocol.minimumCollateralQty();
     }
 
     /** Add comments
@@ -80,32 +76,41 @@ contract Controller is OwnableUpgradeable {
      * @param _amount Amount of collateral token
      * @param _isInverseRequired Bool value token type required { true: iETHV, false: ETHV }
      */
-    function swapCollateralToVolatility(uint256 _amount, bool _isInverseRequired) external {
+    function swapCollateralToVolatility(
+        uint256 _amount,
+        bool _isInverseRequired,
+        uint256 _tokenPoolIndex
+    ) external {
+        IVolmexProtocol _protocol = IVolmexProtocol(protocols[_tokenPoolIndex]);
         stablecoin.transferFrom(msg.sender, address(this), _amount);
-        stablecoin.approve(address(protocol), _amount);
+        stablecoin.approve(address(_protocol), _amount);
 
-        protocol.collateralize(_amount);
+        _protocol.collateralize(_amount);
 
-        uint256 volatilityAmount = calculateAssetQuantity(_amount, protocol.issuanceFees(), true);
+        uint256 volatilityAmount = calculateAssetQuantity(_amount, _protocol.issuanceFees(), true);
 
-        IERC20Modified volatilityToken = protocol.volatilityToken();
-        IERC20Modified inverseVolatilityToken = protocol.inverseVolatilityToken();
+        IERC20Modified volatilityToken = _protocol.volatilityToken();
+        IERC20Modified inverseVolatilityToken = _protocol.inverseVolatilityToken();
+
+        IVolmexAMM _pool = IVolmexAMM(pools[_tokenPoolIndex]);
 
         uint256 tokenAmountOut;
         if (_isInverseRequired) {
-            volatilityToken.approve(address(pool), volatilityAmount);
-            (tokenAmountOut, ) = pool.swapExactAmountIn(
-                address(protocol.volatilityToken()),
+            volatilityToken.approve(address(_pool), volatilityAmount);
+            tokenAmountOut = _swap(
+                _pool,
+                address(_protocol.volatilityToken()),
                 volatilityAmount,
-                address(protocol.inverseVolatilityToken()),
+                address(_protocol.inverseVolatilityToken()),
                 volatilityAmount >> 1
             );
         } else {
-            inverseVolatilityToken.approve(address(pool), volatilityAmount);
-            (tokenAmountOut, ) = pool.swapExactAmountIn(
-                address(protocol.inverseVolatilityToken()),
+            inverseVolatilityToken.approve(address(_pool), volatilityAmount);
+            tokenAmountOut = _swap(
+                _pool,
+                address(_protocol.inverseVolatilityToken()),
                 volatilityAmount,
-                address(protocol.volatilityToken()),
+                address(_protocol.volatilityToken()),
                 volatilityAmount >> 1
             );
         }
@@ -130,40 +135,49 @@ contract Controller is OwnableUpgradeable {
      * @param _amount Amount of volatility token
      * @param _isInverseRequired Bool value token type required { true: iETHV, false: ETHV }
      */
-    function swapVolatilityToCollateral(uint256 _amount, bool _isInverseRequired) external {
-        IERC20Modified volatilityToken = protocol.volatilityToken();
-        IERC20Modified inverseVolatilityToken = protocol.inverseVolatilityToken();
+    function swapVolatilityToCollateral(
+        uint256 _amount,
+        bool _isInverseRequired,
+        uint256 _tokenPoolIndex
+    ) external {
+        IVolmexProtocol _protocol = IVolmexProtocol(protocols[_tokenPoolIndex]);
+        IERC20Modified volatilityToken = _protocol.volatilityToken();
+        IERC20Modified inverseVolatilityToken = _protocol.inverseVolatilityToken();
+
+        IVolmexAMM _pool = IVolmexAMM(pools[_tokenPoolIndex]);
 
         uint256 tokenAmountOut;
         if (_isInverseRequired) {
             volatilityToken.transferFrom(msg.sender, address(this), _amount);
-            volatilityToken.approve(address(pool), _amount >> 1);
+            volatilityToken.approve(address(_pool), _amount >> 1);
 
-            (tokenAmountOut, ) = pool.swapExactAmountIn(
-                address(protocol.volatilityToken()),
+            tokenAmountOut = _swap(
+                _pool,
+                address(_protocol.volatilityToken()),
                 _amount >> 1,
-                address(protocol.inverseVolatilityToken()),
+                address(_protocol.inverseVolatilityToken()),
                 _amount.div(10)
             );
         } else {
             inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
-            inverseVolatilityToken.approve(address(pool), _amount >> 1);
+            inverseVolatilityToken.approve(address(_pool), _amount >> 1);
 
-            (tokenAmountOut, ) = pool.swapExactAmountIn(
-                address(protocol.inverseVolatilityToken()),
+            tokenAmountOut = _swap(
+                _pool,
+                address(_protocol.inverseVolatilityToken()),
                 _amount >> 1,
-                address(protocol.volatilityToken()),
+                address(_protocol.volatilityToken()),
                 _amount.div(10)
             );
         }
 
         uint256 collateralAmount = calculateAssetQuantity(
             tokenAmountOut.mul(_volatilityCapRatio),
-            protocol.redeemFees(),
+            _protocol.redeemFees(),
             false
         );
 
-        protocol.redeem(tokenAmountOut);
+        _protocol.redeem(tokenAmountOut);
 
         transferAsset(stablecoin, collateralAmount);
         transferAsset(
@@ -181,10 +195,9 @@ contract Controller is OwnableUpgradeable {
         uint256 _tokenInPoolIndex,
         uint256 _tokenOutPoolIndex
     ) external {
-        _tokenIn.transfer(address(this), _amountIn);
-        _tokenIn.approve(address(pool), _amountIn);
-
         IVolmexAMM _pool = IVolmexAMM(pools[_tokenInPoolIndex]);
+        _tokenIn.transfer(address(this), _amountIn);
+        _tokenIn.approve(address(_pool), _amountIn);
 
         uint256 tokenAmount = _swap(
             _pool,
@@ -205,11 +218,11 @@ contract Controller is OwnableUpgradeable {
             false
         );
 
-        IVolmexProtocol _protocol2 = IVolmexProtocol(protocols[_tokenOutPoolIndex]);
-        _protocol2.collateralize(_collateralAmount);
+        _protocol = IVolmexProtocol(protocols[_tokenOutPoolIndex]);
+        _protocol.collateralize(_collateralAmount);
         uint256 _volatilityAmount = calculateAssetQuantity(
             _collateralAmount,
-            protocol.issuanceFees(),
+            _protocol.issuanceFees(),
             true
         );
 
