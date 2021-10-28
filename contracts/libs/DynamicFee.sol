@@ -14,8 +14,8 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
-import './Num.sol';
-import './interfaces/IDynamicFee.sol';
+import '../maths/Num.sol';
+import '../interfaces/IDynamicFee.sol';
 
 contract DynamicFee is IDynamicFee, Num {
     function spow3(int256 _value) internal pure returns (int256) {

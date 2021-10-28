@@ -9,8 +9,8 @@ import '@openzeppelin/contracts-upgradeable/introspection/ERC165CheckerUpgradeab
 import './libs/tokens/IERC20Metadata.sol';
 import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
-import './Token.sol';
-import './Math.sol';
+import './libs/tokens/Token.sol';
+import './maths/Math.sol';
 import './interfaces/IVolmexRepricer.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IPool.sol';

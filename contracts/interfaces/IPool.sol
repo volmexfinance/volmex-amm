@@ -15,7 +15,7 @@ pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts-upgradeable/introspection/IERC165Upgradeable.sol';
 
-import '../Token.sol';
+import '../libs/tokens/Token.sol';
 import './IVolmexProtocol.sol';
 import './IVolmexRepricer.sol';
 
