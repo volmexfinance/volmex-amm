@@ -13,7 +13,7 @@
 
 pragma solidity 0.7.6;
 
-import './Num.sol';
+import '../../maths/Num.sol';
 
 // Highly opinionated token implementation
 

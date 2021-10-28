@@ -3,7 +3,7 @@
 pragma solidity =0.7.6;
 
 import '../interfaces/IFlashLoanReceiver.sol';
-import '../Num.sol';
+import '../maths/Num.sol';
 
 contract FlashLoanExample is Num {
     /**
