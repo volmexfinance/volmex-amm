@@ -45,24 +45,32 @@ contract Controller is OwnableUpgradeable {
      */
     function initialize(
         IERC20Modified _stablecoin,
-        IVolmexAMM _pool,
+        address _pool,
         IVolmexProtocol _protocol
     ) external initializer {
         stablecoin = _stablecoin;
 
-        pools[poolIndex] = address(_pool);
+        pools[poolIndex] = _pool;
         protocols[poolIndex] = address(_protocol);
 
         _volatilityCapRatio = _protocol.volatilityCapRatio();
         _minimumCollateralQty = _protocol.minimumCollateralQty();
     }
 
-    /** Add comments
+    /**
+     * @notice Used to set the pool and protocol on new index
      */
     function setPoolAndProtocol(address _pool, address _protocol) external onlyOwner {
         poolIndex++;
         pools[poolIndex] = _pool;
         protocols[poolIndex] = address(_protocol);
+    }
+
+    /**
+     * @notice Used to update the minimum collateral qty value
+     */
+    function updateMinCollateralQty(uint256 _minCollateralQty) external onlyOwner {
+        _minimumCollateralQty = _minCollateralQty;
     }
 
     /**
