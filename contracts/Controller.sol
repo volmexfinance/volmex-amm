@@ -249,6 +249,40 @@ contract Controller is OwnableUpgradeable {
         transferAsset(IERC20Modified(_tokenOut), tokenAmountOut);
     }
 
+    /**
+     * @notice Used to add liquidity in the pool
+     *
+     * @param _poolAmountOut Amount of pool token mint and transfer to LP
+     * @param _maxAmountsIn Max amount of pool assets an LP can supply
+     * @param _poolIndex Index of the pool in which user wants to add liquidity
+     */
+    function addLiquidity(
+        uint256 _poolAmountOut,
+        uint256[2] calldata _maxAmountsIn,
+        uint256 _poolIndex
+    ) external {
+        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
+
+        _pool.joinPool(_poolAmountOut, _maxAmountsIn);
+    }
+
+    /**
+     * @notice Used to remove liquidity from the pool
+     *
+     * @param _poolAmountIn Amount of pool token transfer to the pool
+     * @param _minAmountsOut Min amount of pool assets an LP wish to redeem
+     * @param _poolIndex Index of the pool in which user wants to add liquidity
+     */
+    function removeLiquidity(
+        uint256 _poolAmountIn,
+        uint256[2] calldata _minAmountsOut,
+        uint256 _poolIndex
+    ) external {
+        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
+
+        _pool.exitPool(_poolAmountIn, _minAmountsOut);
+    }
+
     //solium-disable-next-line security/no-assign-params
     function calculateAssetQuantity(
         uint256 _amount,
