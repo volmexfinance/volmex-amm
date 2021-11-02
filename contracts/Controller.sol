@@ -204,7 +204,7 @@ contract Controller is OwnableUpgradeable {
         uint256 _tokenOutPoolIndex
     ) external {
         IVolmexAMM _pool = IVolmexAMM(pools[_tokenInPoolIndex]);
-        _tokenIn.transfer(address(this), _amountIn);
+        _tokenIn.transferFrom(msg.sender, address(this), _amountIn);
         _tokenIn.approve(address(_pool), _amountIn);
 
         uint256 tokenAmount = _swap(
@@ -250,37 +250,15 @@ contract Controller is OwnableUpgradeable {
     }
 
     /**
-     * @notice Used to add liquidity in the pool
-     *
-     * @param _poolAmountOut Amount of pool token mint and transfer to LP
-     * @param _maxAmountsIn Max amount of pool assets an LP can supply
-     * @param _poolIndex Index of the pool in which user wants to add liquidity
+     * @notice Approves the AMM contracts on token transfer
      */
-    function addLiquidity(
-        uint256 _poolAmountOut,
-        uint256[2] calldata _maxAmountsIn,
-        uint256 _poolIndex
+    function approveTokenAmount(
+        address[] calldata tokens,
+        uint256[] calldata amounts
     ) external {
-        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
-
-        _pool.joinPool(_poolAmountOut, _maxAmountsIn);
-    }
-
-    /**
-     * @notice Used to remove liquidity from the pool
-     *
-     * @param _poolAmountIn Amount of pool token transfer to the pool
-     * @param _minAmountsOut Min amount of pool assets an LP wish to redeem
-     * @param _poolIndex Index of the pool in which user wants to add liquidity
-     */
-    function removeLiquidity(
-        uint256 _poolAmountIn,
-        uint256[2] calldata _minAmountsOut,
-        uint256 _poolIndex
-    ) external {
-        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
-
-        _pool.exitPool(_poolAmountIn, _minAmountsOut);
+        for (uint256 index = 0; index < tokens.length; index++) {
+            IERC20Modified(tokens[index]).approve(address(this), amounts[index]);
+        }
     }
 
     //solium-disable-next-line security/no-assign-params
