@@ -8,6 +8,7 @@ const createPool = async () => {
   const VolmexRepricer = await ethers.getContractFactory('VolmexRepricer');
   const VolmexOracle = await ethers.getContractFactory('VolmexOracle');
   const VolmexAMMRegistry = await ethers.getContractFactory('VolmexAMMRegistry');
+  const ControllerFactory = await ethers.getContractFactory('Controller');
 
   const BigNumber = require('bignumber.js');
   const bn = (num: number) => new BigNumber(num);
@@ -36,9 +37,7 @@ const createPool = async () => {
   console.log('Deploying Oracle...');
 
   const oracle = await upgrades.deployProxy(
-    VolmexOracle, [
-      '1250000'
-    ]
+    VolmexOracle, []
   );
   await oracle.deployed();
   console.log('oracle deployed ', oracle.address);
@@ -55,12 +54,12 @@ const createPool = async () => {
 
   console.log('Creating pool... ');
 
-  const pool = await Pool.deploy(
-      repricer.address,
-      protocolAddress.address,
-      CONTROLLER.address
-  );
-
+  const pool = await upgrades.deployProxy(Pool, [
+    repricer.address,
+    protocolAddress.address,
+    CONTROLLER.address,
+    "0"
+  ]);
   await pool.deployed();
 
   console.log('Set Pool Fee');
@@ -121,6 +120,18 @@ const createPool = async () => {
   await registry.deployed();
 
   console.log('Registered AMM');
+
+  const controller = await upgrades.deployProxy(ControllerFactory, [
+    collateralToken.address,
+    pool.address,
+    protocolAddress.address
+  ]);
+  await controller.deployed();
+
+  console.log('VolmexAMM: ', pool.address);
+  console.log('VolmexRepricer: ', repricer.address);
+  console.log('VolmexOracle: ', oracle.address);
+  console.log('Controller: ', controller.address);
 
   // await run("verify:verify", {
   //   address: pool.address,
