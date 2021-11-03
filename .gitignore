@@ -17,7 +17,6 @@ typechain/
 .DS_Store
 .vscode
 .openzeppelin/
-contracts/protocol/
 contracts/deprecated/
 contracts/test/
 audits/
