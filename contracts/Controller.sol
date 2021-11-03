@@ -249,6 +249,71 @@ contract Controller is OwnableUpgradeable {
         transferAsset(IERC20Modified(_tokenOut), tokenAmountOut);
     }
 
+    /**
+     * @notice Used to add liquidity in the pool
+     *
+     * @param _poolAmountOut Amount of pool token mint and transfer to LP
+     * @param _maxAmountsIn Max amount of pool assets an LP can supply
+     * @param _poolIndex Index of the pool in which user wants to add liquidity
+     */
+    function addLiquidity(
+        uint256 _poolAmountOut,
+        uint256[2] calldata _maxAmountsIn,
+        uint256 _poolIndex
+    ) external {
+        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
+        IVolmexProtocol _protocol = IVolmexProtocol(protocols[_poolIndex]);
+
+        _approveAssets(_protocol.volatilityToken(), _maxAmountsIn[0], msg.sender, address(_pool));
+        _approveAssets(_protocol.inverseVolatilityToken(), _maxAmountsIn[1], msg.sender, address(_pool));
+
+        _pool.joinPool(_poolAmountOut, _maxAmountsIn, msg.sender);
+    }
+
+    /**
+     * @notice Used to remove liquidity from the pool
+     *
+     * @param _poolAmountIn Amount of pool token transfer to the pool
+     * @param _minAmountsOut Min amount of pool assets an LP wish to redeem
+     * @param _poolIndex Index of the pool in which user wants to add liquidity
+     */
+    function removeLiquidity(
+        uint256 _poolAmountIn,
+        uint256[2] calldata _minAmountsOut,
+        uint256 _poolIndex
+    ) external {
+        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
+
+        _pool.exitPool(_poolAmountIn, _minAmountsOut, msg.sender);
+    }
+
+    /**
+     * @notice Used to call falsh loan on AMM
+     *
+     * @dev This method is for developers.
+     * Make sure you call this metehod from a contract with the implementation
+     * of IFlashLoanReceiver interface
+     *
+     * @param _assetToken,
+     * @param _amount,
+     * @param _params,
+     * @param _poolIndex
+     */
+    function makeFlashLoan(
+        address _assetToken,
+        uint256 _amount,
+        bytes calldata _params,
+        uint256 _poolIndex
+    ) external {
+        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
+        _pool.flashLoan(
+            msg.sender,
+            _assetToken,
+            _amount,
+            _params
+        );
+    }
+
     //solium-disable-next-line security/no-assign-params
     function calculateAssetQuantity(
         uint256 _amount,
