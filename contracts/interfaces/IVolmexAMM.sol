@@ -56,9 +56,9 @@ interface IVolmexAMM is IERC20, IERC165Upgradeable {
 
     function getComplementDerivativeAddress() external view returns (address);
 
-    function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn) external;
+    function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn, address receiver) external;
 
-    function exitPool(uint256 poolAmountIn, uint256[2] calldata minAmountsOut) external;
+    function exitPool(uint256 poolAmountIn, uint256[2] calldata minAmountsOut, address receiver) external;
 
     function swapExactAmountIn(
         address tokenIn,
