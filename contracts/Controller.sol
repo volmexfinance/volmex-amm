@@ -141,11 +141,11 @@ contract Controller is OwnableUpgradeable {
      * @dev Transfers the asset to caller
      *
      * @param _amount Amount of volatility token
-     * @param _isInverseRequired Bool value token type required { true: iETHV, false: ETHV }
+     * @param _isInverse Bool value of token type passed { true: iETHV, false: ETHV }
      */
     function swapVolatilityToCollateral(
         uint256 _amount,
-        bool _isInverseRequired,
+        bool _isInverse,
         uint256 _tokenPoolIndex
     ) external {
         IVolmexProtocol _protocol = IVolmexProtocol(protocols[_tokenPoolIndex]);
@@ -155,7 +155,7 @@ contract Controller is OwnableUpgradeable {
         IVolmexAMM _pool = IVolmexAMM(pools[_tokenPoolIndex]);
 
         uint256 tokenAmountOut;
-        if (_isInverseRequired) {
+        if (_isInverse) {
             volatilityToken.transferFrom(msg.sender, address(this), _amount);
             _approveAssets(volatilityToken, _amount >> 1, address(this), address(_pool));
 
@@ -189,7 +189,7 @@ contract Controller is OwnableUpgradeable {
 
         transferAsset(stablecoin, collateralAmount);
         transferAsset(
-            _isInverseRequired ? volatilityToken : inverseVolatilityToken,
+            _isInverse ? volatilityToken : inverseVolatilityToken,
             (_amount >> 1).sub(tokenAmountOut)
         );
 
