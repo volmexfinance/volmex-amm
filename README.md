@@ -1,21 +1,15 @@
-# CompliFi Leveraged AMM
+# Volmex Leveraged AMM
 
-CompliFi Protocol - Decentralised Derivatives That Do Not Default. No counterparty risk, no margin
+Volmex Protocol - Decentralised Derivatives That Do Not Default. No counterparty risk, no margin
 calls, no liquidations.
 
-CompliFi Leveraged AMM white paper https://compli.fi/files/Leveraging%20Uniswap.pdf
+Volmex Leveraged AMM white paper https://compli.fi/files/Leveraging%20Uniswap.pdf
 
 ## Setup
 
 Requirements:
 
 - Node >= v12
-
-```
-$ git clone git@github.com:CompliFi/complifi-protocol.git
-$ cd complifi-protocol
-$ npm install        # Install dependencies
-```
 
 ## Linting and Formatting
 
