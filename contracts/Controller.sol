@@ -91,7 +91,7 @@ contract Controller is OwnableUpgradeable {
     ) external {
         IVolmexProtocol _protocol = IVolmexProtocol(protocols[_tokenPoolIndex]);
         stablecoin.transferFrom(msg.sender, address(this), _amount);
-        stablecoin.approve(address(_protocol), _amount);
+        _approveAssets(stablecoin, _amount, address(this), address(_protocol));
 
         _protocol.collateralize(_amount);
 
@@ -104,7 +104,7 @@ contract Controller is OwnableUpgradeable {
 
         uint256 tokenAmountOut;
         if (_isInverseRequired) {
-            volatilityToken.approve(address(_pool), volatilityAmount);
+            _approveAssets(volatilityToken, volatilityAmount, address(this), address(_pool));
             tokenAmountOut = _swap(
                 _pool,
                 address(_protocol.volatilityToken()),
@@ -113,7 +113,7 @@ contract Controller is OwnableUpgradeable {
                 volatilityAmount >> 1
             );
         } else {
-            inverseVolatilityToken.approve(address(_pool), volatilityAmount);
+            _approveAssets(inverseVolatilityToken, volatilityAmount, address(this), address(_pool));
             tokenAmountOut = _swap(
                 _pool,
                 address(_protocol.inverseVolatilityToken()),
@@ -157,7 +157,7 @@ contract Controller is OwnableUpgradeable {
         uint256 tokenAmountOut;
         if (_isInverseRequired) {
             volatilityToken.transferFrom(msg.sender, address(this), _amount);
-            volatilityToken.approve(address(_pool), _amount >> 1);
+            _approveAssets(volatilityToken, _amount >> 1, address(this), address(_pool));
 
             tokenAmountOut = _swap(
                 _pool,
@@ -168,7 +168,7 @@ contract Controller is OwnableUpgradeable {
             );
         } else {
             inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
-            inverseVolatilityToken.approve(address(_pool), _amount >> 1);
+            _approveAssets(inverseVolatilityToken, _amount >> 1, address(this), address(_pool));
 
             tokenAmountOut = _swap(
                 _pool,
@@ -205,7 +205,7 @@ contract Controller is OwnableUpgradeable {
     ) external {
         IVolmexAMM _pool = IVolmexAMM(pools[_tokenInPoolIndex]);
         _tokenIn.transferFrom(msg.sender, address(this), _amountIn);
-        _tokenIn.approve(address(_pool), _amountIn);
+        _approveAssets(_tokenIn, _amountIn, address(this), address(_pool));
 
         uint256 tokenAmount = _swap(
             _pool,
@@ -249,18 +249,6 @@ contract Controller is OwnableUpgradeable {
         transferAsset(IERC20Modified(_tokenOut), tokenAmountOut);
     }
 
-    /**
-     * @notice Approves the AMM contracts on token transfer
-     */
-    function approveTokenAmount(
-        address[] calldata tokens,
-        uint256[] calldata amounts
-    ) external {
-        for (uint256 index = 0; index < tokens.length; index++) {
-            IERC20Modified(tokens[index]).approve(address(this), amounts[index]);
-        }
-    }
-
     //solium-disable-next-line security/no-assign-params
     function calculateAssetQuantity(
         uint256 _amount,
@@ -290,5 +278,18 @@ contract Controller is OwnableUpgradeable {
             _tokenOut,
             _amountOut
         );
+    }
+
+    function _approveAssets(
+        IERC20Modified _token,
+        uint256 _amount,
+        address _owner,
+        address _spender
+    ) internal {
+        uint256 _allowance = _token.allowance(_owner, _spender);
+
+        if (_amount <= _allowance) return;
+
+        _token.approve(_spender, _amount);
     }
 }
