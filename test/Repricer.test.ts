@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
 import { Signer } from 'ethers';
-const { expectRevert } = require("@openzeppelin/test-helpers");
+const { expectRevert } = require('@openzeppelin/test-helpers');
 
 describe('Repricer', function () {
   let accounts: Signer[];
@@ -62,15 +62,13 @@ describe('Repricer', function () {
 
     volReciept = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volReciept.wait();
-  
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [
-      '1250000'
-    ]);
+
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [
       volmexOracle.address,
-      protocol.address
+      protocol.address,
     ]);
   });
 
@@ -80,7 +78,11 @@ describe('Repricer', function () {
   });
 
   it('Should call the reprice method', async () => {
-    let reciept = await volmexOracle.updateVolatilityTokenPrice('0', '125');
+    let reciept = await volmexOracle.updateVolatilityTokenPrice(
+      '0',
+      '125',
+      '0x6c00000000000000000000000000000000000000000000000000000000000000'
+    );
     await reciept.wait();
 
     reciept = await repricer.reprice('0');
@@ -88,21 +90,15 @@ describe('Repricer', function () {
   });
 
   it('Should revert on not contract', async () => {
-    const [ other ] = accounts;
+    const [other] = accounts;
 
     await expectRevert(
-      upgrades.deployProxy(repricerFactory, [
-        await other.getAddress(),
-        protocol.address
-      ]),
+      upgrades.deployProxy(repricerFactory, [await other.getAddress(), protocol.address]),
       'Repricer: Not an oracle contract'
     );
 
     await expectRevert(
-      upgrades.deployProxy(repricerFactory, [
-        volmexOracle.address,
-        await other.getAddress(),
-      ]),
+      upgrades.deployProxy(repricerFactory, [volmexOracle.address, await other.getAddress()]),
       'Repricer: Not a protocol contract'
     );
   });
