@@ -19,3 +19,6 @@ typechain/
 .openzeppelin/
 contracts/protocol/
 contracts/deprecated/
+contracts/test/
+audits/
+dump/
