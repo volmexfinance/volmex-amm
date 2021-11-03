@@ -57,14 +57,13 @@ const createPool = async () => {
   const pool = await upgrades.deployProxy(Pool, [
     repricer.address,
     protocolAddress.address,
-    CONTROLLER.address,
-    "0"
+    "0",
+    baseFee,
+    maxFee,
+    feeAmpPrimary,
+    feeAmpComplement
   ]);
   await pool.deployed();
-
-  console.log('Set Pool Fee');
-  const feeReciept = await pool.setFeeParams(baseFee, maxFee, feeAmpPrimary, feeAmpComplement);
-  await feeReciept.wait();
 
   const collateralToken = await ethers.getContractAt(
       'IERC20Modified',
@@ -82,8 +81,17 @@ const createPool = async () => {
   );
   console.log('complementTokenAddress ', complementToken.address);
 
-  // console.log('Mint collateral');
-  // await collateralToken.mint(CONTROLLER.address, '10000000000000000000000');
+  console.log('Deploying controller ...');
+  const controller = await upgrades.deployProxy(ControllerFactory, [
+    collateralToken.address,
+    pool.address,
+    protocolAddress.address
+  ]);
+  await controller.deployed();
+  console.log('Deployed controller :', controller.address);
+
+  const setController = await pool.setController(controller.address);
+  await setController.wait();
 
   const MAX = '10000000000000000000000';
 
@@ -121,17 +129,11 @@ const createPool = async () => {
 
   console.log('Registered AMM');
 
-  const controller = await upgrades.deployProxy(ControllerFactory, [
-    collateralToken.address,
-    pool.address,
-    protocolAddress.address
-  ]);
-  await controller.deployed();
-
   console.log('VolmexAMM: ', pool.address);
   console.log('VolmexRepricer: ', repricer.address);
   console.log('VolmexOracle: ', oracle.address);
   console.log('Controller: ', controller.address);
+  console.log('Registry: ', registry.address);
 
   // await run("verify:verify", {
   //   address: pool.address,
