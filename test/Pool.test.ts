@@ -37,7 +37,7 @@ describe('VolmexAMM', function () {
 
     protocolFactory = await ethers.getContractFactory('VolmexProtocol');
 
-    controllerFactory = await ethers.getContractFactory('Controller');
+    controllerFactory = await ethers.getContractFactory('VolmexController');
   });
 
   this.beforeEach(async function () {

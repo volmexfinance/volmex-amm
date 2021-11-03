@@ -13,7 +13,7 @@ import './interfaces/IERC20Modified.sol';
  * @title Volmex Controller contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract Controller is OwnableUpgradeable {
+contract VolmexController is OwnableUpgradeable {
     using SafeMathUpgradeable for uint256;
 
     event AdminFeeUpdated(uint256 adminFee);

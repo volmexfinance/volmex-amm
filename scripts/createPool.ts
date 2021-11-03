@@ -8,7 +8,7 @@ const createPool = async () => {
   const VolmexRepricer = await ethers.getContractFactory('VolmexRepricer');
   const VolmexOracle = await ethers.getContractFactory('VolmexOracle');
   const VolmexAMMRegistry = await ethers.getContractFactory('VolmexAMMRegistry');
-  const ControllerFactory = await ethers.getContractFactory('Controller');
+  const ControllerFactory = await ethers.getContractFactory('VolmexController');
 
   const BigNumber = require('bignumber.js');
   const bn = (num: number) => new BigNumber(num);
