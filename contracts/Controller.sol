@@ -294,10 +294,10 @@ contract Controller is OwnableUpgradeable {
      * Make sure you call this metehod from a contract with the implementation
      * of IFlashLoanReceiver interface
      *
-     * @param _assetToken,
-     * @param _amount,
-     * @param _params,
-     * @param _poolIndex
+     * @param _assetToken Address of the token in need
+     * @param _amount Amount of token in need
+     * @param _params msg.data for verifying the loan
+     * @param _poolIndex Index of the AMM
      */
     function makeFlashLoan(
         address _assetToken,

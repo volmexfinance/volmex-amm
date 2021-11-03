@@ -70,4 +70,13 @@ interface IVolmexAMM is IERC20, IERC165Upgradeable {
     function paused() external view returns (bool);
 
     function transferOwnership(address newOwner) external;
+
+    function setController(address controller) external;
+
+    function flashLoan(
+        address receiverAddress,
+        address assetToken,
+        uint256 amount,
+        bytes calldata params
+    ) external;
 }

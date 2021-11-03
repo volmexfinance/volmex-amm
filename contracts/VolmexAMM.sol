@@ -19,7 +19,13 @@ import './interfaces/IFlashLoanReceiver.sol';
  * @title Volmex AMM Contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, TokenMetadataGenerator {
+contract VolmexAMM is
+    OwnableUpgradeable,
+    PausableUpgradeable,
+    Token,
+    Math,
+    TokenMetadataGenerator
+{
     event LOG_SWAP(
         address indexed caller,
         address indexed tokenIn,
@@ -64,6 +70,8 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         uint256 amount,
         uint256 premium
     );
+
+    event SetController(address indexed controller);
 
     struct Record {
         uint256 leverage;
@@ -189,23 +197,22 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
      *
      * @param _repricer Address of the volmex repricer contract
      * @param _protocol Address of the volmex protocol contract
-     * @param _controller Address of the pool contract controller
      * @param _volatilityIndex Index of the volatility price in oracle
      */
     function initialize(
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
-        address _controller,
-        uint256 _volatilityIndex
+        uint256 _volatilityIndex,
+        uint256 _baseFee,
+        uint256 _maxFee,
+        uint256 _feeAmpPrimary,
+        uint256 _feeAmpComplement
     ) external initializer {
         require(
             ERC165CheckerUpgradeable.supportsInterface(address(_repricer), _INTERFACE_ID_ERC165),
             'VolmexAMM: Repricer does not supports interface'
         );
         repricer = _repricer;
-
-        require(_controller != address(0), 'VolmexAMM: Deployer can not be zero address');
-        controller = _controller;
 
         // NOTE: Intentionally skipped require check for protocol
         protocol = _protocol;
@@ -226,93 +233,25 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         setSymbol(
             makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol())
         );
-    }
 
-    /**
-     * @notice Sets all type of fees
-     *
-     * @dev Checks the contract is finalised and caller is controller of the pool
-     *
-     * @param _baseFee Fee of the pool contract
-     * @param _maxFee Max fee of the pool while swap
-     * @param _feeAmpPrimary Fee on the primary token
-     * @param _feeAmpComplement Fee on the complement token
-     */
-    function setFeeParams(
-        uint256 _baseFee,
-        uint256 _maxFee,
-        uint256 _feeAmpPrimary,
-        uint256 _feeAmpComplement
-    ) external _logs_ _lock_ onlyNotSettled {
-        require(!_finalized, 'VolmexAMM: AMM is finalized');
-        require(msg.sender == controller, 'VolmexAMM: Caller is not a controller');
-
-        baseFee = _baseFee;
-        maxFee = _maxFee;
-        feeAmpPrimary = _feeAmpPrimary;
-        feeAmpComplement = _feeAmpComplement;
-
-        emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
-    }
-
-    /**
-     * @notice Used to finalise the pool with the required attributes and operations
-     *
-     * @dev Checks, pool is finalised, caller is controller, supplied token balance
-     * should be equal
-     * @dev Binds the token, and its leverage and balance
-     * @dev Calculates the iniyial pool supply, mints and transfer to the controller
-     *
-     * @param _primaryBalance Balance amount of primary token
-     * @param _primaryLeverage Leverage value of primary token
-     * @param _complementBalance  Balance amount of complement token
-     * @param _complementLeverage  Leverage value of complement token
-     * @param _exposureLimitPrimary TODO: Need to check this
-     * @param _exposureLimitComplement TODO: Need to check this
-     * @param _pMin TODO: Need to check this
-     * @param _qMin TODO: Need to check this
-     */
-    function finalize(
-        uint256 _primaryBalance,
-        uint256 _primaryLeverage,
-        uint256 _complementBalance,
-        uint256 _complementLeverage,
-        uint256 _exposureLimitPrimary,
-        uint256 _exposureLimitComplement,
-        uint256 _pMin,
-        uint256 _qMin
-    ) external _logs_ _lock_ onlyNotSettled {
-        require(!_finalized, 'VolmexAMM: AMM is finalized');
-        require(msg.sender == controller, 'VolmexAMM: Caller is not a controller');
-
-        require(_primaryBalance == _complementBalance, 'VolmexAMM: Assets balance should be same');
-
-        require(baseFee > 0, 'VolmexAMM: baseFee should be larger than 0');
-
-        pMin = _pMin;
-        qMin = _qMin;
-        exposureLimitPrimary = _exposureLimitPrimary;
-        exposureLimitComplement = _exposureLimitComplement;
-
-        _finalized = true;
-
-        _bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
-        _bind(
-            1,
-            address(protocol.inverseVolatilityToken()),
-            _complementBalance,
-            _complementLeverage
+        setFeeParams(
+            _baseFee,
+            _maxFee,
+            _feeAmpPrimary,
+            _feeAmpComplement
         );
+    }
 
-        uint256 initPoolSupply = getDerivativeDenomination() * _primaryBalance;
+    /**
+     * @notice Set controller of the AMM
+     *
+     * @param _controller Address of the pool contract controller
+     */
+    function setController(address _controller) external onlyOwner {
+        require(_controller != address(0), 'VolmexAMM: Deployer can not be zero address');
+        controller = _controller;
 
-        uint256 collateralDecimals = uint256(protocol.collateral().decimals());
-        if (collateralDecimals >= 0 && collateralDecimals < 18) {
-            initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
-        }
-
-        _mintPoolShare(initPoolSupply);
-        _pushPoolShare(msg.sender, initPoolSupply);
+        emit SetController(controller);
     }
 
     /**
@@ -353,12 +292,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
 
         _records[assetToken].balance = add(_records[assetToken].balance, amountWithPremium);
 
-        emit FlashLoan(
-            receiverAddress,
-            assetToken,
-            amount,
-            premium
-        );
+        emit FlashLoan(receiverAddress, assetToken, amount, premium);
     }
 
     /**
@@ -373,13 +307,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         uint256 poolAmountOut,
         uint256[2] calldata maxAmountsIn,
         address receiver
-    )
-        external
-        _logs_
-        _lock_
-        onlyFinalized
-        onlyController
-    {
+    ) external _logs_ _lock_ onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountOut, poolTotal);
         require(ratio != 0, 'VolmexAMM: Invalid math approximation');
@@ -415,13 +343,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         uint256 poolAmountIn,
         uint256[2] calldata minAmountsOut,
         address receiver
-    )
-        external
-        _logs_
-        _lock_
-        onlyFinalized
-        onlyController
-    {
+    ) external _logs_ _lock_ onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountIn, poolTotal);
         require(ratio != 0, 'MATH_APPROX');
@@ -521,6 +443,89 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
             spotPriceBefore,
             fee
         );
+    }
+
+    /**
+     * @notice Used to finalise the pool with the required attributes and operations
+     *
+     * @dev Checks, pool is finalised, caller is controller, supplied token balance
+     * should be equal
+     * @dev Binds the token, and its leverage and balance
+     * @dev Calculates the iniyial pool supply, mints and transfer to the controller
+     *
+     * @param _primaryBalance Balance amount of primary token
+     * @param _primaryLeverage Leverage value of primary token
+     * @param _complementBalance  Balance amount of complement token
+     * @param _complementLeverage  Leverage value of complement token
+     * @param _exposureLimitPrimary TODO: Need to check this
+     * @param _exposureLimitComplement TODO: Need to check this
+     * @param _pMin TODO: Need to check this
+     * @param _qMin TODO: Need to check this
+     */
+    function finalize(
+        uint256 _primaryBalance,
+        uint256 _primaryLeverage,
+        uint256 _complementBalance,
+        uint256 _complementLeverage,
+        uint256 _exposureLimitPrimary,
+        uint256 _exposureLimitComplement,
+        uint256 _pMin,
+        uint256 _qMin
+    ) external _logs_ _lock_ onlyNotSettled {
+        require(!_finalized, 'VolmexAMM: AMM is finalized');
+
+        require(_primaryBalance == _complementBalance, 'VolmexAMM: Assets balance should be same');
+
+        require(baseFee > 0, 'VolmexAMM: baseFee should be larger than 0');
+
+        pMin = _pMin;
+        qMin = _qMin;
+        exposureLimitPrimary = _exposureLimitPrimary;
+        exposureLimitComplement = _exposureLimitComplement;
+
+        _finalized = true;
+
+        _bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
+        _bind(
+            1,
+            address(protocol.inverseVolatilityToken()),
+            _complementBalance,
+            _complementLeverage
+        );
+
+        uint256 initPoolSupply = getDerivativeDenomination() * _primaryBalance;
+
+        uint256 collateralDecimals = uint256(protocol.collateral().decimals());
+        if (collateralDecimals >= 0 && collateralDecimals < 18) {
+            initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
+        }
+
+        _mintPoolShare(initPoolSupply);
+        _pushPoolShare(msg.sender, initPoolSupply);
+    }
+
+    /**
+     * @notice Sets all type of fees
+     *
+     * @dev Checks the contract is finalised and caller is controller of the pool
+     *
+     * @param _baseFee Fee of the pool contract
+     * @param _maxFee Max fee of the pool while swap
+     * @param _feeAmpPrimary Fee on the primary token
+     * @param _feeAmpComplement Fee on the complement token
+     */
+    function setFeeParams(
+        uint256 _baseFee,
+        uint256 _maxFee,
+        uint256 _feeAmpPrimary,
+        uint256 _feeAmpComplement
+    ) internal _logs_ _lock_ onlyNotSettled {
+        baseFee = _baseFee;
+        maxFee = _maxFee;
+        feeAmpPrimary = _feeAmpPrimary;
+        feeAmpComplement = _feeAmpComplement;
+
+        emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
     function getTokenAmountOut(
@@ -649,7 +654,10 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         require(spotPriceAfter >= spotPriceBefore, 'VolmexAMM: Amount max in ratio exploit');
         // spotPriceBefore will remain smaller, because tokenAmountOut will be smaller than tokenAmountIn
         // because of the fee and oracle price.
-        require(spotPriceBefore <= div(tokenAmountIn, tokenAmountOut), 'VolmexAMM: Amount in max in ratio exploit other');
+        require(
+            spotPriceBefore <= div(tokenAmountIn, tokenAmountOut),
+            'VolmexAMM: Amount in max in ratio exploit other'
+        );
 
         emit LOG_SWAP(
             msg.sender,
@@ -679,8 +687,14 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         uint256 tokenAmountOut,
         uint256 exposureLimit
     ) internal view {
-        require(sub(_getLeveragedBalance(outToken), tokenAmountOut) > qMin, 'VolmexAMM: Leverage boundary exploit');
-        require(sub(outToken.balance, tokenAmountOut) > qMin, 'VolmexAMM: Non leverage boundary exploit');
+        require(
+            sub(_getLeveragedBalance(outToken), tokenAmountOut) > qMin,
+            'VolmexAMM: Leverage boundary exploit'
+        );
+        require(
+            sub(outToken.balance, tokenAmountOut) > qMin,
+            'VolmexAMM: Non leverage boundary exploit'
+        );
 
         uint256 lowerBound = div(pMin, sub(upperBoundary, pMin));
         uint256 upperBound = div(sub(upperBoundary, pMin), pMin);
