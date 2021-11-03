@@ -6,7 +6,6 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/introspection/ERC165CheckerUpgradeable.sol';
 
-import './libs/tokens/IERC20Metadata.sol';
 import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
 import './libs/tokens/Token.sol';
@@ -75,8 +74,8 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
     // Used to prevent the re-entry
     bool private _mutex;
 
-    // Address of the pool controller
-    address private controller; // has CONTROL role
+    // Address of the pool deployer
+    address private deployer; // has CONTROL role
 
     // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
     bool private _finalized;
@@ -143,7 +142,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
      * @notice Used to prevent the re-entry
      */
     modifier _lock_() {
-        require(!_mutex, 'REENTRY');
+        require(!_mutex, 'VolmexAMM: REENTRY');
         _mutex = true;
         _;
         _mutex = false;
@@ -153,7 +152,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
      * @notice Used to prevent multiple call to view methods
      */
     modifier _viewlock_() {
-        require(!_mutex, 'REENTRY');
+        require(!_mutex, 'VolmexAMM: REENTRY');
         _;
     }
 
@@ -161,7 +160,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
      * @notice Used to check the pool is finalised
      */
     modifier onlyFinalized() {
-        require(_finalized, 'NOT_FINALIZED');
+        require(_finalized, 'VolmexAMM: AMM is not finalized');
         _;
     }
 
@@ -169,7 +168,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
      * @notice Used to check the protocol is not settled
      */
     modifier onlyNotSettled() {
-        require(!protocol.isSettled(), 'PROTOCOL_SETTLED');
+        require(!protocol.isSettled(), 'VolmexAMM: Protocol is settled');
         _;
     }
 
@@ -177,29 +176,29 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
      * @notice Initialize the pool contract with required elements
      *
      * @dev Checks, the protocol is a contract
-     * @dev Sets repricer, protocol and controller addresses
+     * @dev Sets repricer, protocol and deployer addresses
      * @dev Sets upperBoundary, volatilityIndex and denomination
      * @dev Make the AMM token name and symbol
      *
      * @param _repricer Address of the volmex repricer contract
      * @param _protocol Address of the volmex protocol contract
-     * @param _controller Address of the pool contract controller
+     * @param _deployer Address of the pool contract deployer
      * @param _volatilityIndex Index of the volatility price in oracle
      */
     function initialize(
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
-        address _controller,
+        address _deployer,
         uint256 _volatilityIndex
     ) external initializer {
         require(
             ERC165CheckerUpgradeable.supportsInterface(address(_repricer), _INTERFACE_ID_ERC165),
-            'NOT_SUPPORTED'
+            'VolmexAMM: Repricer does not supports interface'
         );
         repricer = _repricer;
 
-        require(_controller != address(0), 'NOT_CONTROLLER');
-        controller = _controller;
+        require(_deployer != address(0), 'VolmexAMM: Deployer can not be zero address');
+        deployer = _deployer;
 
         // NOTE: Intentionally skipped require check for protocol
         protocol = _protocol;
@@ -225,7 +224,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
     /**
      * @notice Sets all type of fees
      *
-     * @dev Checks the contract is finalised and caller is controller of the pool
+     * @dev Checks the contract is finalised and caller is deployer of the pool
      *
      * @param _baseFee Fee of the pool contract
      * @param _maxFee Max fee of the pool while swap
@@ -238,8 +237,8 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
     ) external _logs_ _lock_ onlyNotSettled {
-        require(!_finalized, 'IS_FINALIZED');
-        require(msg.sender == controller, 'NOT_CONTROLLER');
+        require(!_finalized, 'VolmexAMM: AMM is finalized');
+        require(msg.sender == deployer, 'VolmexAMM: Caller is not a deployer');
 
         baseFee = _baseFee;
         maxFee = _maxFee;
@@ -252,10 +251,10 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
     /**
      * @notice Used to finalise the pool with the required attributes and operations
      *
-     * @dev Checks, pool is finalised, caller is controller, supplied token balance
+     * @dev Checks, pool is finalised, caller is deployer, supplied token balance
      * should be equal
      * @dev Binds the token, and its leverage and balance
-     * @dev Calculates the iniyial pool supply, mints and transfer to the controller
+     * @dev Calculates the iniyial pool supply, mints and transfer to the deployer
      *
      * @param _primaryBalance Balance amount of primary token
      * @param _primaryLeverage Leverage value of primary token
@@ -276,12 +275,12 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         uint256 _pMin,
         uint256 _qMin
     ) external _logs_ _lock_ onlyNotSettled {
-        require(!_finalized, 'IS_FINALIZED');
-        require(msg.sender == controller, 'NOT_CONTROLLER');
+        require(!_finalized, 'VolmexAMM: AMM is finalized');
+        require(msg.sender == deployer, 'VolmexAMM: Caller is not a deployer');
 
-        require(_primaryBalance == _complementBalance, 'NOT_SYMMETRIC');
+        require(_primaryBalance == _complementBalance, 'VolmexAMM: Assets balance should be same');
 
-        require(baseFee > 0, 'NOT_SET_FEE_PARAMS');
+        require(baseFee > 0, 'VolmexAMM: baseFee should be larger than 0');
 
         pMin = _pMin;
         qMin = _qMin;
@@ -338,7 +337,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
 
         require(
             receiver.executeOperation(assetToken, amount, premium, msg.sender, params),
-            'AMM: Invalid flash loan executor'
+            'VolmexAMM: Invalid flash loan executor'
         );
 
         uint256 amountWithPremium = add(amount, premium);
@@ -372,7 +371,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
     {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountOut, poolTotal);
-        require(ratio != 0, 'MATH_APPROX');
+        require(ratio != 0, 'VolmexAMM: Invalid math approximation');
 
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             address token = _tokens[i];
@@ -380,9 +379,9 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
             // This can't be tested, as the div method will fail, due to zero supply of lp token
             // The supply of lp token is greater than zero, means token reserve is greater than zero
             // Also, in the case of swap, there's some amount of tokens available pool more than qMin
-            require(bal > 0, 'NO_BALANCE');
+            require(bal > 0, 'VolmexAMM: Insufficient balance in AMM');
             uint256 tokenAmountIn = mul(ratio, bal);
-            require(tokenAmountIn <= maxAmountsIn[i], 'LIMIT_IN');
+            require(tokenAmountIn <= maxAmountsIn[i], 'VolmexAMM: Amount in limit exploit');
             _records[token].balance = add(_records[token].balance, tokenAmountIn);
             emit LOG_JOIN(msg.sender, token, tokenAmountIn);
             _pullUnderlying(token, msg.sender, tokenAmountIn);
@@ -454,8 +453,8 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         onlyNotSettled
         returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
     {
-        require(tokenIn != tokenOut, 'SAME_TOKEN');
-        require(tokenAmountIn >= qMin, 'MIN_TOKEN_IN');
+        require(tokenIn != tokenOut, 'VolmexAMM: Passed same token addresses');
+        require(tokenAmountIn >= qMin, 'VolmexAMM: Amount in quantity should be larger');
 
         _reprice();
 
@@ -465,7 +464,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         require(
             tokenAmountIn <=
                 mul(min(_getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
-            'MAX_IN_RATIO'
+            'VolmexAMM: Amount in max ratio exploit'
         );
 
         tokenAmountOut = calcOutGivenIn(
@@ -495,7 +494,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
             tokenAmountIn,
             fee
         );
-        require(tokenAmountOut >= minAmountOut, 'LIMIT_OUT');
+        require(tokenAmountOut >= minAmountOut, 'VolmexAMM: Amount out limit exploit');
 
         spotPriceAfter = _performSwap(
             tokenIn,
@@ -630,10 +629,10 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
 
         // spotPriceAfter will remain larger, becasue after swap, the out token
         // balance will decrease. equation -> leverageBalance(inToken) / leverageBalance(outToken)
-        require(spotPriceAfter >= spotPriceBefore, 'MATH_APPROX');
+        require(spotPriceAfter >= spotPriceBefore, 'VolmexAMM: Amount max in ratio exploit');
         // spotPriceBefore will remain smaller, because tokenAmountOut will be smaller than tokenAmountIn
         // because of the fee and oracle price.
-        require(spotPriceBefore <= div(tokenAmountIn, tokenAmountOut), 'MATH_APPROX_OTHER');
+        require(spotPriceBefore <= div(tokenAmountIn, tokenAmountOut), 'VolmexAMM: Amount in max in ratio exploit other');
 
         emit LOG_SWAP(
             msg.sender,
@@ -735,8 +734,8 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         uint256 tokenAmountOut,
         uint256 exposureLimit
     ) internal view {
-        require(sub(_getLeveragedBalance(outToken), tokenAmountOut) > qMin, 'BOUNDARY_LEVERAGED');
-        require(sub(outToken.balance, tokenAmountOut) > qMin, 'BOUNDARY_NON_LEVERAGED');
+        require(sub(_getLeveragedBalance(outToken), tokenAmountOut) > qMin, 'VolmexAMM: Leverage boundary exploit');
+        require(sub(outToken.balance, tokenAmountOut) > qMin, 'VolmexAMM: Non leverage boundary exploit');
 
         uint256 lowerBound = div(pMin, sub(upperBoundary, pMin));
         uint256 upperBound = div(sub(upperBoundary, pMin), pMin);
@@ -745,8 +744,8 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
             sub(_getLeveragedBalance(outToken), tokenAmountOut)
         );
 
-        require(lowerBound < value, 'BOUNDARY_LOWER');
-        require(value < upperBound, 'BOUNDARY_UPPER');
+        require(lowerBound < value, 'VolmexAMM: Lower boundary');
+        require(value < upperBound, 'VolmexAMM: Upper boundary');
 
         (uint256 numerator, bool sign) = subSign(
             add(add(inToken.balance, tokenAmountIn), tokenAmountOut),
@@ -759,7 +758,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
                 tokenAmountOut
             );
 
-            require(div(numerator, denominator) < exposureLimit, 'BOUNDARY_EXPOSURE');
+            require(div(numerator, denominator) < exposureLimit, 'VolmexAMM: Exposure boundary');
         }
     }
 
@@ -773,13 +772,13 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
             sub(_getLeveragedBalance(outToken), tokenAmountOut),
             sub(outToken.balance, tokenAmountOut)
         );
-        require(outToken.leverage > 0, 'ZERO_OUT_LEVERAGE');
+        require(outToken.leverage > 0, 'VolmexAMM: Out token leverage can not be zero');
 
         inToken.leverage = div(
             add(_getLeveragedBalance(inToken), tokenAmountIn),
             add(inToken.balance, tokenAmountIn)
         );
-        require(inToken.leverage > 0, 'ZERO_IN_LEVERAGE');
+        require(inToken.leverage > 0, 'VolmexAMM: In token leverage can not be zero');
     }
 
     /// @dev Similar to EIP20 transfer, except it handles a False result from `transferFrom` and reverts in that case.
@@ -814,11 +813,11 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
                 revert(0, 0)
             }
         }
-        require(success, 'TOKEN_TRANSFER_IN_FAILED');
+        require(success, 'VolmexAMM: Token transfer failed');
 
         // Calculate the amount that was *actually* transferred
         uint256 balanceAfter = IERC20(erc20).balanceOf(address(this));
-        require(balanceAfter >= balanceBefore, 'TOKEN_TRANSFER_IN_OVERFLOW');
+        require(balanceAfter >= balanceBefore, 'VolmexAMM: Token transfer overflow met');
         return balanceAfter - balanceBefore; // underflow already checked above, just subtract
     }
 
@@ -853,13 +852,13 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
                 revert(0, 0)
             }
         }
-        require(success, 'TOKEN_TRANSFER_OUT_FAILED');
+        require(success, 'VolmexAMM: Token out transfer failed');
     }
 
     /**
      * @notice Used to bind the token, and its leverage and balance
      *
-     * @dev This method will transfer the provided assets balance to pool from controller
+     * @dev This method will transfer the provided assets balance to pool from deployer
      */
     function _bind(
         uint256 index,
@@ -867,8 +866,8 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
         uint256 balance,
         uint256 leverage
     ) internal {
-        require(balance >= qMin, 'MIN_BALANCE');
-        require(leverage > 0, 'ZERO_LEVERAGE');
+        require(balance >= qMin, 'VolmexAMM: Unsatisfied min balance supplied');
+        require(leverage > 0, 'VolmexAMM: Token leverage should be greater than 0');
 
         _records[token] = Record({ leverage: leverage, balance: balance });
 
@@ -963,7 +962,7 @@ contract VolmexAMM is OwnableUpgradeable, PausableUpgradeable, Token, Math, Toke
             int256(feeAmp),
             int256(maxFee)
         );
-        require(ifee > 0, 'BAD_FEE');
+        require(ifee > 0, 'VolmexAMM: Fee should be greater than 0');
         fee = uint256(ifee);
     }
 
