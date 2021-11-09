@@ -13,9 +13,14 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity 0.7.6;
+pragma abicoder v2;
 
-interface IPausablePool {
-    function pause() external;
-
-    function unpause() external;
+interface IDynamicFee {
+    function calc(
+        int256[3] calldata _inRecord,
+        int256[3] calldata _outRecord,
+        int256 _baseFee,
+        int256 _feeAmp,
+        int256 _maxFee
+    ) external returns (int256 fee, int256 expStart);
 }

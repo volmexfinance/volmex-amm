@@ -5,7 +5,7 @@ pragma solidity 0.7.6;
 // Builds new Pools, logging their addresses and providing `isPool(address) -> (bool)`
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import './IPool.sol';
+import './interfaces/IVolmexAMM.sol';
 import './interfaces/IPausablePool.sol';
 
 contract VolmexAMMRegistry is OwnableUpgradeable {
@@ -28,7 +28,7 @@ contract VolmexAMMRegistry is OwnableUpgradeable {
     }
 
     function registerNewPool(address _newPool) external {
-        require(!_isPool[_newPool], 'VolmexAMMRegistry: Pool already exist');
+        require(!_isPool[_newPool], 'VolmexAMMRegistry: AMM already exist');
 
         _pools.push(_newPool);
         _isPool[_newPool] = true;
@@ -44,7 +44,7 @@ contract VolmexAMMRegistry is OwnableUpgradeable {
         _pool.unpause();
     }
 
-    function collect(IPool pool) external onlyOwner {
+    function collect(IVolmexAMM pool) external onlyOwner {
         uint256 collected = IERC20(pool).balanceOf(address(this));
         bool xfer = pool.transfer(owner(), collected);
         require(xfer, 'ERC20_FAILED');

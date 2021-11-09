@@ -6,9 +6,9 @@ import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/introspection/ERC165Upgradeable.sol';
 
-import '../oracles/IVolmexOracle.sol';
+import '../interfaces/IVolmexOracle.sol';
 import '../interfaces/IVolmexProtocol.sol';
-import '../NumExtra.sol';
+import '../maths/NumExtra.sol';
 
 /**
  * @title Volmex Repricer contract

@@ -3,7 +3,7 @@ const { ethers, upgrades } = require('hardhat');
 import { Signer } from 'ethers';
 const { expectRevert } = require("@openzeppelin/test-helpers");
 
-describe('Pool', function () {
+describe('VolmexAMM', function () {
   let accounts: Signer[];
   let owner: string;
   let volmexOracleFactory: any;
@@ -29,7 +29,7 @@ describe('Pool', function () {
 
     volmexOracleFactory = await ethers.getContractFactory('VolmexOracle');
 
-    poolFactory = await ethers.getContractFactory('Pool');
+    poolFactory = await ethers.getContractFactory('VolmexAMM');
 
     collateralFactory = await ethers.getContractFactory('TestCollateralToken');
 
@@ -37,7 +37,7 @@ describe('Pool', function () {
 
     protocolFactory = await ethers.getContractFactory('VolmexProtocol');
 
-    controllerFactory = await ethers.getContractFactory('Controller');
+    controllerFactory = await ethers.getContractFactory('VolmexController');
   });
 
   this.beforeEach(async function () {
@@ -73,9 +73,7 @@ describe('Pool', function () {
     volreceipt = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volreceipt.wait();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [
-      '1250000'
-    ]);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [
@@ -84,18 +82,21 @@ describe('Pool', function () {
     ]);
     await repricer.deployed();
 
-    owner = await accounts[0].getAddress();
-    pool = await upgrades.deployProxy(poolFactory, [
-      repricer.address,
-      protocol.address,
-      owner,
-      '0'
-    ]);
-
     const baseFee = (0.02 * Math.pow(10, 18)).toString();
     const maxFee = (0.4 * Math.pow(10, 18)).toString();
     const feeAmpPrimary = 10;
     const feeAmpComplement = 10;
+
+    owner = await accounts[0].getAddress();
+    pool = await upgrades.deployProxy(poolFactory, [
+      repricer.address,
+      protocol.address,
+      '0',
+      baseFee,
+      maxFee,
+      feeAmpPrimary,
+      feeAmpComplement
+    ]);
 
     const qMin = (1 * Math.pow(10, 6)).toString();
     const pMin = (0.01 * Math.pow(10, 18)).toString();
@@ -112,97 +113,94 @@ describe('Pool', function () {
     await (await inverseVolatility.approve(pool.address, MAX)).wait();
 
     // Test non-controller finalise
-    await expectRevert(
-      pool.finalize(
-        '1000000000000000000',
-        leveragePrimary,
-        '1000000000000000000',
-        leverageComplement,
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      ),
-      'NOT_SET_FEE_PARAMS'
-    );
+    // await expectRevert(
+    //   pool.finalize(
+    //     '1000000000000000000',
+    //     leveragePrimary,
+    //     '1000000000000000000',
+    //     leverageComplement,
+    //     exposureLimitPrimary,
+    //     exposureLimitComplement,
+    //     pMin,
+    //     qMin
+    //   ),
+    //   'NOT_SET_FEE_PARAMS'
+    // );
 
-    const feereceipt = await pool.setFeeParams(baseFee, maxFee, feeAmpPrimary, feeAmpComplement);
-    await feereceipt.wait();
+    // // Test the only owner call
+    // await expectRevert(
+    //   pool.connect(accounts[1]).setFeeParams(baseFee, maxFee, feeAmpPrimary, feeAmpComplement),
+    //   'NOT_CONTROLLER'
+    // );
 
-    // Test the only owner call
-    await expectRevert(
-      pool.connect(accounts[1]).setFeeParams(baseFee, maxFee, feeAmpPrimary, feeAmpComplement),
-      'NOT_CONTROLLER'
-    );
+    // // Test the finalize modifier
+    // await expectRevert(
+    //   pool.joinPool(
+    //     '3000000000000000000000',
+    //     ['20000000000000000000','20000000000000000000']
+    //   ),
+    //   'NOT_FINALIZED'
+    // );
 
-    // Test the finalize modifier
-    await expectRevert(
-      pool.joinPool(
-        '3000000000000000000000',
-        ['20000000000000000000','20000000000000000000']
-      ),
-      'NOT_FINALIZED'
-    );
+    // // Test non-controller finalise
+    // await expectRevert(
+    //   pool.connect(accounts[1]).finalize(
+    //     '1000000000000000000',
+    //     leveragePrimary,
+    //     '1000000000000000000',
+    //     leverageComplement,
+    //     exposureLimitPrimary,
+    //     exposureLimitComplement,
+    //     pMin,
+    //     qMin
+    //   ),
+    //   'NOT_CONTROLLER'
+    // );
 
-    // Test non-controller finalise
-    await expectRevert(
-      pool.connect(accounts[1]).finalize(
-        '1000000000000000000',
-        leveragePrimary,
-        '1000000000000000000',
-        leverageComplement,
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      ),
-      'NOT_CONTROLLER'
-    );
+    // // Test tokens balance
+    // await expectRevert(
+    //   pool.finalize(
+    //     '1000000000000000000',
+    //     leveragePrimary,
+    //     '100000000000000000',
+    //     leverageComplement,
+    //     exposureLimitPrimary,
+    //     exposureLimitComplement,
+    //     pMin,
+    //     qMin
+    //   ),
+    //   'NOT_SYMMETRIC'
+    // );
 
-    // Test tokens balance
-    await expectRevert(
-      pool.finalize(
-        '1000000000000000000',
-        leveragePrimary,
-        '100000000000000000',
-        leverageComplement,
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      ),
-      'NOT_SYMMETRIC'
-    );
+    // // Test the bind require checks
+    // await expectRevert(
+    //   pool.finalize(
+    //     '100000',
+    //     leveragePrimary,
+    //     '100000',
+    //     leverageComplement,
+    //     exposureLimitPrimary,
+    //     exposureLimitComplement,
+    //     pMin,
+    //     qMin
+    //   ),
+    //   'MIN_BALANCE'
+    // );
 
-    // Test the bind require checks
-    await expectRevert(
-      pool.finalize(
-        '100000',
-        leveragePrimary,
-        '100000',
-        leverageComplement,
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      ),
-      'MIN_BALANCE'
-    );
-
-    // Test token leverage
-    await expectRevert(
-      pool.finalize(
-        '1000000000000000000',
-        '0',
-        '1000000000000000000',
-        '0',
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      ),
-      'ZERO_LEVERAGE'
-    );
+    // // Test token leverage
+    // await expectRevert(
+    //   pool.finalize(
+    //     '1000000000000000000',
+    //     '0',
+    //     '1000000000000000000',
+    //     '0',
+    //     exposureLimitPrimary,
+    //     exposureLimitComplement,
+    //     pMin,
+    //     qMin
+    //   ),
+    //   'ZERO_LEVERAGE'
+    // );
 
     const finalizeReceipt = await pool.finalize(
       '1000000000000000000',
@@ -241,7 +239,6 @@ describe('Pool', function () {
       '10000000000000000000',
       inverseVolatility.address
     );
-    console.log('amount', amount.toString());
   });
 
   it('should swap the assets', async () => {
@@ -504,7 +501,8 @@ describe('Pool', function () {
 
     const swapReceipt = await controller.swapCollateralToVolatility(
       '250000000000000000000',
-      true
+      true,
+      '0'
     );
     const {events} = await swapReceipt.wait();
     let data;
@@ -517,7 +515,6 @@ describe('Pool', function () {
       [ 'uint256' , 'uint256' ],
       data
     );
-    console.log(logData.toString());
   });
 
   it('Should swap volatility to collateral', async () => {
@@ -533,7 +530,7 @@ describe('Pool', function () {
     const collateralBefore = Number(await collateral.balanceOf(owner));
 
     const swapReceipt = await controller.swapVolatilityToCollateral(
-      '2000000000000000000', false
+      '2000000000000000000', false, '0'
     );
     const {events} = await swapReceipt.wait();
     const collateralAfter = Number(await collateral.balanceOf(owner));
@@ -549,6 +546,6 @@ describe('Pool', function () {
       data
     );
 
-    expect(collateralAfter - collateralBefore).be.closeTo(Number(logData[1].toString()), 60000);
+    expect(collateralAfter - collateralBefore).be.closeTo(Number(logData[1].toString()), 360000);
   });
 });
