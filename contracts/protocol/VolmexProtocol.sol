@@ -5,7 +5,6 @@ pragma solidity =0.7.6;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "hardhat/console.sol";
 
 import "../interfaces/IERC20Modified.sol";
 import "./library/VolmexSafeERC20.sol";
@@ -379,8 +378,6 @@ contract VolmexProtocol is
             _collateralQtyRedeemed = _collateralQtyRedeemed - fee;
             accumulatedFees = accumulatedFees + fee;
         }
-console.log('_volatilityIndexTokenQty', _volatilityIndexTokenQty);
-console.log('_inverseVolatilityIndexTokenQty', _inverseVolatilityIndexTokenQty);
 
         volatilityToken.burn(msg.sender, _volatilityIndexTokenQty);
 
