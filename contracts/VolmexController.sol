@@ -314,6 +314,28 @@ contract VolmexController is OwnableUpgradeable {
         );
     }
 
+    function swap(
+        uint256 _poolIndex,
+        address _tokenIn,
+        uint256 _amountIn,
+        address _tokenOut,
+        uint256 _amountOut
+    ) external {
+        IVolmexAMM _amm = IVolmexAMM(pools[_poolIndex]);
+
+        IERC20Modified(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
+        _approveAssets(IERC20Modified(_tokenIn), _amountIn, address(this), address(_amm));
+
+        uint256 tokenAmountOut = _swap(
+            _amm,
+            _tokenIn,
+            _amountIn,
+            _tokenOut,
+            _amountOut
+        );
+        transferAsset(IERC20Modified(_tokenOut), tokenAmountOut);
+    }
+
     //solium-disable-next-line security/no-assign-params
     function calculateAssetQuantity(
         uint256 _amount,
