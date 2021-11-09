@@ -220,6 +220,9 @@ describe('VolmexAMM', function () {
       protocol.address
     ]);
     await controller.deployed();
+
+    const setController = await pool.setController(controller.address);
+    await setController.wait();
   });
 
   it('should deploy pool', async () => {
@@ -228,10 +231,12 @@ describe('VolmexAMM', function () {
   });
 
   it('Should get out amount', async () => {
-    const joinReceipt = await pool.joinPool(
+    const joinReceipt = await controller.addLiquidity(
       '3000000000000000000000',
-      ['20000000000000000000','20000000000000000000']
-    );
+      ['20000000000000000000','20000000000000000000'],
+      '0'
+    )
+
     await joinReceipt.wait();
 
     const amount = await pool.getTokenAmountOut(
@@ -242,13 +247,17 @@ describe('VolmexAMM', function () {
   });
 
   it('should swap the assets', async () => {
-    const joinReceipt = await pool.joinPool(
+    const joinReceipt = await controller.addLiquidity(
       '3000000000000000000000',
-      ['20000000000000000000','20000000000000000000']
+      ['20000000000000000000','20000000000000000000'],
+      '0'
     );
     await joinReceipt.wait();
+    console.log(await volatility.balanceOf(owner));
+    await (await volatility.approve(controller.address, '3000000000000000000')).wait();
 
-    const swap = await pool.swapExactAmountIn(
+    const swap = await controller.swap(
+      '0',
       volatility.address,
       '3000000000000000000',
       inverseVolatility.address,
@@ -259,15 +268,17 @@ describe('VolmexAMM', function () {
   });
 
   it('Should user eit liquidity from pool', async () => {
-    const joinReceipt = await pool.joinPool(
+    const joinReceipt = await controller.addLiquidity(
       '3000000000000000000000',
-      ['20000000000000000000','20000000000000000000']
+      ['20000000000000000000','20000000000000000000'],
+      '0'
     );
     await joinReceipt.wait();
 
-    const eitReceipt = await pool.exitPool(
+    const eitReceipt = await controller.removeLiquidity(
       '1000000000000000000000',
-      ['1000000000000000000','1000000000000000000']
+      ['1000000000000000000','1000000000000000000'],
+      '0'
     );
     await eitReceipt.wait();
   });
@@ -318,43 +329,16 @@ describe('VolmexAMM', function () {
         inverseVolatility.address,
         '1000000000000000000'
       ),
-      'PROTOCOL_SETTLED'
+      'VolmexAMM: Protocol is settled'
     );
   });
 
-  xit('Sould revert on non contract', async () => {
+  it('Should revert on non controller', async () => {
     const [ other ] = accounts;
 
     await expectRevert(
-      upgrades.deployProxy(poolFactory, [
-        repricer.address,
-        await other.getAddress(),
-        owner,
-        '0'
-      ]),
-      'NOT_CONTRACT'
-    );
-
-    await expectRevert(
-      upgrades.deployProxy(poolFactory, [
-        repricer.address,
-        protocol.address,
-        '0x0000000000000000000000000000000000000000',
-        '0'
-      ]),
-      'NOT_CONTROLLER'
-    );
-  });
-
-  it('Should revert set fee when finalized', async () => {
-    const baseFee = (0.02 * Math.pow(10, 18)).toString();
-    const maxFee = (0.4 * Math.pow(10, 18)).toString();
-    const feeAmpPrimary = 10;
-    const feeAmpComplement = 10;
-
-    await expectRevert(
-      pool.setFeeParams(baseFee, maxFee, feeAmpPrimary, feeAmpComplement),
-      'IS_FINALIZED'
+      pool.setController('0x0000000000000000000000000000000000000000'),
+      'VolmexAMM: Deployer can not be zero address'
     );
   });
 
@@ -377,111 +361,127 @@ describe('VolmexAMM', function () {
         pMin,
         qMin
       ),
-      'IS_FINALIZED'
+      'VolmexAMM: AMM is finalized'
     );
   });
 
   it('Should revert join pool', async () => {
     await expectRevert(
-      pool.joinPool(
+      controller.addLiquidity(
         '0',
-        ['20000000000000000000','20000000000000000000']
+        ['20000000000000000000','20000000000000000000'],
+        '0'
       ),
-      'MATH_APPROX'
+      'VolmexAMM: Invalid math approximation'
     );
 
     await expectRevert(
-      pool.joinPool(
+      controller.addLiquidity(
         '3000000000000000000000',
-        ['2000000000000000000','2000000000000000000']
+        ['2000000000000000000','2000000000000000000'],
+        '0'
       ),
-      'LIMIT_IN'
+      'VolmexAMM: Amount in limit exploit'
     );
   });
 
-  it('Should revert eit pool', async () => {
+  it('Should revert exit pool', async () => {
     await expectRevert(
-      pool.exitPool(
+      controller.removeLiquidity(
         '0',
-        ['1000000000000000000','1000000000000000000']
+        ['1000000000000000000','1000000000000000000'],
+        '0'
       ),
-      'MATH_APPROX'
+      'VolmexAMM: Invalid math approximation'
     );
 
     await expectRevert(
-      pool.exitPool(
+      controller.removeLiquidity(
         '250000000000000000000',
-        ['2000000000000000000','2000000000000000000']
+        ['2000000000000000000','2000000000000000000'],
+        '0'
       ),
-      'LIMIT_OUT'
+      'VolmexAMM: Amount out limit exploit'
     );
   });
 
   it('Should revert swap', async () => {
+    await (await volatility.approve(controller.address, '3000000000000000000')).wait();
     await expectRevert(
-      pool.swapExactAmountIn(
+      controller.swap(
+        '0',
         volatility.address,
         '3000000000000000000',
         volatility.address,
         '1000000000000000000'
       ),
-      'SAME_TOKEN'
+      'VolmexAMM: Passed same token addresses'
     );
 
+    await (await volatility.approve(controller.address, '3000000000000000000')).wait();
     await expectRevert(
-      pool.swapExactAmountIn(
+      controller.swap(
+        '0',
         volatility.address,
         '100000',
         inverseVolatility.address,
         '1000000000000000000'
       ),
-      'MIN_TOKEN_IN'
+      'VolmexAMM: Amount in quantity should be larger'
     );
 
+    await (await volatility.approve(controller.address, '6599999999999998746')).wait();
     await expectRevert(
-      pool.swapExactAmountIn(
+      controller.swap(
+        '0',
         volatility.address,
         '6599999999999998746',
         inverseVolatility.address,
         '1000000000000000000'
       ),
-      'MAX_IN_RATIO'
+      'VolmexAMM: Amount in max ratio exploit'
     );
   });
 
   it('Should revert on limit out', async () => {
-    const joinReceipt = await pool.joinPool(
+    const joinReceipt = await controller.addLiquidity(
       '3000000000000000000000',
-      ['20000000000000000000','20000000000000000000']
+      ['20000000000000000000','20000000000000000000'],
+      '0'
     );
     await joinReceipt.wait();
 
+    await (await volatility.approve(controller.address, '3000000000000000000')).wait();
     await expectRevert(
-      pool.swapExactAmountIn(
+      controller.swap(
+        '0',
         volatility.address,
         '3000000000000000000',
         inverseVolatility.address,
         '3000000000000000000'
       ),
-      'LIMIT_OUT'
+      'VolmexAMM: Amount out limit exploit'
     );
   });
 
   it('Should revert require boundary exposure', async () => {
-    const joinReceipt = await pool.joinPool(
+    const joinReceipt = await controller.addLiquidity(
       '4000000000000000000000',
-      ['16000000000000000000','16000000000000000000']
+      ['16000000000000000000','16000000000000000000'],
+      '0'
     );
     await joinReceipt.wait();
 
+    await (await volatility.approve(controller.address, '8000000000000000000')).wait();
     await expectRevert(
-      pool.swapExactAmountIn(
+      controller.swap(
+        '0',
         volatility.address,
         '8000000000000000000',
         inverseVolatility.address,
         '1000000000000000000'
       ),
-      'BOUNDARY_EXPOSURE'
+      'VolmexAMM: Exposure boundary'
     );
   });
 
@@ -491,9 +491,10 @@ describe('VolmexAMM', function () {
   });
 
   it('Should swap the collateral to volatility', async () => {
-    const joinReceipt = await pool.joinPool(
+    const joinReceipt = await controller.addLiquidity(
       '4000000000000000000000',
-      ['16000000000000000000','16000000000000000000']
+      ['16000000000000000000','16000000000000000000'],
+      '0'
     );
     await joinReceipt.wait();
 
@@ -518,9 +519,10 @@ describe('VolmexAMM', function () {
   });
 
   it('Should swap volatility to collateral', async () => {
-    const joinReceipt = await pool.joinPool(
+    const joinReceipt = await controller.addLiquidity(
       '4000000000000000000000',
-      ['16000000000000000000','16000000000000000000']
+      ['16000000000000000000','16000000000000000000'],
+      '0'
     );
     await joinReceipt.wait();
 
@@ -546,6 +548,6 @@ describe('VolmexAMM', function () {
       data
     );
 
-    expect(collateralAfter - collateralBefore).be.closeTo(Number(logData[1].toString()), 360000);
+    expect(Number(collateralAfter - collateralBefore)).be.closeTo(Number(logData[1].toString()), 3600000);
   });
 });

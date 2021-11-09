@@ -274,7 +274,7 @@ contract VolmexAMM is
         address assetToken,
         uint256 amount,
         bytes calldata params
-    ) external whenNotPaused {
+    ) external whenNotPaused onlyController {
         _records[assetToken].balance = sub(_records[assetToken].balance, amount);
         IERC20Modified(assetToken).transfer(receiverAddress, amount);
 
@@ -346,14 +346,14 @@ contract VolmexAMM is
     ) external _logs_ _lock_ onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountIn, poolTotal);
-        require(ratio != 0, 'MATH_APPROX');
+        require(ratio != 0, 'VolmexAMM: Invalid math approximation');
 
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             address token = _tokens[i];
             uint256 bal = _records[token].balance;
-            require(bal > 0, 'NO_BALANCE');
+            require(bal > 0, 'VolmexAMM: Insufficient balance in AMM');
             uint256 tokenAmountOut = calculateAmountOut(poolAmountIn, ratio, bal);
-            require(tokenAmountOut >= minAmountsOut[i], 'LIMIT_OUT');
+            require(tokenAmountOut >= minAmountsOut[i], 'VolmexAMM: Amount out limit exploit');
             _records[token].balance = sub(_records[token].balance, tokenAmountOut);
             emit LOG_EXIT(receiver, token, tokenAmountOut);
             _pushUnderlying(token, receiver, tokenAmountOut);
