@@ -82,10 +82,10 @@ contract Token is TokenBase, IERC20 {
     string private _symbol;
     uint8 private constant _decimals = 18;
     bool public isLayer2;
-    address private _childChainManager = 0x2e5e27d50EFa501D90Ad3638ff8441a0C0C0d75e;
+    address public childChainManager;
 
-    modifier _isOnLayer2_() {
-        require(!isLayer2, 'VolmexAMM: cannot call function');
+    modifier _isOnLayer2() {
+        require(isLayer2, "Token: cannot call function");
         _;
     }
 
@@ -172,8 +172,8 @@ contract Token is TokenBase, IERC20 {
      * @param user user address for whom deposit is being done
      * @param depositData abi encoded amount
      */
-    function deposit(address user, bytes calldata depositData) external _isOnLayer2_ {
-        require(msg.sender == _childChainManager, 'Token: you are not authorized');
+    function deposit(address user, bytes calldata depositData) external _isOnLayer2 {
+        require(msg.sender == childChainManager, "Token: you are not authoized");
         uint256 amount = abi.decode(depositData, (uint256));
         _mint(amount);
         _push(user, amount);
@@ -184,7 +184,7 @@ contract Token is TokenBase, IERC20 {
      * @dev Should burn user's tokens. This transaction will be verified when exiting on root chain
      * @param amount amount of tokens to withdraw
      */
-    function withdraw(uint256 amount) external _isOnLayer2_ {
+    function withdraw(uint256 amount) external _isOnLayer2 {
         _pull(msg.sender, amount);
         _burn(amount);
     }
