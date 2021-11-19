@@ -202,6 +202,7 @@ contract VolmexAMM is
     function initialize(
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
+        bool _isLayer2,
         uint256 _volatilityIndex,
         uint256 _baseFee,
         uint256 _maxFee,
@@ -213,6 +214,7 @@ contract VolmexAMM is
             'VolmexAMM: Repricer does not supports interface'
         );
         repricer = _repricer;
+        isLayer2 = _isLayer2;
 
         // NOTE: Intentionally skipped require check for protocol
         protocol = _protocol;
@@ -234,12 +236,7 @@ contract VolmexAMM is
             makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol())
         );
 
-        setFeeParams(
-            _baseFee,
-            _maxFee,
-            _feeAmpPrimary,
-            _feeAmpComplement
-        );
+        setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
     /**
