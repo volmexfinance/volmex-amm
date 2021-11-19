@@ -202,6 +202,7 @@ contract VolmexAMM is
     function initialize(
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
+        address _childChainManager,
         bool _isLayer2,
         uint256 _volatilityIndex,
         uint256 _baseFee,
@@ -215,6 +216,7 @@ contract VolmexAMM is
         );
         repricer = _repricer;
         isLayer2 = _isLayer2;
+        childChainManager = _childChainManager;
 
         // NOTE: Intentionally skipped require check for protocol
         protocol = _protocol;
