@@ -143,35 +143,30 @@ const createPool = async () => {
   console.log('Registry: ', registry.address);
   console.log('VolmexAMMView: ', volmexAMMView.address);
 
-  const poolProxyAdmin = await upgrades.admin.getInstance();
-  const repricerProxyAdmin = await upgrades.admin.getInstance();
-  const oracleProxyAdmin = await upgrades.admin.getInstance();
-  const controllerProxyAdmin = await upgrades.admin.getInstance();
-  const registryProxyAdmin = await upgrades.admin.getInstance();
-  const ammViewProxyAdmin = await upgrades.admin.getInstance();
+  const proxyAdmin = await upgrades.admin.getInstance();
 
   await run("verify:verify", {
-    address: await poolProxyAdmin.getProxyImplementation(pool.address),
+    address: await proxyAdmin.getProxyImplementation(pool.address),
   });
 
   await run("verify:verify", {
-    address: await repricerProxyAdmin.getProxyImplementation(repricer.address),
+    address: await proxyAdmin.getProxyImplementation(repricer.address),
   });
 
   await run("verify:verify", {
-    address: await oracleProxyAdmin.getProxyImplementation(oracle.address),
+    address: await proxyAdmin.getProxyImplementation(oracle.address),
   });
 
   await run("verify:verify", {
-    address: await controllerProxyAdmin.getProxyImplementation(controller.address),
+    address: await proxyAdmin.getProxyImplementation(controller.address),
   });
 
   await run("verify:verify", {
-    address: await registryProxyAdmin.getProxyImplementation(registry.address),
+    address: await proxyAdmin.getProxyImplementation(registry.address),
   });
 
   await run("verify:verify", {
-    address: await ammViewProxyAdmin.getProxyImplementation(volmexAMMView.address),
+    address: await proxyAdmin.getProxyImplementation(volmexAMMView.address),
   });
 };
 
