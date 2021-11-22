@@ -33,7 +33,7 @@ const createPool = async () => {
   // const dynamicFeeAddress = '0x105aE5e940f157D93187082CafCCB27e1941B505';
   const protocolAddress = await ethers.getContractAt(
     'IVolmexProtocol',
-    '0xbc280baafc91798adbeeb3042d33e592ed6709e6'
+    '0xa480cb2928da9b3dca7154d3cd8d955455b90ef0'
   );
 
   console.log('Deploying Oracle...');
@@ -60,7 +60,7 @@ const createPool = async () => {
     repricer.address,
     protocolAddress.address,
     childChainManager,
-    false,
+    true,
     "0",
     baseFee,
     maxFee,
