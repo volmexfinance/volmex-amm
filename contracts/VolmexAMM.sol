@@ -14,6 +14,7 @@ import './interfaces/IVolmexRepricer.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IVolmexAMM.sol';
 import './interfaces/IFlashLoanReceiver.sol';
+import './interfaces/IVolmexController.sol';
 
 /**
  * @title Volmex AMM Contract
@@ -202,8 +203,6 @@ contract VolmexAMM is
     function initialize(
         IVolmexRepricer _repricer,
         IVolmexProtocol _protocol,
-        address _childChainManager,
-        bool _isLayer2,
         uint256 _volatilityIndex,
         uint256 _baseFee,
         uint256 _maxFee,
@@ -215,8 +214,6 @@ contract VolmexAMM is
             'VolmexAMM: Repricer does not supports interface'
         );
         repricer = _repricer;
-        isLayer2 = _isLayer2;
-        childChainManager = _childChainManager;
 
         // NOTE: Intentionally skipped require check for protocol
         protocol = _protocol;
@@ -380,7 +377,8 @@ contract VolmexAMM is
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        address receiver
     )
         external
         _logs_
@@ -440,7 +438,8 @@ contract VolmexAMM is
             tokenOut,
             tokenAmountOut,
             spotPriceBefore,
-            fee
+            fee,
+            receiver
         );
     }
 
@@ -621,7 +620,8 @@ contract VolmexAMM is
         address tokenOut,
         uint256 tokenAmountOut,
         uint256 spotPriceBefore,
-        uint256 fee
+        uint256 fee,
+        address receiver
     ) internal returns (uint256 spotPriceAfter) {
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
@@ -671,8 +671,9 @@ contract VolmexAMM is
             outRecord.leverage
         );
 
-        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
+        address holder = receiver == address(0) ? msg.sender : receiver;
+        _pullUnderlying(tokenIn, holder, tokenAmountIn);
+        _pushUnderlying(tokenOut, holder, tokenAmountOut);
     }
 
     function _getLeveragedBalance(Record memory r) internal pure returns (uint256) {
@@ -751,7 +752,12 @@ contract VolmexAMM is
         uint256 amount
     ) internal returns (uint256) {
         uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
-        EIP20NonStandardInterface(erc20).transferFrom(from, address(this), amount);
+        IVolmexController(controller).transferAssetToPool(
+            IERC20Modified(erc20),
+            from,
+            address(this),
+            amount
+        );
 
         bool success;
         //solium-disable-next-line security/no-inline-assembly
