@@ -110,7 +110,8 @@ contract VolmexController is OwnableUpgradeable {
                 address(_protocol.volatilityToken()),
                 volatilityAmount,
                 address(_protocol.inverseVolatilityToken()),
-                volatilityAmount >> 1
+                volatilityAmount >> 1,
+                address(0)
             );
         } else {
             _approveAssets(inverseVolatilityToken, volatilityAmount, address(this), address(_pool));
@@ -119,7 +120,8 @@ contract VolmexController is OwnableUpgradeable {
                 address(_protocol.inverseVolatilityToken()),
                 volatilityAmount,
                 address(_protocol.volatilityToken()),
-                volatilityAmount >> 1
+                volatilityAmount >> 1,
+                address(0)
             );
         }
 
@@ -164,7 +166,8 @@ contract VolmexController is OwnableUpgradeable {
                 address(_protocol.volatilityToken()),
                 _amount >> 1,
                 address(_protocol.inverseVolatilityToken()),
-                _amount.div(10)
+                _amount.div(10),
+                address(0)
             );
         } else {
             inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
@@ -175,7 +178,8 @@ contract VolmexController is OwnableUpgradeable {
                 address(_protocol.inverseVolatilityToken()),
                 _amount >> 1,
                 address(_protocol.volatilityToken()),
-                _amount.div(10)
+                _amount.div(10),
+                address(0)
             );
         }
 
@@ -214,7 +218,8 @@ contract VolmexController is OwnableUpgradeable {
             _pool.getPrimaryDerivativeAddress() == address(_tokenIn)
                 ? _pool.getComplementDerivativeAddress()
                 : _pool.getPrimaryDerivativeAddress(),
-            _amountIn.div(10)
+            _amountIn.div(10),
+            address(0)
         );
 
         IVolmexProtocol _protocol = IVolmexProtocol(protocols[_tokenInPoolIndex]);
@@ -242,7 +247,8 @@ contract VolmexController is OwnableUpgradeable {
                 : _pool.getPrimaryDerivativeAddress(),
             _volatilityAmount >> 1,
             _tokenOut,
-            _volatilityAmount.div(10)
+            _volatilityAmount.div(10),
+            address(0)
         );
 
         transferAsset(_tokenIn, (_amountIn >> 1).sub(tokenAmount));
@@ -323,17 +329,14 @@ contract VolmexController is OwnableUpgradeable {
     ) external {
         IVolmexAMM _amm = IVolmexAMM(pools[_poolIndex]);
 
-        IERC20Modified(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
-        _approveAssets(IERC20Modified(_tokenIn), _amountIn, address(this), address(_amm));
-
-        uint256 tokenAmountOut = _swap(
+        _swap(
             _amm,
             _tokenIn,
             _amountIn,
             _tokenOut,
-            _amountOut
+            _amountOut,
+            msg.sender
         );
-        transferAsset(IERC20Modified(_tokenOut), tokenAmountOut);
     }
 
     //solium-disable-next-line security/no-assign-params
@@ -357,13 +360,15 @@ contract VolmexController is OwnableUpgradeable {
         address _tokenIn,
         uint256 _amountIn,
         address _tokenOut,
-        uint256 _amountOut
+        uint256 _amountOut,
+        address receiver
     ) internal returns (uint256 exactTokenAmountOut) {
         (exactTokenAmountOut, ) = _pool.swapExactAmountIn(
             _tokenIn,
             _amountIn,
             _tokenOut,
-            _amountOut
+            _amountOut,
+            receiver
         );
     }
 
@@ -378,5 +383,15 @@ contract VolmexController is OwnableUpgradeable {
         if (_amount <= _allowance) return;
 
         _token.approve(_spender, _amount);
+    }
+
+    function transferAssetToPool(
+        IERC20Modified _token,
+        address _account,
+        address _pool,
+        uint256 _amount
+    ) external {
+        require(msg.sender == _pool, 'VolmexController: Caller is not pool');
+        _token.transferFrom(_account, _pool, _amount);
     }
 }
