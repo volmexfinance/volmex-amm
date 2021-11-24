@@ -65,7 +65,8 @@ interface IVolmexAMM is IERC20, IERC165Upgradeable {
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        address receiver
     ) external returns (uint256 tokenAmountOut, uint256 spotPriceAfter);
 
     function paused() external view returns (bool);
