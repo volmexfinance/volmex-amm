@@ -410,7 +410,7 @@ contract VolmexAMM is
             0
         );
 
-        (uint256 fee, ) = calcFee(
+        uint256 fee = calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -526,14 +526,45 @@ contract VolmexAMM is
         emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
+    function getRepriced(address tokenIn) internal view returns(Record[2] memory) {
+        Record memory primaryRecord = _records[_getPrimaryDerivativeAddress()];
+        Record memory complementRecord = _records[_getComplementDerivativeAddress()];
+
+        (,, uint256 estPrice) = repricer.reprice(volatilityIndex);
+
+        uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
+        uint256 complementRecordLeverageBefore = complementRecord.leverage;
+
+        uint256 leveragesMultiplied = mul(
+            primaryRecordLeverageBefore,
+            complementRecordLeverageBefore
+        );
+
+        primaryRecord.leverage = uint256(
+            repricer.sqrtWrapped(
+                int256(
+                    div(
+                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
+                        primaryRecord.balance
+                    )
+                )
+            )
+        );
+        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
+        return [
+            _getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord,
+            _getComplementDerivativeAddress() == tokenIn ? primaryRecord : complementRecord
+        ];
+    }
+
     function getTokenAmountOut(
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut
-    ) external view returns (uint256) {
-        Record memory inRecord = _records[tokenIn];
-        Record memory outRecord = _records[tokenOut];
-        uint256 tokenAmountOut;
+    ) external view returns (uint256 tokenAmountOut) {
+        Record memory inRecord = getRepriced(tokenIn)[0];
+        Record memory outRecord = getRepriced(tokenIn)[1];
+
         tokenAmountOut = calcOutGivenIn(
             _getLeveragedBalance(inRecord),
             _getLeveragedBalance(outRecord),
@@ -541,7 +572,7 @@ contract VolmexAMM is
             0
         );
 
-        (uint256 fee, ) = calcFee(
+        uint256 fee = calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -555,8 +586,6 @@ contract VolmexAMM is
             tokenAmountIn,
             fee
         );
-
-        return tokenAmountOut;
     }
 
     /**
@@ -917,9 +946,9 @@ contract VolmexAMM is
         Record memory outRecord,
         uint256 tokenAmountOut,
         uint256 feeAmp
-    ) internal view returns (uint256 fee, int256 expStart) {
+    ) internal view returns (uint256 fee) {
         int256 ifee;
-        (ifee, expStart) = calc(
+        (ifee,) = calc(
             [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
             [int256(outRecord.balance), int256(outRecord.leverage), int256(tokenAmountOut)],
             int256(baseFee),
