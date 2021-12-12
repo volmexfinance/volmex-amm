@@ -923,7 +923,7 @@ contract VolmexAMM is
         if (expStart >= 0) {
             fee =
                 _baseFee +
-                (((_feeAmp) * (_spow3(_expEnd) - _spow3(expStart))) * iBONE) /
+                (_feeAmp * (_spow3(_expEnd) - _spow3(expStart))) /
                 (3 * (_expEnd - expStart));
         } else if (_expEnd <= 0) {
             fee = _baseFee;
