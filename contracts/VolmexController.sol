@@ -28,6 +28,12 @@ contract VolmexController is OwnableUpgradeable {
 
     event UpdatedMinimumCollateral(uint256 newMinimumCollateralQty);
 
+    event SetStablecoin(
+        uint256 poolIndex,
+        address indexed stablecoin,
+        string symbol
+    );
+
     // Address of the collateral used in protocol
     mapping(uint256 => IERC20Modified) public stablecoins;
     // Ratio of volatility to be minted per 250 collateral
@@ -89,6 +95,8 @@ contract VolmexController is OwnableUpgradeable {
     function setStablecoin(IERC20Modified _stablecoin, string calldata stablecoinSymbol) external onlyOwner {
         stablecoins[poolIndex] = _stablecoin;
         stablecoinIndex[stablecoinSymbol] = poolIndex;
+
+        emit SetStablecoin(poolIndex, address(_stablecoin), stablecoinSymbol);
     }
 
     /**
