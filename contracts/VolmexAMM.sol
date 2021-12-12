@@ -446,10 +446,10 @@ contract VolmexAMM is
     /**
      * @notice Used to finalise the pool with the required attributes and operations
      *
-     * @dev Checks, pool is finalised, caller is controller, supplied token balance
+     * @dev Checks, pool is finalised, caller is owner, supplied token balance
      * should be equal
      * @dev Binds the token, and its leverage and balance
-     * @dev Calculates the iniyial pool supply, mints and transfer to the controller
+     * @dev Calculates the initial pool supply, mints and transfer to the controller
      *
      * @param _primaryBalance Balance amount of primary token
      * @param _primaryLeverage Leverage value of primary token
@@ -469,7 +469,7 @@ contract VolmexAMM is
         uint256 _exposureLimitComplement,
         uint256 _pMin,
         uint256 _qMin
-    ) external _logs_ _lock_ onlyNotSettled {
+    ) external _logs_ _lock_ onlyNotSettled onlyOwner {
         require(!_finalized, 'VolmexAMM: AMM is finalized');
 
         require(_primaryBalance == _complementBalance, 'VolmexAMM: Assets balance should be same');
