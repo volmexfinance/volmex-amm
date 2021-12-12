@@ -74,6 +74,8 @@ contract VolmexAMM is
 
     event SetController(address indexed controller);
 
+    event UpdatedFlashLoanPremium(uint256 premium);
+
     struct Record {
         uint256 leverage;
         uint256 balance;
@@ -256,6 +258,8 @@ contract VolmexAMM is
     function updateFlashLoanPremium(uint256 _premium) external onlyOwner {
         require(_premium > 0 && _premium <= 10000, 'VolmexAMM: _premium value not in range');
         FLASHLOAN_PREMIUM_TOTAL = _premium;
+
+        emit UpdatedFlashLoanPremium(FLASHLOAN_PREMIUM_TOTAL);
     }
 
     /**
