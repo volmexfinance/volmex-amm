@@ -26,6 +26,8 @@ contract VolmexController is OwnableUpgradeable {
         address indexed protocol
     );
 
+    event UpdatedMinimumCollateral(uint256 newMinimumCollateralQty);
+
     // Address of the collateral used in protocol
     mapping(uint256 => IERC20Modified) public stablecoins;
     // Ratio of volatility to be minted per 250 collateral
@@ -94,6 +96,8 @@ contract VolmexController is OwnableUpgradeable {
      */
     function updateMinCollateralQty(uint256 _minCollateralQty) external onlyOwner {
         _minimumCollateralQty = _minCollateralQty;
+
+        emit UpdatedMinimumCollateral(_minCollateralQty);
     }
 
     /**
