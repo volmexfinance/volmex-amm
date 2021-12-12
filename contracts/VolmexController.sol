@@ -21,7 +21,7 @@ contract VolmexController is OwnableUpgradeable {
     event AssetSwaped(uint256 assetInAmount, uint256 assetOutAmount);
 
     // Address of the collateral used in protocol
-    IERC20Modified public stablecoin;
+    mapping(uint256 => IERC20Modified) public stablecoins;
     // Ratio of volatility to be minted per 250 collateral
     uint256 private _volatilityCapRatio;
     // Minimum amount of collateral amount needed to collateralize
@@ -33,6 +33,8 @@ contract VolmexController is OwnableUpgradeable {
     mapping(uint256 => address) public pools;
     // Store the addresses of protocols
     mapping(uint256 => address) public protocols;
+    // Store the index of stablecoin
+    mapping(string => uint256) public stablecoinIndex;
 
     /**
      * @notice Initializes the contract
@@ -48,22 +50,35 @@ contract VolmexController is OwnableUpgradeable {
         address _pool,
         IVolmexProtocol _protocol
     ) external initializer {
-        stablecoin = _stablecoin;
-
+        stablecoins[poolIndex] = _stablecoin;
         pools[poolIndex] = _pool;
         protocols[poolIndex] = address(_protocol);
 
         _volatilityCapRatio = _protocol.volatilityCapRatio();
         _minimumCollateralQty = _protocol.minimumCollateralQty();
+        stablecoinIndex[_protocol.collateral().symbol()] = poolIndex;
     }
 
     /**
      * @notice Used to set the pool and protocol on new index
+     *
+     * @param _pool Address of the AMM contract
+     * @param _protocol Address of the Protocol contract
      */
     function setPoolAndProtocol(address _pool, address _protocol) external onlyOwner {
         poolIndex++;
         pools[poolIndex] = _pool;
         protocols[poolIndex] = address(_protocol);
+    }
+
+    /**
+     * @notice Used to set the stablecoin/collateral
+     *
+     * @param _stablecoin Address of the collateral used in protocol
+     */
+    function setStablecoin(IERC20Modified _stablecoin, string calldata stablecoinSymbol) external onlyOwner {
+        stablecoins[poolIndex] = _stablecoin;
+        stablecoinIndex[stablecoinSymbol] = poolIndex;
     }
 
     /**
@@ -87,9 +102,11 @@ contract VolmexController is OwnableUpgradeable {
     function swapCollateralToVolatility(
         uint256 _amount,
         bool _isInverseRequired,
-        uint256 _tokenPoolIndex
+        uint256 _tokenPoolIndex,
+        string calldata stablecoinSymbol
     ) external {
         IVolmexProtocol _protocol = IVolmexProtocol(protocols[_tokenPoolIndex]);
+        IERC20Modified stablecoin = stablecoins[stablecoinIndex[stablecoinSymbol]];
         stablecoin.transferFrom(msg.sender, address(this), _amount);
         _approveAssets(stablecoin, _amount, address(this), address(_protocol));
 
@@ -191,7 +208,7 @@ contract VolmexController is OwnableUpgradeable {
 
         _protocol.redeem(tokenAmountOut);
 
-        transferAsset(stablecoin, collateralAmount);
+        transferAsset(stablecoins[_tokenPoolIndex], collateralAmount);
         transferAsset(
             _isInverse ? volatilityToken : inverseVolatilityToken,
             (_amount >> 1).sub(tokenAmountOut)
@@ -268,10 +285,6 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _poolIndex
     ) external {
         IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
-        IVolmexProtocol _protocol = IVolmexProtocol(protocols[_poolIndex]);
-
-        _approveAssets(_protocol.volatilityToken(), _maxAmountsIn[0], msg.sender, address(_pool));
-        _approveAssets(_protocol.inverseVolatilityToken(), _maxAmountsIn[1], msg.sender, address(_pool));
 
         _pool.joinPool(_poolAmountOut, _maxAmountsIn, msg.sender);
     }
@@ -294,7 +307,7 @@ contract VolmexController is OwnableUpgradeable {
     }
 
     /**
-     * @notice Used to call falsh loan on AMM
+     * @notice Used to call flash loan on AMM
      *
      * @dev This method is for developers.
      * Make sure you call this metehod from a contract with the implementation

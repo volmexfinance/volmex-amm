@@ -651,10 +651,12 @@ describe('VolmexAMM', function () {
 
     await (await collateral.approve(controller.address, '10000000000000000000000')).wait();
 
+    const collateralSymbol = await collateral.symbol();
     const swapReceipt = await controller.swapCollateralToVolatility(
       '250000000000000000000',
       true,
-      '0'
+      '0',
+      collateralSymbol
     );
     const {events} = await swapReceipt.wait();
     let data;
