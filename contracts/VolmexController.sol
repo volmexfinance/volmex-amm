@@ -20,6 +20,12 @@ contract VolmexController is OwnableUpgradeable {
 
     event AssetSwaped(uint256 assetInAmount, uint256 assetOutAmount);
 
+    event SetPoolAndProtocol(
+        uint256 indexed poolIndex,
+        address indexed pool,
+        address indexed protocol
+    );
+
     // Address of the collateral used in protocol
     mapping(uint256 => IERC20Modified) public stablecoins;
     // Ratio of volatility to be minted per 250 collateral
@@ -68,7 +74,9 @@ contract VolmexController is OwnableUpgradeable {
     function setPoolAndProtocol(address _pool, address _protocol) external onlyOwner {
         poolIndex++;
         pools[poolIndex] = _pool;
-        protocols[poolIndex] = address(_protocol);
+        protocols[poolIndex] = _protocol;
+
+        emit SetPoolAndProtocol(poolIndex, _pool, _protocol);
     }
 
     /**
