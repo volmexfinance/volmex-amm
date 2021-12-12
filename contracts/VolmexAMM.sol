@@ -987,7 +987,7 @@ contract VolmexAMM is
     }
 
     /**
-     * @notice Used to puase the contract
+     * @notice Used to pause the contract
      */
     function pause() external onlyOwner {
         _pause();
