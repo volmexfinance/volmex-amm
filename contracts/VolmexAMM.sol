@@ -270,7 +270,7 @@ contract VolmexAMM is
         address assetToken,
         uint256 amount,
         bytes calldata params
-    ) external whenNotPaused onlyController {
+    ) external _lock_ whenNotPaused onlyController {
         _records[assetToken].balance = sub(_records[assetToken].balance, amount);
         IERC20Modified(assetToken).transfer(receiverAddress, amount);
 
