@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
 import { Signer } from 'ethers';
-const { expectRevert } = require("@openzeppelin/test-helpers");
+const { expectRevert, time } = require("@openzeppelin/test-helpers");
 
 describe('VolmexAMM', function () {
   let accounts: Signer[];
@@ -126,12 +126,6 @@ describe('VolmexAMM', function () {
     //   'NOT_SET_FEE_PARAMS'
     // );
 
-    // // Test the only owner call
-    // await expectRevert(
-    //   pool.connect(accounts[1]).setFeeParams(baseFee, maxFee, feeAmpPrimary, feeAmpComplement),
-    //   'NOT_CONTROLLER'
-    // );
-
     // // Test the finalize modifier
     // await expectRevert(
     //   pool.joinPool(
@@ -227,6 +221,156 @@ describe('VolmexAMM', function () {
     await finalizeReceipt.wait();
   });
 
+  it('should deploy pool', async () => {
+    const poolreceipt = await pool.deployed();
+    expect(poolreceipt.confirmations).not.equal(0);
+  });
+
+  it("Should check the swap amount", async () => {
+    await (await volatility.approve(controller.address, "38960000000000000000")).wait();
+    await (await inverseVolatility.approve(controller.address, "38960000000000000000")).wait();
+
+    const add = await controller.addLiquidity(
+      '7000000000000000000000',
+      ['38960000000000000000','38960000000000000000'],
+      '0'
+    );
+    await add.wait();
+
+    await (await inverseVolatility.approve(controller.address, '11000000000000000000')).wait();
+
+    let amountOut = await pool.getTokenAmountOut(
+      volatility.address,
+      '20000000000000000000',
+      inverseVolatility.address
+    );
+
+    let swap = await controller.swap(
+      '0',
+      inverseVolatility.address,
+      '11000000000000000000',
+      volatility.address,
+      amountOut.toString()
+    );
+    await swap.wait();
+  });
+
+  it ("Should update reprice", async () => {
+    await (await volatility.approve(controller.address, "38960000000000000000")).wait();
+    await (await inverseVolatility.approve(controller.address, "38960000000000000000")).wait();
+
+    const test = await controller.addLiquidity(
+      '7000000000000000000000',
+      ['38960000000000000000','38960000000000000000'],
+      '0'
+    );
+    await test.wait();
+
+    const latest = await time.latestBlock();
+    console.log(`Current block: ${latest}`);
+    await (await inverseVolatility.approve(controller.address, '3000000000000000000')).wait();
+
+    console.log("Zero Getter");
+    let amountOut = await pool.getTokenAmountOut(
+      inverseVolatility.address,      
+      '3000000000000000000',
+      volatility.address,
+    );
+    console.log(amountOut.toString());
+
+    console.log("1st Swap");
+    let swap = await controller.swap(
+      '0',
+      inverseVolatility.address,
+      '3000000000000000000',
+      volatility.address,
+      '1000000000000000000'
+    );
+    let swapreceipt = await swap.wait();
+
+    console.log("1st Getter");
+    amountOut = await pool.getTokenAmountOut(
+      inverseVolatility.address,      
+      '3000000000000000000',
+      volatility.address,
+    );
+    console.log(amountOut.toString());
+
+    await time.advanceBlockTo(parseInt(latest) + 5);
+    const current = await time.latestBlock();
+    console.log(`Current block: ${current}`);
+
+    await (await pool.reprice()).wait();
+    console.log("2nd Getter");
+    amountOut = await pool.getTokenAmountOut(
+      inverseVolatility.address,      
+      '3000000000000000000',
+      volatility.address,
+    );
+    console.log(amountOut.toString());
+
+    await (await inverseVolatility.approve(controller.address, '3000000000000000000')).wait();
+
+    console.log("2nd Swap");
+    const swap2 = await controller.swap(
+      '0',
+      inverseVolatility.address,
+      '3000000000000000000',
+      volatility.address,
+      '1000000000000000000'
+    );
+    await swap.wait();
+  });
+
+  it ("Should test", async () => {
+    console.log((await volmexOracle.volatilityTokenPriceByIndex(0)).toString());
+    console.log(await (await volatility.balanceOf(owner)).toString());
+    await (await volatility.approve(controller.address, "38960000000000000000")).wait();
+    await (await inverseVolatility.approve(controller.address, "38960000000000000000")).wait();
+
+    const test = await controller.addLiquidity(
+      '7000000000000000000000',
+      ['38960000000000000000','38960000000000000000'],
+      '0'
+    );
+    console.log(await (await volatility.balanceOf(pool.address)).toString());
+    await test.wait();
+    let amountOut = await pool.getTokenAmountOut(
+      inverseVolatility.address,
+      '20000000000000000000',
+      volatility.address
+    );
+    console.log(amountOut.toString());
+    await (await volatility.approve(controller.address, '3000000000000000000')).wait();
+
+    const swap = await controller.swap(
+      '0',
+      inverseVolatility.address,
+      '3000000000000000000',
+      volatility.address,
+      '1000000000000000000'
+    );
+    const swapreceipt = await swap.wait();
+
+    amountOut = await pool.getTokenAmountOut(
+      inverseVolatility.address,
+      '20000000000000000000',
+      volatility.address
+    );
+    console.log(amountOut.toString());
+
+    await (await volatility.approve(controller.address, '3000000000000000000')).wait();
+
+    const swap2 = await controller.swap(
+      '0',
+      inverseVolatility.address,
+      '3000000000000000000',
+      volatility.address,
+      '1000000000000000000'
+    );
+    await swap.wait();
+  });
+
   it('Should show logs', async () => {
     await (await volatility.approve(controller.address, "20000000000000000000")).wait();
     await (await inverseVolatility.approve(controller.address, "20000000000000000000")).wait();
@@ -238,11 +382,6 @@ describe('VolmexAMM', function () {
     );
     await test.wait();
   })
-
-  it('should deploy pool', async () => {
-    const poolreceipt = await pool.deployed();
-    expect(poolreceipt.confirmations).not.equal(0);
-  });
 
   it('Should get out amount', async () => {
     await (await volatility.approve(controller.address, "20000000000000000000")).wait();
