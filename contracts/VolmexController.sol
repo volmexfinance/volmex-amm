@@ -35,6 +35,8 @@ contract VolmexController is OwnableUpgradeable {
     mapping(uint256 => address) public protocols;
     // Store the index of stablecoin
     mapping(string => uint256) public stablecoinIndex;
+    // Store the bool value of pools to confirm it is pool
+    mapping(address => bool) public isPool;
 
     /**
      * @notice Initializes the contract
@@ -53,6 +55,7 @@ contract VolmexController is OwnableUpgradeable {
         stablecoins[poolIndex] = _stablecoin;
         pools[poolIndex] = _pool;
         protocols[poolIndex] = address(_protocol);
+        isPool[_pool] = true;
 
         _volatilityCapRatio = _protocol.volatilityCapRatio();
         _minimumCollateralQty = _protocol.minimumCollateralQty();
@@ -69,6 +72,7 @@ contract VolmexController is OwnableUpgradeable {
         poolIndex++;
         pools[poolIndex] = _pool;
         protocols[poolIndex] = address(_protocol);
+        isPool[_pool] = true;
     }
 
     /**
@@ -401,10 +405,9 @@ contract VolmexController is OwnableUpgradeable {
     function transferAssetToPool(
         IERC20Modified _token,
         address _account,
-        address _pool,
         uint256 _amount
     ) external {
-        require(msg.sender == _pool, 'VolmexController: Caller is not pool');
-        _token.transferFrom(_account, _pool, _amount);
+        require(isPool[msg.sender], 'VolmexController: Caller is not pool');
+        _token.transferFrom(_account, msg.sender, _amount);
     }
 }
