@@ -784,7 +784,6 @@ contract VolmexAMM is
         IVolmexController(controller).transferAssetToPool(
             IERC20Modified(erc20),
             from,
-            address(this),
             amount
         );
 
