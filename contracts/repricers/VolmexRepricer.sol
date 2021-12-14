@@ -4,6 +4,7 @@ pragma solidity =0.8.4;
 
 import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol';
 
 import '../interfaces/IVolmexOracle.sol';
 import '../interfaces/IVolmexProtocol.sol';
