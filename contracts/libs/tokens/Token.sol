@@ -81,13 +81,6 @@ contract Token is TokenBase, IERC20 {
     string private _name;
     string private _symbol;
     uint8 private constant _decimals = 18;
-    bool public isLayer2;
-    address public childChainManager;
-
-    modifier _isOnLayer2() {
-        require(isLayer2, "Token: cannot call function");
-        _;
-    }
 
     function setName(string memory name) internal {
         _name = name;
@@ -162,30 +155,5 @@ contract Token is TokenBase, IERC20 {
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
         return true;
-    }
-
-    /**
-     * @notice called when token is deposited on root chain
-     * @dev Should be callable only by ChildChainManager
-     * Should handle deposit by minting the required amount for user
-     * Make sure minting is done only by this function
-     * @param user user address for whom deposit is being done
-     * @param depositData abi encoded amount
-     */
-    function deposit(address user, bytes calldata depositData) external _isOnLayer2 {
-        require(msg.sender == childChainManager, "Token: you are not authoized");
-        uint256 amount = abi.decode(depositData, (uint256));
-        _mint(amount);
-        _push(user, amount);
-    }
-
-    /**
-     * @notice called when user wants to withdraw tokens back to root chain
-     * @dev Should burn user's tokens. This transaction will be verified when exiting on root chain
-     * @param amount amount of tokens to withdraw
-     */
-    function withdraw(uint256 amount) external _isOnLayer2 {
-        _pull(msg.sender, amount);
-        _burn(amount);
     }
 }
