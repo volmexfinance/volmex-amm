@@ -751,11 +751,11 @@ contract VolmexAMM is
     }
 
     function _updateLeverages(
-        Record memory inToken,
+        Record storage inToken,
         uint256 tokenAmountIn,
-        Record memory outToken,
+        Record storage outToken,
         uint256 tokenAmountOut
-    ) internal pure {
+    ) internal {
         outToken.leverage = div(
             sub(_getLeveragedBalance(outToken), tokenAmountOut),
             sub(outToken.balance, tokenAmountOut)
