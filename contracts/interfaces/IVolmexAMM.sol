@@ -12,9 +12,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity 0.7.6;
+pragma solidity =0.8.4;
 
-import '@openzeppelin/contracts-upgradeable/introspection/IERC165Upgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 
 import '../libs/tokens/Token.sol';
 import './IVolmexProtocol.sol';

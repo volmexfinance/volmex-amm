@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.7.6;
+pragma solidity =0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 /**
@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * NOTE: Inspired from Openzeppelin's SafeERC20 library.
  */
 library VolmexSafeERC20 {
-using SafeMath for uint256;
+    using SafeMath for uint256; 
     using Address for address;
 
     function safeTransfer(IERC20 token, address to, uint256 value) internal {

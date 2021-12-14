@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.7.6;
+pragma solidity =0.8.4;
 
-import '@openzeppelin/contracts-upgradeable/introspection/IERC165Upgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 
 interface IVolmexRepricer is IERC165Upgradeable {
     function protocolVolatilityCapRatio() external view returns (uint256);

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity 0.7.6;
+pragma solidity =0.8.4;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol';
 
 import './interfaces/IVolmexAMM.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -14,8 +13,6 @@ import './interfaces/IERC20Modified.sol';
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract VolmexController is OwnableUpgradeable {
-    using SafeMathUpgradeable for uint256;
-
     event AdminFeeUpdated(uint256 adminFee);
 
     event AssetSwaped(uint256 assetInAmount, uint256 assetOutAmount);
@@ -185,7 +182,7 @@ contract VolmexController is OwnableUpgradeable {
             );
         }
 
-        uint256 totalVolatilityAmount = volatilityAmount.add(tokenAmountOut);
+        uint256 totalVolatilityAmount = volatilityAmount + tokenAmountOut;
         transferAsset(
             _isInverseRequired ? inverseVolatilityToken : volatilityToken,
             totalVolatilityAmount
@@ -227,7 +224,7 @@ contract VolmexController is OwnableUpgradeable {
                 address(_protocol.volatilityToken()),
                 _amount >> 1,
                 address(_protocol.inverseVolatilityToken()),
-                _amount.div(10),
+                _amount / 10,
                 address(0)
             );
         } else {
@@ -239,13 +236,13 @@ contract VolmexController is OwnableUpgradeable {
                 address(_protocol.inverseVolatilityToken()),
                 _amount >> 1,
                 address(_protocol.volatilityToken()),
-                _amount.div(10),
+                _amount / 10,
                 address(0)
             );
         }
 
         uint256 collateralAmount = calculateAssetQuantity(
-            tokenAmountOut.mul(_volatilityCapRatio),
+            tokenAmountOut * _volatilityCapRatio,
             _protocol.redeemFees(),
             false
         );
@@ -255,7 +252,7 @@ contract VolmexController is OwnableUpgradeable {
         transferAsset(stablecoin, collateralAmount);
         transferAsset(
             _isInverse ? volatilityToken : inverseVolatilityToken,
-            (_amount >> 1).sub(tokenAmountOut)
+            (_amount >> 1) - tokenAmountOut
         );
 
         emit AssetSwaped(_amount, collateralAmount);
@@ -280,7 +277,7 @@ contract VolmexController is OwnableUpgradeable {
             _pool.getPrimaryDerivativeAddress() == address(_tokenIn)
                 ? _pool.getComplementDerivativeAddress()
                 : _pool.getPrimaryDerivativeAddress(),
-            _amountIn.div(10),
+            _amountIn / 10,
             address(0)
         );
 
@@ -288,7 +285,7 @@ contract VolmexController is OwnableUpgradeable {
         _protocol.redeem(tokenAmount);
 
         uint256 _collateralAmount = calculateAssetQuantity(
-            tokenAmount.mul(_volatilityCapRatio),
+            tokenAmount * _volatilityCapRatio,
             _protocol.redeemFees(),
             false
         );
@@ -309,11 +306,11 @@ contract VolmexController is OwnableUpgradeable {
                 : _pool.getPrimaryDerivativeAddress(),
             _volatilityAmount >> 1,
             _tokenOut,
-            _volatilityAmount.div(10),
+            _volatilityAmount / 10,
             address(0)
         );
 
-        transferAsset(_tokenIn, (_amountIn >> 1).sub(tokenAmount));
+        transferAsset(_tokenIn, (_amountIn >> 1) - tokenAmount);
         transferAsset(IERC20Modified(_tokenOut), tokenAmountOut);
     }
 
@@ -403,10 +400,10 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _feePercent,
         bool isVolatility
     ) internal view returns (uint256) {
-        uint256 fee = (_amount.mul(_feePercent)).div(10000);
-        _amount = _amount.sub(fee);
+        uint256 fee = (_amount * _feePercent) / 10000;
+        _amount = _amount - fee;
 
-        return isVolatility ? _amount.div(_volatilityCapRatio) : _amount;
+        return isVolatility ? _amount / _volatilityCapRatio : _amount;
     }
 
     function transferAsset(IERC20Modified _token, uint256 _amount) internal {
