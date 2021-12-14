@@ -561,7 +561,7 @@ contract VolmexAMM is
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut
-    ) external view returns (uint256 tokenAmountOut) {
+    ) external view returns (uint256 tokenAmountOut, uint256 fee) {
         Record memory inRecord = getRepriced(tokenIn)[0];
         Record memory outRecord = getRepriced(tokenIn)[1];
 
@@ -572,7 +572,7 @@ contract VolmexAMM is
             0
         );
 
-        uint256 fee = calcFee(
+        fee = calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
