@@ -9,6 +9,7 @@ const createPool = async () => {
   const VolmexOracle = await ethers.getContractFactory('VolmexOracle');
   const VolmexAMMRegistry = await ethers.getContractFactory('VolmexAMMRegistry');
   const ControllerFactory = await ethers.getContractFactory('VolmexController');
+  const VolmexAMMView = await ethers.getContractFactory('VolmexAMMView');
 
   const BigNumber = require('bignumber.js');
   const bn = (num: number) => new BigNumber(num);
@@ -28,10 +29,10 @@ const createPool = async () => {
 
   const leveragePrimary = '999996478162223000';
   const leverageComplement = '1000003521850180000';
-  // const dynamicFeeAddress = '0x105aE5e940f157D93187082CafCCB27e1941B505';
+
   const protocolAddress = await ethers.getContractAt(
-      'IVolmexProtocol',
-      '0xdd3a1Ad3e7a2715231147D2F5e6f28F187CD6081'
+    'IVolmexProtocol',
+    `${process.env.VOLMEX_PROTOCOL}`
   );
 
   console.log('Deploying Oracle...');
@@ -66,18 +67,18 @@ const createPool = async () => {
   await pool.deployed();
 
   const collateralToken = await ethers.getContractAt(
-      'IERC20Modified',
-      await protocolAddress.collateral()
+    'IERC20Modified',
+    await protocolAddress.collateral()
   );
   console.log('collateralTokenAddress ', collateralToken.address);
   const primaryToken = await ethers.getContractAt(
-      'IERC20Modified',
-      await protocolAddress.volatilityToken()
+    'IERC20Modified',
+    await protocolAddress.volatilityToken()
   );
   console.log('primaryTokenAddress ', primaryToken.address);
   const complementToken = await ethers.getContractAt(
-      'IERC20Modified',
-      await protocolAddress.inverseVolatilityToken()
+    'IERC20Modified',
+    await protocolAddress.inverseVolatilityToken()
   );
   console.log('complementTokenAddress ', complementToken.address);
 
@@ -109,14 +110,14 @@ const createPool = async () => {
 
   console.log('Finalize Pool');
   const finalizeReceipt = await pool.finalize(
-      '1000000000000000000',
-      leveragePrimary,
-      '1000000000000000000',
-      leverageComplement,
-      exposureLimitPrimary,
-      exposureLimitComplement,
-      pMin,
-      qMin
+    '1000000000000000000',
+    leveragePrimary,
+    '1000000000000000000',
+    leverageComplement,
+    exposureLimitPrimary,
+    exposureLimitComplement,
+    pMin,
+    qMin
   );
   await finalizeReceipt.wait();
 
@@ -127,6 +128,9 @@ const createPool = async () => {
   const registry = await upgrades.deployProxy(VolmexAMMRegistry, []);
   await registry.deployed();
 
+  const volmexAMMView = await upgrades.deployProxy(VolmexAMMView, []);
+  await volmexAMMView.deployed();
+
   console.log('Registered AMM');
 
   console.log('VolmexAMM: ', pool.address);
@@ -134,10 +138,33 @@ const createPool = async () => {
   console.log('VolmexOracle: ', oracle.address);
   console.log('Controller: ', controller.address);
   console.log('Registry: ', registry.address);
+  console.log('VolmexAMMView: ', volmexAMMView.address);
 
-  // await run("verify:verify", {
-  //   address: pool.address,
-  // });
+  const proxyAdmin = await upgrades.admin.getInstance();
+
+  await run("verify:verify", {
+    address: await proxyAdmin.getProxyImplementation(pool.address),
+  });
+
+  await run("verify:verify", {
+    address: await proxyAdmin.getProxyImplementation(repricer.address),
+  });
+
+  await run("verify:verify", {
+    address: await proxyAdmin.getProxyImplementation(oracle.address),
+  });
+
+  await run("verify:verify", {
+    address: await proxyAdmin.getProxyImplementation(controller.address),
+  });
+
+  await run("verify:verify", {
+    address: await proxyAdmin.getProxyImplementation(registry.address),
+  });
+
+  await run("verify:verify", {
+    address: await proxyAdmin.getProxyImplementation(volmexAMMView.address),
+  });
 };
 
 createPool()

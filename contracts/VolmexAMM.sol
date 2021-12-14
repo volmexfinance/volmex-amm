@@ -14,6 +14,7 @@ import './interfaces/IVolmexRepricer.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IVolmexAMM.sol';
 import './interfaces/IFlashLoanReceiver.sol';
+import './interfaces/IVolmexController.sol';
 
 /**
  * @title Volmex AMM Contract
@@ -234,12 +235,7 @@ contract VolmexAMM is
             makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol())
         );
 
-        setFeeParams(
-            _baseFee,
-            _maxFee,
-            _feeAmpPrimary,
-            _feeAmpComplement
-        );
+        setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
     /**
@@ -381,7 +377,8 @@ contract VolmexAMM is
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        address receiver
     )
         external
         _logs_
@@ -413,7 +410,7 @@ contract VolmexAMM is
             0
         );
 
-        (uint256 fee, ) = calcFee(
+        uint256 fee = calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -441,7 +438,8 @@ contract VolmexAMM is
             tokenOut,
             tokenAmountOut,
             spotPriceBefore,
-            fee
+            fee,
+            receiver
         );
     }
 
@@ -528,14 +526,45 @@ contract VolmexAMM is
         emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
+    function getRepriced(address tokenIn) internal view returns(Record[2] memory) {
+        Record memory primaryRecord = _records[_getPrimaryDerivativeAddress()];
+        Record memory complementRecord = _records[_getComplementDerivativeAddress()];
+
+        (,, uint256 estPrice) = repricer.reprice(volatilityIndex);
+
+        uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
+        uint256 complementRecordLeverageBefore = complementRecord.leverage;
+
+        uint256 leveragesMultiplied = mul(
+            primaryRecordLeverageBefore,
+            complementRecordLeverageBefore
+        );
+
+        primaryRecord.leverage = uint256(
+            repricer.sqrtWrapped(
+                int256(
+                    div(
+                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
+                        primaryRecord.balance
+                    )
+                )
+            )
+        );
+        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
+        return [
+            _getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord,
+            _getComplementDerivativeAddress() == tokenIn ? primaryRecord : complementRecord
+        ];
+    }
+
     function getTokenAmountOut(
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut
-    ) external view returns (uint256) {
-        Record memory inRecord = _records[tokenIn];
-        Record memory outRecord = _records[tokenOut];
-        uint256 tokenAmountOut;
+    ) external view returns (uint256 tokenAmountOut) {
+        Record memory inRecord = getRepriced(tokenIn)[0];
+        Record memory outRecord = getRepriced(tokenIn)[1];
+
         tokenAmountOut = calcOutGivenIn(
             _getLeveragedBalance(inRecord),
             _getLeveragedBalance(outRecord),
@@ -543,7 +572,7 @@ contract VolmexAMM is
             0
         );
 
-        (uint256 fee, ) = calcFee(
+        uint256 fee = calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -557,8 +586,6 @@ contract VolmexAMM is
             tokenAmountIn,
             fee
         );
-
-        return tokenAmountOut;
     }
 
     /**
@@ -622,7 +649,8 @@ contract VolmexAMM is
         address tokenOut,
         uint256 tokenAmountOut,
         uint256 spotPriceBefore,
-        uint256 fee
+        uint256 fee,
+        address receiver
     ) internal returns (uint256 spotPriceAfter) {
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
@@ -672,8 +700,9 @@ contract VolmexAMM is
             outRecord.leverage
         );
 
-        _pullUnderlying(tokenIn, msg.sender, tokenAmountIn);
-        _pushUnderlying(tokenOut, msg.sender, tokenAmountOut);
+        address holder = receiver == address(0) ? msg.sender : receiver;
+        _pullUnderlying(tokenIn, holder, tokenAmountIn);
+        _pushUnderlying(tokenOut, holder, tokenAmountOut);
     }
 
     function _getLeveragedBalance(Record memory r) internal pure returns (uint256) {
@@ -752,7 +781,11 @@ contract VolmexAMM is
         uint256 amount
     ) internal returns (uint256) {
         uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
-        EIP20NonStandardInterface(erc20).transferFrom(from, address(this), amount);
+        IVolmexController(controller).transferAssetToPool(
+            IERC20Modified(erc20),
+            from,
+            amount
+        );
 
         bool success;
         //solium-disable-next-line security/no-inline-assembly
@@ -912,9 +945,9 @@ contract VolmexAMM is
         Record memory outRecord,
         uint256 tokenAmountOut,
         uint256 feeAmp
-    ) internal view returns (uint256 fee, int256 expStart) {
+    ) internal view returns (uint256 fee) {
         int256 ifee;
-        (ifee, expStart) = calc(
+        (ifee,) = calc(
             [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
             [int256(outRecord.balance), int256(outRecord.leverage), int256(tokenAmountOut)],
             int256(baseFee),

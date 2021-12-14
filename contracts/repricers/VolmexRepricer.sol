@@ -62,7 +62,7 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
 
         estComplementPrice = protocolVolatilityCapRatio.sub(estPrimaryPrice);
 
-        estPrice = estPrimaryPrice.mul(BONE).div(estComplementPrice);
+        estPrice = (estComplementPrice.mul(BONE)).div(estPrimaryPrice);
     }
 
     /**
