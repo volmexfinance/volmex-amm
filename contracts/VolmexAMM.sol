@@ -499,7 +499,7 @@ contract VolmexAMM is
         uint256 initPoolSupply = getDerivativeDenomination() * _primaryBalance;
 
         uint256 collateralDecimals = uint256(protocol.collateral().decimals());
-        if (collateralDecimals >= 0 && collateralDecimals < 18) {
+        if (collateralDecimals < 18) {
             initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
         }
 
@@ -991,7 +991,7 @@ contract VolmexAMM is
     }
 
     /**
-     * @notice Used to puase the contract
+     * @notice Used to pause the contract
      */
     function pause() external onlyOwner {
         _pause();
