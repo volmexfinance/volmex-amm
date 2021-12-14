@@ -33,8 +33,8 @@ contract VolmexOracle is OwnableUpgradeable {
      */
     modifier _checkVolatilityPrice(uint256 _volatilityTokenPrice) {
         require(
-            _volatilityTokenPrice > 0 && _volatilityTokenPrice < 250,
-            'VolmexOracle: _volatilityTokenPrice should be greater than 0'
+            _volatilityTokenPrice <= 250,
+            'VolmexOracle: _volatilityTokenPrice should be in range of 0 to 250'
         );
         _;
     }
