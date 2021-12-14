@@ -150,7 +150,7 @@ contract Token is TokenBase, IERC20 {
         uint256 oldValue = _allowance[src][msg.sender];
         require(msg.sender == src || amt <= oldValue, 'TOKEN_BAD_CALLER');
         _move(src, dst, amt);
-        if (msg.sender != src && oldValue != uint256(-1)) {
+        if (msg.sender != src && oldValue != type(uint128).max) {
             _allowance[src][msg.sender] = sub(oldValue, amt);
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
