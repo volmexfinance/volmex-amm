@@ -12,7 +12,8 @@
         "format": "yarn prettier --write contracts/**/*.sol && yarn prettier --write test/**/*.ts && yarn prettier --write scripts/**/*.js",
         "lint": "eslint .",
         "lint:contracts": "solhint contracts/*.sol",
-        "create-pool": "npx hardhat run --network $NETWORK scripts/createPool.ts"
+        "create-pool": "npx hardhat run --network $NETWORK scripts/createPool.ts",
+        "upgrade": "npx hardhat run --network $NETWORK scripts/upgrade.ts"
     },
     "devDependencies": {
         "@ledgerhq/hw-transport-node-hid": "^5.46.0",
