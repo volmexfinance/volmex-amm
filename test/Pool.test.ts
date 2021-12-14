@@ -250,7 +250,7 @@ describe('VolmexAMM', function () {
       volatility.address,
       '6000000000000000000',
       inverseVolatility.address,
-      amountOut.toString()
+      amountOut[0].toString()
     );
     await swap.wait();
   });

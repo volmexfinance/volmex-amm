@@ -74,6 +74,8 @@ contract VolmexAMM is
 
     event SetController(address indexed controller);
 
+    event UpdatedFlashLoanPremium(uint256 premium);
+
     struct Record {
         uint256 leverage;
         uint256 balance;
@@ -254,7 +256,10 @@ contract VolmexAMM is
      * @notice Used to update the flash loan premium percent
      */
     function updateFlashLoanPremium(uint256 _premium) external onlyOwner {
+        require(_premium > 0 && _premium <= 10000, 'VolmexAMM: _premium value not in range');
         FLASHLOAN_PREMIUM_TOTAL = _premium;
+
+        emit UpdatedFlashLoanPremium(FLASHLOAN_PREMIUM_TOTAL);
     }
 
     /**
@@ -270,7 +275,7 @@ contract VolmexAMM is
         address assetToken,
         uint256 amount,
         bytes calldata params
-    ) external whenNotPaused onlyController {
+    ) external _lock_ whenNotPaused onlyController {
         _records[assetToken].balance = sub(_records[assetToken].balance, amount);
         IERC20Modified(assetToken).transfer(receiverAddress, amount);
 
@@ -446,10 +451,10 @@ contract VolmexAMM is
     /**
      * @notice Used to finalise the pool with the required attributes and operations
      *
-     * @dev Checks, pool is finalised, caller is controller, supplied token balance
+     * @dev Checks, pool is finalised, caller is owner, supplied token balance
      * should be equal
      * @dev Binds the token, and its leverage and balance
-     * @dev Calculates the iniyial pool supply, mints and transfer to the controller
+     * @dev Calculates the initial pool supply, mints and transfer to the controller
      *
      * @param _primaryBalance Balance amount of primary token
      * @param _primaryLeverage Leverage value of primary token
@@ -469,7 +474,7 @@ contract VolmexAMM is
         uint256 _exposureLimitComplement,
         uint256 _pMin,
         uint256 _qMin
-    ) external _logs_ _lock_ onlyNotSettled {
+    ) external _logs_ _lock_ onlyNotSettled onlyOwner {
         require(!_finalized, 'VolmexAMM: AMM is finalized');
 
         require(_primaryBalance == _complementBalance, 'VolmexAMM: Assets balance should be same');
@@ -494,7 +499,7 @@ contract VolmexAMM is
         uint256 initPoolSupply = getDerivativeDenomination() * _primaryBalance;
 
         uint256 collateralDecimals = uint256(protocol.collateral().decimals());
-        if (collateralDecimals >= 0 && collateralDecimals < 18) {
+        if (collateralDecimals < 18) {
             initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
         }
 
@@ -561,7 +566,7 @@ contract VolmexAMM is
         address tokenIn,
         uint256 tokenAmountIn,
         address tokenOut
-    ) external view returns (uint256 tokenAmountOut) {
+    ) external view returns (uint256 tokenAmountOut, uint256 fee) {
         Record memory inRecord = getRepriced(tokenIn)[0];
         Record memory outRecord = getRepriced(tokenIn)[1];
 
@@ -572,7 +577,7 @@ contract VolmexAMM is
             0
         );
 
-        uint256 fee = calcFee(
+        fee = calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -751,11 +756,11 @@ contract VolmexAMM is
     }
 
     function _updateLeverages(
-        Record memory inToken,
+        Record storage inToken,
         uint256 tokenAmountIn,
-        Record memory outToken,
+        Record storage outToken,
         uint256 tokenAmountOut
-    ) internal pure {
+    ) internal {
         outToken.leverage = div(
             sub(_getLeveragedBalance(outToken), tokenAmountOut),
             sub(outToken.balance, tokenAmountOut)
@@ -784,7 +789,6 @@ contract VolmexAMM is
         IVolmexController(controller).transferAssetToPool(
             IERC20Modified(erc20),
             from,
-            address(this),
             amount
         );
 
@@ -923,7 +927,7 @@ contract VolmexAMM is
         if (expStart >= 0) {
             fee =
                 _baseFee +
-                (((_feeAmp) * (_spow3(_expEnd) - _spow3(expStart))) * iBONE) /
+                (_feeAmp * (_spow3(_expEnd) - _spow3(expStart))) /
                 (3 * (_expEnd - expStart));
         } else if (_expEnd <= 0) {
             fee = _baseFee;
@@ -987,7 +991,7 @@ contract VolmexAMM is
     }
 
     /**
-     * @notice Used to puase the contract
+     * @notice Used to pause the contract
      */
     function pause() external onlyOwner {
         _pause();

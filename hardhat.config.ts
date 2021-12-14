@@ -88,10 +88,13 @@ const config: HardhatUserConfig = {
       loggingEnabled: true,
     },
     mumbai: {
-      url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.MUMBAI_ALCHEMY_API_KEY}`,
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.POLYGON_TESTNET_ALCHEMY_API_KEY}`,
       accounts: [`0x${process.env.PRIVATE_KEY}`],
       throwOnTransactionFailures: true,
       loggingEnabled: true,
+      gas: 5000000,
+      gasPrice: 10000000000,
+      blockGasLimit: 8000000,
     }
   },
   etherscan: {
@@ -99,6 +102,10 @@ const config: HardhatUserConfig = {
     // Obtain one at https://etherscan.io/
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 21
+  }
 };
 
 export default config;

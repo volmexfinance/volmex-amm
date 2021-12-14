@@ -2,7 +2,6 @@ import { ethers, upgrades, run } from 'hardhat';
 
 const createPool = async () => {
   const accounts = await ethers.getSigners();
-  const childChainManager = "0x2e5e27d50EFa501D90Ad3638ff8441a0C0C0d75e";
   const CONTROLLER = accounts[0];
 
   const Pool = await ethers.getContractFactory('VolmexAMM');
@@ -30,10 +29,10 @@ const createPool = async () => {
 
   const leveragePrimary = '999996478162223000';
   const leverageComplement = '1000003521850180000';
-  // const dynamicFeeAddress = '0x105aE5e940f157D93187082CafCCB27e1941B505';
+
   const protocolAddress = await ethers.getContractAt(
     'IVolmexProtocol',
-    '0xa480cb2928da9b3dca7154d3cd8d955455b90ef0'
+    `${process.env.VOLMEX_PROTOCOL}`
   );
 
   console.log('Deploying Oracle...');
@@ -59,8 +58,6 @@ const createPool = async () => {
   const pool = await upgrades.deployProxy(Pool, [
     repricer.address,
     protocolAddress.address,
-    childChainManager,
-    true,
     "0",
     baseFee,
     maxFee,
