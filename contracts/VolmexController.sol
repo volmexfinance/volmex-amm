@@ -40,21 +40,24 @@ contract VolmexController is OwnableUpgradeable {
     uint256 private _volatilityCapRatio;
     // Minimum amount of collateral amount needed to collateralize
     uint256 private _minimumCollateralQty;
-    // Used to set the index of pool and protocol
-    // uint256 public poolIndex;
+    // Used to set the index of stablecoin
+    uint256 public stablecoinIndex;
+    // Used to set the index of pool
+    uint256 public poolIndex;
 
     // Store the addresses of pools
     mapping(uint256 => address) public pools;
-    // Store the addresses of protocols
+    // Store the addresses of stablecoins
+    /// @notice We have used IERC20Modified instead of IERC20, because the volatility tokens
+    /// can't be typecasted to IERC20.
+    /// Note: We have used the standard methods on IERC20 only.
+    mapping(uint256 => IERC20Modified) public stablecoins;
+    // Store the addresses of protocols { pool index => stablecoin index => protocol address }
     mapping(uint256 => mapping(uint256 => IVolmexProtocol)) public protocols;
     // Store the bool value of pools to confirm it is pool
     mapping(address => bool) public isPool;
     // Address of the oracle
     IVolmexOracle private _oracle;
-
-    uint256 public stablecoinIndex;
-    uint256 public poolIndex;
-    mapping(uint256 => IERC20Modified) public stablecoins;
 
     /**
      * @notice Initializes the contract
@@ -146,7 +149,7 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _stablecoinIndex
     ) external {
         IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
-        IERC20Modified stablecoin = stablecoins[stablecoinIndex];
+        IERC20Modified stablecoin = stablecoins[_stablecoinIndex];
         stablecoin.transferFrom(msg.sender, address(this), _amount);
         _approveAssets(stablecoin, _amount, address(this), address(_protocol));
 
@@ -270,7 +273,7 @@ contract VolmexController is OwnableUpgradeable {
 
         _protocol.redeem(tokenAmountOut);
 
-        IERC20Modified stablecoin = stablecoins[stablecoinIndex];
+        IERC20Modified stablecoin = stablecoins[_stablecoinIndex];
         transferAsset(stablecoin, collateralAmount);
         transferAsset(
             _isInverse ? volatilityToken : inverseVolatilityToken,
