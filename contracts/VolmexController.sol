@@ -7,6 +7,7 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import './interfaces/IVolmexAMM.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IERC20Modified.sol';
+import './interfaces/IVolmexOracle.sol';
 
 /**
  * @title Volmex Controller contract
@@ -48,6 +49,8 @@ contract VolmexController is OwnableUpgradeable {
     mapping(uint256 => mapping(uint256 => IVolmexProtocol)) public protocols;
     // Store the bool value of pools to confirm it is pool
     mapping(address => bool) public isPool;
+    // Address of the oracle
+    IVolmexOracle private _oracle;
 
     uint256 public stablecoinIndex;
     uint256 public poolIndex;
@@ -457,6 +460,22 @@ contract VolmexController is OwnableUpgradeable {
     ) external {
         require(isPool[msg.sender], 'VolmexController: Caller is not pool');
         _token.transferFrom(_account, msg.sender, _amount);
+    }
+
+    function volatilityAmountToSwap(
+        uint256 _amount,
+        uint256 _poolIndex,
+        bool isInverse
+    ) internal view returns (uint256 volatilityAmount) {
+        uint256 price = _oracle.volatilityTokenPriceByIndex(_poolIndex);
+        uint256 iPrice = (_volatilityCapRatio * 1000) - price;
+
+        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
+
+        uint256 leverage = _pool.getLeverage(_pool.getPrimaryDerivativeAddress());
+        uint256 iLeverage = _pool.getLeverage(_pool.getComplementDerivativeAddress());
+
+        volatilityAmount = (_amount * iPrice * iLeverage) / (price * leverage + iPrice * iLeverage);
     }
 }
 
