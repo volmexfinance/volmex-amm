@@ -419,6 +419,23 @@ contract VolmexController is OwnableUpgradeable {
         );
     }
 
+
+    function getSwappedAssetAmount(
+        address _tokenIn,
+        uint256 _amount,
+        uint256 _poolIndex,
+        uint256 _stablecoinIndex,
+        bool isInverse
+    ) external view returns (uint256 collateralAmount, uint256 fee, uint256 leftOverAmount) {
+        (,, collateralAmount, leftOverAmount, fee) = _getSwappedAssetAmount(
+            _tokenIn,
+            _amount,
+            _poolIndex,
+            _stablecoinIndex,
+            isInverse
+        );
+    }
+
     //solium-disable-next-line security/no-assign-params
     function calculateAssetQuantity(
         uint256 _amount,
@@ -493,22 +510,6 @@ contract VolmexController is OwnableUpgradeable {
         } else {
             volatilityAmount = (_amount * iPrice * iLeverage) / ((price * leverage * fee) + iPrice * iLeverage);
         }
-    }
-
-    function getSwappedAssetAmount(
-        address _tokenIn,
-        uint256 _amount,
-        uint256 _poolIndex,
-        uint256 _stablecoinIndex,
-        bool isInverse
-    ) external view returns (uint256 collateralAmount, uint256 fee, uint256 leftOverAmount) {
-        (,, collateralAmount, leftOverAmount, fee) = _getSwappedAssetAmount(
-            _tokenIn,
-            _amount,
-            _poolIndex,
-            _stablecoinIndex,
-            isInverse
-        );
     }
 
     function _getSwappedAssetAmount(
