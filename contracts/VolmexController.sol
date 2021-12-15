@@ -477,7 +477,7 @@ contract VolmexController is OwnableUpgradeable {
         bool isInverse
     ) internal view returns (uint256 volatilityAmount) {
         uint256 price = _oracle.volatilityTokenPriceByIndex(_poolIndex);
-        uint256 iPrice = (_volatilityCapRatio * 1000) - price;
+        uint256 iPrice = (_volatilityCapRatio * 10000) - price;
 
         IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
 
@@ -495,8 +495,12 @@ contract VolmexController is OwnableUpgradeable {
     ) external view returns (uint256 collateralAmount) {
         IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
 
+        // 
+        // getter of token _amount out
+        // (_amount - volatilityAmountToSwap(_amount, _poolIndex, isInverse)) * _volatilityCapRatio
+        uint256 tokenAmountOut;
         collateralAmount = calculateAssetQuantity(
-            (_amount - volatilityAmountToSwap(_amount, _poolIndex, isInverse)) * _volatilityCapRatio,
+            tokenAmountOut,
             _protocol.redeemFees(),
             false
         );
