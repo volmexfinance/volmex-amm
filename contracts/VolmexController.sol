@@ -215,20 +215,29 @@ contract VolmexController is OwnableUpgradeable {
         IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
 
         uint256 tokenAmountOut;
-        if (_isInverse) {
+        uint256 swapAmount;
+        if (!_isInverse) {
             volatilityToken.transferFrom(msg.sender, address(this), _amount);
             _approveAssets(volatilityToken, _amount >> 1, address(this), address(_pool));
 
+            swapAmount = volatilityAmountToSwap(
+                _amount,
+                _poolIndex,
+                false
+            );
+
             (tokenAmountOut, ) = _pool.getTokenAmountOut(
                 address(volatilityToken),
-                _amount >> 1,
+                swapAmount,
                 address(inverseVolatilityToken)
             );
+
+            require(tokenAmountOut <= swapAmount, 'VolmexController: Out amount limit exploit');
 
             tokenAmountOut = _swap(
                 _pool,
                 address(volatilityToken),
-                _amount >> 1,
+                swapAmount,
                 address(inverseVolatilityToken),
                 tokenAmountOut,
                 address(0)
@@ -248,7 +257,7 @@ contract VolmexController is OwnableUpgradeable {
                 address(inverseVolatilityToken),
                 _amount >> 1,
                 address(volatilityToken),
-                _amount / 10,
+                tokenAmountOut,
                 address(0)
             );
         }
@@ -476,6 +485,21 @@ contract VolmexController is OwnableUpgradeable {
         uint256 iLeverage = _pool.getLeverage(_pool.getComplementDerivativeAddress());
 
         volatilityAmount = (_amount * iPrice * iLeverage) / (price * leverage + iPrice * iLeverage);
+    }
+
+    function getCollateralAmount(
+        uint256 _amount,
+        uint256 _poolIndex,
+        uint256 _stablecoinIndex,
+        bool isInverse
+    ) external view returns (uint256 collateralAmount) {
+        IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
+
+        collateralAmount = calculateAssetQuantity(
+            (_amount - volatilityAmountToSwap(_amount, _poolIndex, isInverse)) * _volatilityCapRatio,
+            _protocol.redeemFees(),
+            false
+        );
     }
 }
 
