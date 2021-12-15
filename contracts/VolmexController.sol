@@ -249,16 +249,20 @@ contract VolmexController is OwnableUpgradeable {
             inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
             _approveAssets(inverseVolatilityToken, _amount >> 1, address(this), address(_pool));
 
-            (tokenAmountOut, ) = _pool.getTokenAmountOut(
+            (swapAmount, tokenAmountOut,,,) = _getSwappedAssetAmount(
                 address(inverseVolatilityToken),
-                _amount >> 1,
-                address(volatilityToken)
+                _amount,
+                _poolIndex,
+                _stablecoinIndex,
+                true
             );
+
+            require(tokenAmountOut <= _amount - swapAmount, 'VolmexController: Amount out limit exploit');
 
             tokenAmountOut = _swap(
                 _pool,
                 address(inverseVolatilityToken),
-                _amount >> 1,
+                swapAmount,
                 address(volatilityToken),
                 tokenAmountOut,
                 address(0)
@@ -276,7 +280,7 @@ contract VolmexController is OwnableUpgradeable {
         IERC20Modified stablecoin = stablecoins[_stablecoinIndex];
         transferAsset(stablecoin, collateralAmount);
         transferAsset(
-            _isInverse ? volatilityToken : inverseVolatilityToken,
+            _isInverse ? inverseVolatilityToken : volatilityToken,
             _amount - swapAmount - tokenAmountOut
         );
 
@@ -425,14 +429,14 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _amount,
         uint256 _poolIndex,
         uint256 _stablecoinIndex,
-        bool isInverse
+        bool _isInverse
     ) external view returns (uint256 collateralAmount, uint256 fee, uint256 leftOverAmount) {
         (,, collateralAmount, leftOverAmount, fee) = _getSwappedAssetAmount(
             _tokenIn,
             _amount,
             _poolIndex,
             _stablecoinIndex,
-            isInverse
+            _isInverse
         );
     }
 
@@ -494,8 +498,8 @@ contract VolmexController is OwnableUpgradeable {
     function volatilityAmountToSwap(
         uint256 _amount,
         uint256 _poolIndex,
-        bool isInverse,
-        uint256 fee
+        bool _isInverse,
+        uint256 _fee
     ) internal view returns (uint256 volatilityAmount) {
         uint256 price = oracle.volatilityTokenPriceByIndex(_poolIndex);
         uint256 iPrice = (_volatilityCapRatio * 10000) - price;
@@ -505,10 +509,21 @@ contract VolmexController is OwnableUpgradeable {
         uint256 leverage = _pool.getLeverage(_pool.getPrimaryDerivativeAddress());
         uint256 iLeverage = _pool.getLeverage(_pool.getComplementDerivativeAddress());
 
-        if (fee > 1) {
-            volatilityAmount = ((_amount * iPrice * iLeverage) * BONE) / (price * leverage * fee + iPrice * iLeverage * BONE);
+        if (_isInverse) {
+            // Swapping the values to compensate the formula for inverse
+            price = price + iPrice;
+            iPrice = price - iPrice;
+            price = price - iPrice;
+
+            leverage = leverage + iLeverage;
+            iLeverage = leverage - iLeverage;
+            leverage = leverage - iLeverage;
+        }
+
+        if (_fee > 1) {
+            volatilityAmount = ((_amount * iPrice * iLeverage) * BONE) / (price * leverage * _fee + iPrice * iLeverage * BONE);
         } else {
-            volatilityAmount = (_amount * iPrice * iLeverage) / ((price * leverage * fee) + iPrice * iLeverage);
+            volatilityAmount = (_amount * iPrice * iLeverage) / ((price * leverage * _fee) + iPrice * iLeverage);
         }
     }
 
