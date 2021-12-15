@@ -35,8 +35,6 @@ contract VolmexController is OwnableUpgradeable {
 
     event UpdatedMinimumCollateral(uint256 newMinimumCollateralQty);
 
-    // Address of the collateral used in protocol
-    IERC20Modified public stablecoin;
     // Ratio of volatility to be minted per 250 collateral
     uint256 private _volatilityCapRatio;
     // Minimum amount of collateral amount needed to collateralize
@@ -69,8 +67,6 @@ contract VolmexController is OwnableUpgradeable {
         address _pool,
         IVolmexProtocol _protocol
     ) external initializer {
-        stablecoin = _stablecoin;
-
         pools[poolIndex] = _pool;
         stablecoins[stablecoinIndex] = _stablecoin;
         protocols[poolIndex][stablecoinIndex] = _protocol;
@@ -147,6 +143,7 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _stablecoinIndex
     ) external {
         IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
+        IERC20Modified stablecoin = stablecoins[stablecoinIndex];
         stablecoin.transferFrom(msg.sender, address(this), _amount);
         _approveAssets(stablecoin, _amount, address(this), address(_protocol));
 
@@ -219,23 +216,35 @@ contract VolmexController is OwnableUpgradeable {
             volatilityToken.transferFrom(msg.sender, address(this), _amount);
             _approveAssets(volatilityToken, _amount >> 1, address(this), address(_pool));
 
+            (tokenAmountOut, ) = _pool.getTokenAmountOut(
+                address(volatilityToken),
+                _amount >> 1,
+                address(inverseVolatilityToken)
+            );
+
             tokenAmountOut = _swap(
                 _pool,
-                address(_protocol.volatilityToken()),
+                address(volatilityToken),
                 _amount >> 1,
-                address(_protocol.inverseVolatilityToken()),
-                _amount / 10,
+                address(inverseVolatilityToken),
+                tokenAmountOut,
                 address(0)
             );
         } else {
             inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
             _approveAssets(inverseVolatilityToken, _amount >> 1, address(this), address(_pool));
 
+            (tokenAmountOut, ) = _pool.getTokenAmountOut(
+                address(inverseVolatilityToken),
+                _amount >> 1,
+                address(volatilityToken)
+            );
+
             tokenAmountOut = _swap(
                 _pool,
-                address(_protocol.inverseVolatilityToken()),
+                address(inverseVolatilityToken),
                 _amount >> 1,
-                address(_protocol.volatilityToken()),
+                address(volatilityToken),
                 _amount / 10,
                 address(0)
             );
@@ -249,6 +258,7 @@ contract VolmexController is OwnableUpgradeable {
 
         _protocol.redeem(tokenAmountOut);
 
+        IERC20Modified stablecoin = stablecoins[stablecoinIndex];
         transferAsset(stablecoin, collateralAmount);
         transferAsset(
             _isInverse ? volatilityToken : inverseVolatilityToken,
