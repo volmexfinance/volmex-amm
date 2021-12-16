@@ -271,29 +271,41 @@ contract VolmexController is OwnableUpgradeable {
         _tokenIn.transferFrom(msg.sender, address(this), _amountIn);
         _approveAssets(_tokenIn, _amountIn, address(this), address(_pool));
 
-        uint256 tokenAmount = _swap(
+        bool isInverse = _pool.getComplementDerivativeAddress() == address(_tokenIn);
+
+        (uint256 swapAmount, uint256 tokenAmountOut,) = _getSwappedAssetAmount(
+            address(_tokenIn),
+            _amountIn,
+            _pool,
+            isInverse
+        );
+
+        tokenAmountOut = _swap(
             _pool,
             address(_tokenIn),
-            _amountIn >> 1,
-            _pool.getPrimaryDerivativeAddress() == address(_tokenIn)
-                ? _pool.getComplementDerivativeAddress()
-                : _pool.getPrimaryDerivativeAddress(),
-            _amountIn / 10,
+            swapAmount,
+            isInverse
+                ? _pool.getPrimaryDerivativeAddress()
+                : _pool.getComplementDerivativeAddress(),
+            tokenAmountOut,
             msg.sender,
             true
         );
 
         IVolmexProtocol _protocol = protocols[_tokenInPoolIndex][_stablecoinIndex];
-        _protocol.redeem(tokenAmount);
+        _tokenIn.transferFrom(msg.sender, address(this), tokenAmountOut);
+        _protocol.redeem(tokenAmountOut);
 
         (uint256 _collateralAmount,) = calculateAssetQuantity(
-            tokenAmount * _volatilityCapRatio,
+            tokenAmountOut * _volatilityCapRatio,
             _protocol.redeemFees(),
             false
         );
 
         _protocol = protocols[_tokenOutPoolIndex][_stablecoinIndex];
+        _approveAssets(stablecoins[_stablecoinIndex], _collateralAmount, address(this), address(_protocol));
         _protocol.collateralize(_collateralAmount);
+
         (uint256 _volatilityAmount,) = calculateAssetQuantity(
             _collateralAmount,
             _protocol.issuanceFees(),
@@ -301,20 +313,28 @@ contract VolmexController is OwnableUpgradeable {
         );
 
         _pool = IVolmexAMM(pools[_tokenOutPoolIndex]);
-        uint256 tokenAmountOut = _swap(
+
+        bool isTokenOutInverse = _pool.getComplementDerivativeAddress() == _tokenOut;
+        address poolOutTokenIn = isTokenOutInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress();
+
+        (swapAmount, tokenAmountOut,) = _getSwappedAssetAmount(
+            poolOutTokenIn,
+            _volatilityAmount,
             _pool,
-            _pool.getPrimaryDerivativeAddress() == address(_tokenOut)
-                ? _pool.getComplementDerivativeAddress()
-                : _pool.getPrimaryDerivativeAddress(),
-            _volatilityAmount >> 1,
+            !isTokenOutInverse
+        );
+
+        tokenAmountOut = _swap(
+            _pool,
+            poolOutTokenIn,
+            swapAmount,
             _tokenOut,
-            _volatilityAmount / 10,
+            tokenAmountOut,
             msg.sender,
             true
         );
 
-        transferAsset(_tokenIn, (_amountIn >> 1) - tokenAmount, msg.sender);
-        transferAsset(IERC20Modified(_tokenOut), tokenAmountOut, msg.sender);
+        transferAsset(IERC20Modified(_tokenOut), _volatilityAmount + tokenAmountOut, msg.sender);
     }
 
     /**
