@@ -5,7 +5,6 @@ pragma solidity =0.8.4;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
-import 'hardhat/console.sol';
 
 import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
