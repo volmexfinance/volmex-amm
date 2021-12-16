@@ -467,12 +467,12 @@ contract VolmexController is OwnableUpgradeable {
     function calculateAssetQuantity(
         uint256 _amount,
         uint256 _feePercent,
-        bool isVolatility
-    ) internal view returns (uint256 amount, uint256 fee) {
-        fee = (_amount * _feePercent) / 10000;
-        _amount = _amount - fee;
+        bool _isVolatility
+    ) internal view returns (uint256 amount, uint256 protocolFee) {
+        protocolFee = (_amount * _feePercent) / 10000;
+        _amount = _amount - protocolFee;
 
-        amount = isVolatility ? _amount / _volatilityCapRatio : _amount;
+        amount = _isVolatility ? _amount / _volatilityCapRatio : _amount;
     }
 
     function transferAsset(IERC20Modified _token, uint256 _amount, address receiver) internal {
