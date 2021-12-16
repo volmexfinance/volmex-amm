@@ -5,6 +5,7 @@ pragma solidity =0.8.4;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
+import 'hardhat/console.sol';
 
 import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
@@ -383,7 +384,8 @@ contract VolmexAMM is
         uint256 tokenAmountIn,
         address tokenOut,
         uint256 minAmountOut,
-        address receiver
+        address receiver,
+        bool toController
     )
         external
         _logs_
@@ -444,7 +446,8 @@ contract VolmexAMM is
             tokenAmountOut,
             spotPriceBefore,
             fee,
-            receiver
+            receiver,
+            toController
         );
     }
 
@@ -655,7 +658,8 @@ contract VolmexAMM is
         uint256 tokenAmountOut,
         uint256 spotPriceBefore,
         uint256 fee,
-        address receiver
+        address receiver,
+        bool toController
     ) internal returns (uint256 spotPriceAfter) {
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
@@ -705,9 +709,12 @@ contract VolmexAMM is
             outRecord.leverage
         );
 
-        address holder = receiver == address(0) ? msg.sender : receiver;
-        _pullUnderlying(tokenIn, holder, tokenAmountIn);
-        _pushUnderlying(tokenOut, holder, tokenAmountOut);
+        _pullUnderlying(tokenIn, receiver, tokenAmountIn);
+        _pushUnderlying(
+            tokenOut,
+            toController ? msg.sender : receiver,
+            tokenAmountOut
+        );
     }
 
     function _getLeveragedBalance(Record memory r) internal pure returns (uint256) {
