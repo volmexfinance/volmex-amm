@@ -509,22 +509,9 @@ contract VolmexController is OwnableUpgradeable {
         uint256 leverage = _pool.getLeverage(_pool.getPrimaryDerivativeAddress());
         uint256 iLeverage = _pool.getLeverage(_pool.getComplementDerivativeAddress());
 
-        if (_isInverse) {
-            // Swapping the values to compensate the formula for inverse
-            price = price + iPrice;
-            iPrice = price - iPrice;
-            price = price - iPrice;
-
-            leverage = leverage + iLeverage;
-            iLeverage = leverage - iLeverage;
-            leverage = leverage - iLeverage;
-        }
-
-        if (_fee > 1) {
-            volatilityAmount = ((_amount * iPrice * iLeverage) * BONE) / (price * leverage * _fee + iPrice * iLeverage * BONE);
-        } else {
-            volatilityAmount = (_amount * iPrice * iLeverage) / ((price * leverage * _fee) + iPrice * iLeverage);
-        }
+        volatilityAmount = !_isInverse ?
+            ((_amount * iPrice * iLeverage) * BONE) / (price * leverage * (BONE - _fee) + iPrice * iLeverage * BONE) :
+            ((_amount * price * leverage) * BONE) / (iPrice * iLeverage * (BONE - _fee) + price * leverage * BONE);
     }
 
     function _getSwappedAssetAmount(
@@ -537,17 +524,15 @@ contract VolmexController is OwnableUpgradeable {
         IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
         IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
 
-        swapAmount = volatilityAmountToSwap(_amount, _poolIndex, isInverse, 1);
+        swapAmount = volatilityAmountToSwap(_amount, _poolIndex, isInverse, 0);
 
-        amountOut;
-        (amountOut, fee) = _pool.getTokenAmountOut(
+        (, fee) = _pool.getTokenAmountOut(
             _tokenIn,
             swapAmount,
             _pool.getPrimaryDerivativeAddress() == _tokenIn ?
                 _pool.getComplementDerivativeAddress() : _pool.getPrimaryDerivativeAddress()
         );
 
-        fee = BONE - fee;
         swapAmount = volatilityAmountToSwap(_amount, _poolIndex, isInverse, fee);
 
         (amountOut, fee) = _pool.getTokenAmountOut(
