@@ -134,7 +134,7 @@ contract VolmexController is OwnableUpgradeable {
             "VolmexController: Incorrect stablecoin for set protocol"
         );
         require(
-            pools[_poolIndex].getPrimaryDerivativeAddress() == _protocol.volatilityToken(),
+            IVolmexAMM(pools[_poolIndex]).getPrimaryDerivativeAddress() == address(_protocol.volatilityToken()),
             "VolmexController: Incorrect pool for set protocol"
         );
 
