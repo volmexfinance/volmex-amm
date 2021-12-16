@@ -27,13 +27,10 @@ contract Num is Const {
 
     function add(uint256 a, uint256 b) internal pure returns (uint256 c) {
         c = a + b;
-        require(c >= a, 'ADD_OVERFLOW');
     }
 
     function sub(uint256 a, uint256 b) internal pure returns (uint256 c) {
-        bool flag;
-        (c, flag) = subSign(a, b);
-        require(!flag, 'SUB_UNDERFLOW');
+        (c,) = subSign(a, b);
     }
 
     function subSign(uint256 a, uint256 b) internal pure returns (uint256, bool) {
@@ -46,18 +43,14 @@ contract Num is Const {
 
     function mul(uint256 a, uint256 b) internal pure returns (uint256 c) {
         uint256 c0 = a * b;
-        require(a == 0 || c0 / a == b, 'MUL_OVERFLOW');
         uint256 c1 = c0 + (BONE / 2);
-        require(c1 >= c0, 'MUL_OVERFLOW');
         c = c1 / BONE;
     }
 
     function div(uint256 a, uint256 b) internal pure returns (uint256 c) {
         require(b != 0, 'DIV_ZERO');
         uint256 c0 = a * BONE;
-        require(a == 0 || c0 / a == BONE, 'DIV_INTERNAL'); // mul overflow
         uint256 c1 = c0 + (b / 2);
-        require(c1 >= c0, 'DIV_INTERNAL'); //  add require
         c = c1 / b;
     }
 
