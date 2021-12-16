@@ -47,12 +47,27 @@ contract VolmexController is OwnableUpgradeable {
     // Used to set the index of pool
     uint256 public poolIndex;
 
+
+    /**
+    * Indices for Pool, Stablecoin and Protocol mappings
+    *
+    * Pool { 0 = ETHV, 1 = BTCV }
+    * Stablecoin { 0 = DAI, 1 = USDC }
+    * Protocol { 0 = ETHV-DAI, 1 = ETHV-USDC, 2 = BTCV-DAI, 3 = BTCV-USDC }
+    *
+    * Pools(Index)   Stablecoin(Index)     Protocol(Address)
+    *    0                 0                     0
+    *    0                 1                     1
+    *    1                 0                     2
+    *    1                 1                     3
+    */
+
     // Store the addresses of pools
     mapping(uint256 => address) public pools;
-    // Store the addresses of stablecoins
     /// @notice We have used IERC20Modified instead of IERC20, because the volatility tokens
     /// can't be typecasted to IERC20.
     /// Note: We have used the standard methods on IERC20 only.
+    // Store the addresses of stablecoins
     mapping(uint256 => IERC20Modified) public stablecoins;
     // Store the addresses of protocols { pool index => stablecoin index => protocol address }
     mapping(uint256 => mapping(uint256 => IVolmexProtocol)) public protocols;
@@ -453,17 +468,3 @@ contract VolmexController is OwnableUpgradeable {
         _token.transferFrom(_account, msg.sender, _amount);
     }
 }
-
-/**
- * Indices for Pool, Stablecoin and Protocol mappings
- *
- * Pool { 0 = ETHV, 1 = BTCV }
- * Stablecoin { 0 = DAI, 1 = USDC }
- * Protocol { 0 = ETHV-DAI, 1 = ETHV-USDC, 2 = BTCV-DAI, 3 = BTCV-USDC }
- *
- * Pools          Stablecoin             Protocol
- *  0                 0                     0
- *  0                 1                     1
- *  1                 0                     2
- *  1                 1                     3
- */
