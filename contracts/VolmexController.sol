@@ -240,7 +240,8 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _amount,
         IERC20Modified _tokenIn,
         uint256 _poolIndex,
-        uint256 _stablecoinIndex
+        uint256 _stablecoinIndex,
+        uint256 collateralRequired
     ) external {
         IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
         IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
@@ -270,6 +271,8 @@ contract VolmexController is OwnableUpgradeable {
             _protocol.redeemFees(),
             false
         );
+
+        require(collateralAmount >= collateralRequired, 'VolmexController: Insufficient collateral amount');
 
         _tokenIn.transferFrom(msg.sender, address(this), tokenAmountOut);
         _protocol.redeem(tokenAmountOut);
