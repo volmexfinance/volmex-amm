@@ -444,9 +444,9 @@ contract VolmexController is OwnableUpgradeable {
 
         uint256 swapAmount;
         uint256 tokenAmountOut;
-        uint256 AMMfee;
+        uint256 aMMFee;
         uint256 protocolFee;
-        (swapAmount, tokenAmountOut, AMMfee) = _getSwappedAssetAmount(
+        (swapAmount, tokenAmountOut, aMMFee) = _getSwappedAssetAmount(
             _tokenIn,
             _amount,
             _pool,
@@ -460,7 +460,7 @@ contract VolmexController is OwnableUpgradeable {
         );
 
         leftOverAmount = _amount - swapAmount - tokenAmountOut;
-        fees = [AMMfee, protocolFee];
+        fees = [aMMFee, protocolFee];
     }
 
     //solium-disable-next-line security/no-assign-params
