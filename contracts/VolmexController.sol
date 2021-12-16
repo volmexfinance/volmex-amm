@@ -193,8 +193,7 @@ contract VolmexController is OwnableUpgradeable {
         uint256 tokenAmountOut;
         if (_isInverseRequired) {
             _approveAssets(volatilityToken, volatilityAmount, address(this), address(_pool));
-            tokenAmountOut = _swap(
-                _pool,
+            (tokenAmountOut,) = _pool.swapExactAmountIn(
                 address(_protocol.volatilityToken()),
                 volatilityAmount,
                 address(_protocol.inverseVolatilityToken()),
@@ -204,8 +203,7 @@ contract VolmexController is OwnableUpgradeable {
             );
         } else {
             _approveAssets(inverseVolatilityToken, volatilityAmount, address(this), address(_pool));
-            tokenAmountOut = _swap(
-                _pool,
+            (tokenAmountOut,) = _pool.swapExactAmountIn(
                 address(_protocol.inverseVolatilityToken()),
                 volatilityAmount,
                 address(_protocol.volatilityToken()),
@@ -256,8 +254,7 @@ contract VolmexController is OwnableUpgradeable {
             isInverse
         );
 
-        tokenAmountOut = _swap(
-            _pool,
+        (tokenAmountOut,) = _pool.swapExactAmountIn(
             address(_tokenIn),
             swapAmount,
             isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress(),
@@ -302,8 +299,7 @@ contract VolmexController is OwnableUpgradeable {
             isInverse
         );
 
-        tokenAmountOut = _swap(
-            _pool,
+        (tokenAmountOut,) = _pool.swapExactAmountIn(
             address(_tokenIn),
             swapAmount,
             isInverse
@@ -343,8 +339,7 @@ contract VolmexController is OwnableUpgradeable {
 
         (tokenAmountOut, ) = _pool.getTokenAmountOut(poolOutTokenIn, _volatilityAmount, _tokenOut);
 
-        tokenAmountOut = _swap(
-            _pool,
+        (tokenAmountOut,) = _pool.swapExactAmountIn(
             poolOutTokenIn,
             _volatilityAmount,
             _tokenOut,
@@ -426,8 +421,7 @@ contract VolmexController is OwnableUpgradeable {
     ) external {
         IVolmexAMM _amm = IVolmexAMM(pools[_poolIndex]);
 
-        _swap(
-            _amm,
+        _amm.swapExactAmountIn(
             _tokenIn,
             _amountIn,
             _tokenOut,
@@ -483,25 +477,6 @@ contract VolmexController is OwnableUpgradeable {
 
     function transferAsset(IERC20Modified _token, uint256 _amount, address receiver) internal {
         _token.transfer(receiver, _amount);
-    }
-
-    function _swap(
-        IVolmexAMM _pool,
-        address _tokenIn,
-        uint256 _amountIn,
-        address _tokenOut,
-        uint256 _amountOut,
-        address _receiver,
-        bool _toController
-    ) internal returns (uint256 exactTokenAmountOut) {
-        (exactTokenAmountOut, ) = _pool.swapExactAmountIn(
-            _tokenIn,
-            _amountIn,
-            _tokenOut,
-            _amountOut,
-            _receiver,
-            _toController
-        );
     }
 
     function _approveAssets(
