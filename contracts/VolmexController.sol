@@ -192,7 +192,8 @@ contract VolmexController is OwnableUpgradeable {
         uint256 totalVolatilityAmount = volatilityAmount + tokenAmountOut;
         transferAsset(
             _isInverseRequired ? inverseVolatilityToken : volatilityToken,
-            totalVolatilityAmount
+            totalVolatilityAmount,
+            msg.sender
         );
 
         emit AssetSwaped(_amount, totalVolatilityAmount);
@@ -207,65 +208,41 @@ contract VolmexController is OwnableUpgradeable {
      * @dev Transfers the asset to caller
      *
      * @param _amount Amount of volatility token
-     * @param _isInverse Bool value of token type passed { true: iETHV, false: ETHV }
+     * @param _tokenIn Address of in token
+     * @param _poolIndex Index of the pool to operate { 0: ETHV, 1: BTCV }
+     * @param _stablecoinIndex Index of the collateral to get back { 0: DAI, 1: USDC }
      */
     function swapVolatilityToCollateral(
         uint256 _amount,
-        bool _isInverse,
+        IERC20Modified _tokenIn,
         uint256 _poolIndex,
         uint256 _stablecoinIndex
     ) external {
         IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
-        IERC20Modified volatilityToken = _protocol.volatilityToken();
-        IERC20Modified inverseVolatilityToken = _protocol.inverseVolatilityToken();
-
         IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
 
-        uint256 tokenAmountOut;
-        uint256 swapAmount;
-        if (!_isInverse) {
-            volatilityToken.transferFrom(msg.sender, address(this), _amount);
-            _approveAssets(volatilityToken, _amount >> 1, address(this), address(_pool));
+        bool isInverse = _pool.getComplementDerivativeAddress() == address(_tokenIn);
 
-            (swapAmount, tokenAmountOut,) = _getSwappedAssetAmount(
-                address(volatilityToken),
-                _amount,
-                _pool,
-                false
-            );
+        (uint256 swapAmount, uint256 tokenAmountOut,) = _getSwappedAssetAmount(
+            address(_tokenIn),
+            _amount,
+            _pool,
+            isInverse
+        );
 
-            require(tokenAmountOut <= _amount - swapAmount, 'VolmexController: Amount out limit exploit');
+        _tokenIn.transferFrom(msg.sender, address(this), _amount);
+        _approveAssets(_tokenIn, swapAmount, address(this), address(_pool));
 
-            tokenAmountOut = _swap(
-                _pool,
-                address(volatilityToken),
-                swapAmount,
-                address(inverseVolatilityToken),
-                tokenAmountOut,
-                address(0)
-            );
-        } else {
-            inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
-            _approveAssets(inverseVolatilityToken, _amount >> 1, address(this), address(_pool));
+        tokenAmountOut = _swap(
+            _pool,
+            address(_tokenIn),
+            swapAmount,
+            isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress(),
+            tokenAmountOut,
+            address(0)
+        );
 
-            (swapAmount, tokenAmountOut,) = _getSwappedAssetAmount(
-                address(inverseVolatilityToken),
-                _amount,
-                _pool,
-                true
-            );
-
-            require(tokenAmountOut <= _amount - swapAmount, 'VolmexController: Amount out limit exploit');
-
-            tokenAmountOut = _swap(
-                _pool,
-                address(inverseVolatilityToken),
-                swapAmount,
-                address(volatilityToken),
-                tokenAmountOut,
-                address(0)
-            );
-        }
+        require(tokenAmountOut <= _amount - swapAmount, 'VolmexController: Amount out limit exploit');
 
         (uint256 collateralAmount,) = calculateAssetQuantity(
             tokenAmountOut * _volatilityCapRatio,
@@ -276,10 +253,11 @@ contract VolmexController is OwnableUpgradeable {
         _protocol.redeem(tokenAmountOut);
 
         IERC20Modified stablecoin = stablecoins[_stablecoinIndex];
-        transferAsset(stablecoin, collateralAmount);
+        transferAsset(stablecoin, collateralAmount, msg.sender);
         transferAsset(
-            _isInverse ? inverseVolatilityToken : volatilityToken,
-            _amount - swapAmount - tokenAmountOut
+            _tokenIn,
+            _amount - swapAmount - tokenAmountOut,
+            msg.sender
         );
 
         emit AssetSwaped(_amount, collateralAmount);
@@ -337,8 +315,8 @@ contract VolmexController is OwnableUpgradeable {
             address(0)
         );
 
-        transferAsset(_tokenIn, (_amountIn >> 1) - tokenAmount);
-        transferAsset(IERC20Modified(_tokenOut), tokenAmountOut);
+        transferAsset(_tokenIn, (_amountIn >> 1) - tokenAmount, msg.sender);
+        transferAsset(IERC20Modified(_tokenOut), tokenAmountOut, msg.sender);
     }
 
     /**
@@ -465,8 +443,8 @@ contract VolmexController is OwnableUpgradeable {
         amount = isVolatility ? _amount / _volatilityCapRatio : _amount;
     }
 
-    function transferAsset(IERC20Modified _token, uint256 _amount) internal {
-        _token.transfer(msg.sender, _amount);
+    function transferAsset(IERC20Modified _token, uint256 _amount, address receiver) internal {
+        _token.transfer(receiver, _amount);
     }
 
     function _swap(
