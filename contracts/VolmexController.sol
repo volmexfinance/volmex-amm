@@ -290,6 +290,8 @@ contract VolmexController is OwnableUpgradeable {
             true
         );
 
+        require(tokenAmountOut <= _amountIn - swapAmount, 'VolmexController: Amount out limit exploit');
+
         IVolmexProtocol _protocol = protocols[_tokenInPoolIndex][_stablecoinIndex];
         _tokenIn.transferFrom(msg.sender, address(this), tokenAmountOut);
         _protocol.redeem(tokenAmountOut);
@@ -315,17 +317,12 @@ contract VolmexController is OwnableUpgradeable {
         isInverse = _pool.getPrimaryDerivativeAddress() != _tokenOut;
         address poolOutTokenIn = isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress();
 
-        (swapAmount, tokenAmountOut,) = _getSwappedAssetAmount(
-            poolOutTokenIn,
-            _volatilityAmount,
-            _pool,
-            !isInverse
-        );
+        (tokenAmountOut, ) = _pool.getTokenAmountOut(poolOutTokenIn, _volatilityAmount, _tokenOut);
 
         tokenAmountOut = _swap(
             _pool,
             poolOutTokenIn,
-            swapAmount,
+            _volatilityAmount,
             _tokenOut,
             tokenAmountOut,
             msg.sender,
