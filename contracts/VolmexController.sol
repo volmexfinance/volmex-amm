@@ -317,7 +317,7 @@ contract VolmexController is OwnableUpgradeable {
         );
     }
 
-    function swapAssets(
+    function swapBetweenPools(
         IERC20Modified _tokenIn,
         uint256 _amountIn,
         address _tokenOut,
@@ -386,6 +386,8 @@ contract VolmexController is OwnableUpgradeable {
         );
 
         transferAsset(IERC20Modified(_tokenOut), _volatilityAmount + tokenAmountOut, msg.sender);
+
+        emit AssetBetweemPoolSwapped();
     }
 
     /**
