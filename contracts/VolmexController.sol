@@ -31,8 +31,7 @@ contract VolmexController is OwnableUpgradeable {
         uint256 protocolFee,
         uint256 aMMFee,
         uint256 stableCoinIndex,
-        address indexed tokenIn,
-        address indexed tokenOut
+        address[2] tokens
     );
 
     event SetPool(
@@ -253,11 +252,6 @@ contract VolmexController is OwnableUpgradeable {
     /**
      * @notice Used to swap a type of volatility token to collateral token
      *
-     * @dev Amount if transferred to the controller and approved for pool
-     * @dev Swaps half the quantity of volatility asset using pool contract
-     * @dev redeems the amount to get collateral
-     * @dev Transfers the asset to caller
-     *
      * @param _amounts Amounts array of volatility token and expected collateral
      * @param _indices Indices of the pool and stablecoin to operate { 0: ETHV, 1: BTCV } { 0: DAI, 1: USDC }
      * @param _tokenIn Address of in token
@@ -317,77 +311,98 @@ contract VolmexController is OwnableUpgradeable {
         );
     }
 
+    /**
+     * @notice Used to swap a a volatility token to another volatility token from another pool
+     *
+     * @param _tokens Addresses of the tokens { 0: tokenIn, 1: tokenOut }
+     * @param _amounts Amounts of the volatility token and expected amount out { 0: amountIn, 1: expAmountOut }
+     * @param _indices Indices of the pools and stablecoin to operate { 0: poolIn, 1: poolOut, 2: stablecoin }
+     * { 0: ETHV, 1: BTCV } { 0: DAI, 1: USDC }
+     */
     function swapBetweenPools(
-        IERC20Modified _tokenIn,
-        uint256 _amountIn,
-        address _tokenOut,
-        uint256 _tokenInPoolIndex,
-        uint256 _tokenOutPoolIndex,
-        uint256 _stableCoinIndex
+        address[2] calldata _tokens,
+        uint256[2] calldata _amounts,
+        uint256[3] calldata _indices
     ) external {
-        IVolmexAMM _pool = IVolmexAMM(pools[_tokenInPoolIndex]);
+        IVolmexAMM _pool = IVolmexAMM(pools[_indices[0]]);
 
-        bool isInverse = _pool.getComplementDerivativeAddress() == address(_tokenIn);
+        bool isInverse = _pool.getComplementDerivativeAddress() == _tokens[0];
 
-        (uint256 swapAmount, uint256 tokenAmountOut,) = _getSwappedAssetAmount(
-            address(_tokenIn),
-            _amountIn,
+        // Array of swapAmount {0} and tokenAmountOut {1}
+        uint256[] memory tokenAmounts = new uint256[](2);
+        (tokenAmounts[0], tokenAmounts[1],) = _getSwappedAssetAmount(
+            _tokens[0],
+            _amounts[0],
             _pool,
             isInverse
         );
 
-        (tokenAmountOut,) = _pool.swapExactAmountIn(
-            address(_tokenIn),
-            swapAmount,
+        // AMM and Protocol fee array { 0: AMM-1, 1: AMM-2, 2: Protocol-Redeem, 3: Protocol-Collateralize }
+        uint256[] memory fees = new uint256[](4);
+        (tokenAmounts[1], fees[0]) = _pool.swapExactAmountIn(
+            _tokens[0],
+            tokenAmounts[0],
             isInverse
                 ? _pool.getPrimaryDerivativeAddress()
                 : _pool.getComplementDerivativeAddress(),
-            tokenAmountOut,
+            tokenAmounts[1],
             msg.sender,
             true
         );
 
-        require(tokenAmountOut <= _amountIn - swapAmount, 'VolmexController: Amount out limit exploit');
+        require(tokenAmounts[1] <= _amounts[0] - tokenAmounts[0], 'VolmexController: Amount out limit exploit');
 
-        IVolmexProtocol _protocol = protocols[_tokenInPoolIndex][_stableCoinIndex];
-        _tokenIn.transferFrom(msg.sender, address(this), tokenAmountOut);
-        _protocol.redeem(tokenAmountOut);
+        IVolmexProtocol _protocol = protocols[_indices[0]][_indices[2]];
+        IERC20Modified(_tokens[0]).transferFrom(msg.sender, address(this), tokenAmounts[1]);
+        _protocol.redeem(tokenAmounts[1]);
 
-        (uint256 _collateralAmount,) = calculateAssetQuantity(
-            tokenAmountOut * _volatilityCapRatio,
+        uint256 _collateralAmount;
+        (_collateralAmount, fees[2]) = calculateAssetQuantity(
+            tokenAmounts[1] * _volatilityCapRatio,
             _protocol.redeemFees(),
             false
         );
 
-        _protocol = protocols[_tokenOutPoolIndex][_stableCoinIndex];
-        _approveAssets(stableCoins[_stableCoinIndex], _collateralAmount, address(this), address(_protocol));
+        _protocol = protocols[_indices[1]][_indices[2]];
+        _approveAssets(stableCoins[_indices[2]], _collateralAmount, address(this), address(_protocol));
         _protocol.collateralize(_collateralAmount);
 
-        (uint256 _volatilityAmount,) = calculateAssetQuantity(
+        uint256 _volatilityAmount;
+        (_volatilityAmount, fees[3]) = calculateAssetQuantity(
             _collateralAmount,
             _protocol.issuanceFees(),
             true
         );
 
-        _pool = IVolmexAMM(pools[_tokenOutPoolIndex]);
+        _pool = IVolmexAMM(pools[_indices[1]]);
 
-        isInverse = _pool.getPrimaryDerivativeAddress() != _tokenOut;
+        isInverse = _pool.getPrimaryDerivativeAddress() != _tokens[1];
         address poolOutTokenIn = isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress();
 
-        (tokenAmountOut, ) = _pool.getTokenAmountOut(poolOutTokenIn, _volatilityAmount, _tokenOut);
+        (tokenAmounts[1], ) = _pool.getTokenAmountOut(poolOutTokenIn, _volatilityAmount, _tokens[1]);
 
-        (tokenAmountOut,) = _pool.swapExactAmountIn(
+        (tokenAmounts[1], fees[1]) = _pool.swapExactAmountIn(
             poolOutTokenIn,
             _volatilityAmount,
-            _tokenOut,
-            tokenAmountOut,
+            _tokens[1],
+            tokenAmounts[1],
             msg.sender,
             true
         );
 
-        transferAsset(IERC20Modified(_tokenOut), _volatilityAmount + tokenAmountOut, msg.sender);
+        require(_volatilityAmount + tokenAmounts[1] >= _amounts[1], 'VolmexController: Insufficient collateral amount');
 
-        emit AssetBetweemPoolSwapped();
+        transferAsset(IERC20Modified(_tokens[1]), _volatilityAmount + tokenAmounts[1], msg.sender);
+
+        // Unable to resolve the `stack too deep` error, that's why commented
+        // emit AssetBetweemPoolSwapped(
+        //     _amounts[0],
+        //     _volatilityAmount + tokenAmounts[1],
+        //     fees[2] + fees[3],
+        //     fees[0] + fees[1],
+        //     _indices[2],
+        //     _tokens
+        // );
     }
 
     /**
