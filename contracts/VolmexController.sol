@@ -268,8 +268,6 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _stablecoinIndex
     ) external {
         IVolmexAMM _pool = IVolmexAMM(pools[_tokenInPoolIndex]);
-        _tokenIn.transferFrom(msg.sender, address(this), _amountIn);
-        _approveAssets(_tokenIn, _amountIn, address(this), address(_pool));
 
         bool isInverse = _pool.getComplementDerivativeAddress() == address(_tokenIn);
 
@@ -507,7 +505,7 @@ contract VolmexController is OwnableUpgradeable {
         _token.transferFrom(_account, msg.sender, _amount);
     }
 
-    function volatilityAmountToSwap(
+    function _volatilityAmountToSwap(
         uint256 _amount,
         IVolmexAMM _pool,
         bool _isInverse,
@@ -528,9 +526,9 @@ contract VolmexController is OwnableUpgradeable {
         address _tokenIn,
         uint256 _amount,
         IVolmexAMM _pool,
-        bool isInverse
+        bool _isInverse
     ) internal view returns (uint256 swapAmount, uint256 amountOut, uint256 fee) {
-        swapAmount = volatilityAmountToSwap(_amount, _pool, isInverse, 0);
+        swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, 0);
 
         (, fee) = _pool.getTokenAmountOut(
             _tokenIn,
@@ -539,7 +537,7 @@ contract VolmexController is OwnableUpgradeable {
                 _pool.getComplementDerivativeAddress() : _pool.getPrimaryDerivativeAddress()
         );
 
-        swapAmount = volatilityAmountToSwap(_amount, _pool, isInverse, fee);
+        swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, fee);
 
         (amountOut, fee) = _pool.getTokenAmountOut(
             _tokenIn,
