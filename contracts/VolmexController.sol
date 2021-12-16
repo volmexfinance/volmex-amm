@@ -132,6 +132,15 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _stablecoinIndex,
         IVolmexProtocol _protocol
     ) external onlyOwner {
+        require(
+            stablecoins[_stablecoinIndex] == _protocol.collateral(),
+            "VolmexController: Incorrect stablecoin for set protocol"
+        );
+        require(
+            pools[_poolIndex].getPrimaryDerivativeAddress() == _protocol.volatilityToken(),
+            "VolmexController: Incorrect pool for set protocol"
+        );
+
         protocols[_poolIndex][_stablecoinIndex] = _protocol;
 
         emit SetProtocol(_poolIndex, _stablecoinIndex, address(_protocol));
