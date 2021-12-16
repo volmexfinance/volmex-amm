@@ -314,14 +314,14 @@ contract VolmexController is OwnableUpgradeable {
 
         _pool = IVolmexAMM(pools[_tokenOutPoolIndex]);
 
-        bool isTokenOutInverse = _pool.getComplementDerivativeAddress() == _tokenOut;
-        address poolOutTokenIn = isTokenOutInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress();
+        isInverse = _pool.getPrimaryDerivativeAddress() != _tokenOut;
+        address poolOutTokenIn = isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress();
 
         (swapAmount, tokenAmountOut,) = _getSwappedAssetAmount(
             poolOutTokenIn,
             _volatilityAmount,
             _pool,
-            !isTokenOutInverse
+            !isInverse
         );
 
         tokenAmountOut = _swap(
