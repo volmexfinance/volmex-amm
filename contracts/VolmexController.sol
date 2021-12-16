@@ -175,7 +175,8 @@ contract VolmexController is OwnableUpgradeable {
                 volatilityAmount,
                 address(_protocol.inverseVolatilityToken()),
                 volatilityAmount >> 1,
-                address(0)
+                msg.sender,
+                true
             );
         } else {
             _approveAssets(inverseVolatilityToken, volatilityAmount, address(this), address(_pool));
@@ -185,7 +186,8 @@ contract VolmexController is OwnableUpgradeable {
                 volatilityAmount,
                 address(_protocol.volatilityToken()),
                 volatilityAmount >> 1,
-                address(0)
+                msg.sender,
+                true
             );
         }
 
@@ -230,16 +232,14 @@ contract VolmexController is OwnableUpgradeable {
             isInverse
         );
 
-        _tokenIn.transferFrom(msg.sender, address(this), _amount);
-        _approveAssets(_tokenIn, swapAmount, address(this), address(_pool));
-
         tokenAmountOut = _swap(
             _pool,
             address(_tokenIn),
             swapAmount,
             isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress(),
             tokenAmountOut,
-            address(0)
+            msg.sender,
+            true
         );
 
         require(tokenAmountOut <= _amount - swapAmount, 'VolmexController: Amount out limit exploit');
@@ -250,15 +250,11 @@ contract VolmexController is OwnableUpgradeable {
             false
         );
 
+        _tokenIn.transferFrom(msg.sender, address(this), tokenAmountOut);
         _protocol.redeem(tokenAmountOut);
 
         IERC20Modified stablecoin = stablecoins[_stablecoinIndex];
         transferAsset(stablecoin, collateralAmount, msg.sender);
-        transferAsset(
-            _tokenIn,
-            _amount - swapAmount - tokenAmountOut,
-            msg.sender
-        );
 
         emit AssetSwaped(_amount, collateralAmount);
     }
@@ -283,7 +279,8 @@ contract VolmexController is OwnableUpgradeable {
                 ? _pool.getComplementDerivativeAddress()
                 : _pool.getPrimaryDerivativeAddress(),
             _amountIn / 10,
-            address(0)
+            msg.sender,
+            true
         );
 
         IVolmexProtocol _protocol = protocols[_tokenInPoolIndex][_stablecoinIndex];
@@ -312,7 +309,8 @@ contract VolmexController is OwnableUpgradeable {
             _volatilityAmount >> 1,
             _tokenOut,
             _volatilityAmount / 10,
-            address(0)
+            msg.sender,
+            true
         );
 
         transferAsset(_tokenIn, (_amountIn >> 1) - tokenAmount, msg.sender);
@@ -395,7 +393,8 @@ contract VolmexController is OwnableUpgradeable {
             _amountIn,
             _tokenOut,
             _amountOut,
-            msg.sender
+            msg.sender,
+            false
         );
     }
 
@@ -453,14 +452,16 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _amountIn,
         address _tokenOut,
         uint256 _amountOut,
-        address receiver
+        address _receiver,
+        bool _toController
     ) internal returns (uint256 exactTokenAmountOut) {
         (exactTokenAmountOut, ) = _pool.swapExactAmountIn(
             _tokenIn,
             _amountIn,
             _tokenOut,
             _amountOut,
-            receiver
+            _receiver,
+            _toController
         );
     }
 
