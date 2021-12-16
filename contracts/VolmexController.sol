@@ -159,7 +159,7 @@ contract VolmexController is OwnableUpgradeable {
 
         _protocol.collateralize(_amount);
 
-        uint256 volatilityAmount = calculateAssetQuantity(_amount, _protocol.issuanceFees(), true);
+        (uint256 volatilityAmount,) = calculateAssetQuantity(_amount, _protocol.issuanceFees(), true);
 
         IERC20Modified volatilityToken = _protocol.volatilityToken();
         IERC20Modified inverseVolatilityToken = _protocol.inverseVolatilityToken();
@@ -227,11 +227,10 @@ contract VolmexController is OwnableUpgradeable {
             volatilityToken.transferFrom(msg.sender, address(this), _amount);
             _approveAssets(volatilityToken, _amount >> 1, address(this), address(_pool));
 
-            (swapAmount, tokenAmountOut,,,) = _getSwappedAssetAmount(
+            (swapAmount, tokenAmountOut,) = _getSwappedAssetAmount(
                 address(volatilityToken),
                 _amount,
-                _poolIndex,
-                _stablecoinIndex,
+                _pool,
                 false
             );
 
@@ -249,11 +248,10 @@ contract VolmexController is OwnableUpgradeable {
             inverseVolatilityToken.transferFrom(msg.sender, address(this), _amount);
             _approveAssets(inverseVolatilityToken, _amount >> 1, address(this), address(_pool));
 
-            (swapAmount, tokenAmountOut,,,) = _getSwappedAssetAmount(
+            (swapAmount, tokenAmountOut,) = _getSwappedAssetAmount(
                 address(inverseVolatilityToken),
                 _amount,
-                _poolIndex,
-                _stablecoinIndex,
+                _pool,
                 true
             );
 
@@ -269,7 +267,7 @@ contract VolmexController is OwnableUpgradeable {
             );
         }
 
-        uint256 collateralAmount = calculateAssetQuantity(
+        (uint256 collateralAmount,) = calculateAssetQuantity(
             tokenAmountOut * _volatilityCapRatio,
             _protocol.redeemFees(),
             false
@@ -313,7 +311,7 @@ contract VolmexController is OwnableUpgradeable {
         IVolmexProtocol _protocol = protocols[_tokenInPoolIndex][_stablecoinIndex];
         _protocol.redeem(tokenAmount);
 
-        uint256 _collateralAmount = calculateAssetQuantity(
+        (uint256 _collateralAmount,) = calculateAssetQuantity(
             tokenAmount * _volatilityCapRatio,
             _protocol.redeemFees(),
             false
@@ -321,7 +319,7 @@ contract VolmexController is OwnableUpgradeable {
 
         _protocol = protocols[_tokenOutPoolIndex][_stablecoinIndex];
         _protocol.collateralize(_collateralAmount);
-        uint256 _volatilityAmount = calculateAssetQuantity(
+        (uint256 _volatilityAmount,) = calculateAssetQuantity(
             _collateralAmount,
             _protocol.issuanceFees(),
             true
@@ -430,14 +428,29 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _poolIndex,
         uint256 _stablecoinIndex,
         bool _isInverse
-    ) external view returns (uint256 collateralAmount, uint256 fee, uint256 leftOverAmount) {
-        (,, collateralAmount, leftOverAmount, fee) = _getSwappedAssetAmount(
+    ) external view returns (uint256 collateralAmount, uint256[2] memory fees, uint256 leftOverAmount) {
+        IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
+        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
+
+        uint256 swapAmount;
+        uint256 tokenAmountOut;
+        uint256 AMMfee;
+        uint256 protocolFee;
+        (swapAmount, tokenAmountOut, AMMfee) = _getSwappedAssetAmount(
             _tokenIn,
             _amount,
-            _poolIndex,
-            _stablecoinIndex,
+            _pool,
             _isInverse
         );
+
+        (collateralAmount, protocolFee) = calculateAssetQuantity(
+            tokenAmountOut * _volatilityCapRatio,
+            _protocol.redeemFees(),
+            false
+        );
+
+        leftOverAmount = _amount - swapAmount - tokenAmountOut;
+        fees = [AMMfee, protocolFee];
     }
 
     //solium-disable-next-line security/no-assign-params
@@ -445,11 +458,11 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _amount,
         uint256 _feePercent,
         bool isVolatility
-    ) internal view returns (uint256) {
-        uint256 fee = (_amount * _feePercent) / 10000;
+    ) internal view returns (uint256 amount, uint256 fee) {
+        fee = (_amount * _feePercent) / 10000;
         _amount = _amount - fee;
 
-        return isVolatility ? _amount / _volatilityCapRatio : _amount;
+        amount = isVolatility ? _amount / _volatilityCapRatio : _amount;
     }
 
     function transferAsset(IERC20Modified _token, uint256 _amount) internal {
@@ -497,14 +510,12 @@ contract VolmexController is OwnableUpgradeable {
 
     function volatilityAmountToSwap(
         uint256 _amount,
-        uint256 _poolIndex,
+        IVolmexAMM _pool,
         bool _isInverse,
         uint256 _fee
     ) internal view returns (uint256 volatilityAmount) {
-        uint256 price = oracle.volatilityTokenPriceByIndex(_poolIndex);
+        uint256 price = oracle.volatilityTokenPriceByIndex(_pool.volatilityIndex());
         uint256 iPrice = (_volatilityCapRatio * 10000) - price;
-
-        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
 
         uint256 leverage = _pool.getLeverage(_pool.getPrimaryDerivativeAddress());
         uint256 iLeverage = _pool.getLeverage(_pool.getComplementDerivativeAddress());
@@ -517,14 +528,10 @@ contract VolmexController is OwnableUpgradeable {
     function _getSwappedAssetAmount(
         address _tokenIn,
         uint256 _amount,
-        uint256 _poolIndex,
-        uint256 _stablecoinIndex,
+        IVolmexAMM _pool,
         bool isInverse
-    ) internal view returns (uint256 swapAmount, uint256 amountOut, uint256 collateralAmount, uint256 leftOverAmount, uint256 fee) {
-        IVolmexProtocol _protocol = protocols[_poolIndex][_stablecoinIndex];
-        IVolmexAMM _pool = IVolmexAMM(pools[_poolIndex]);
-
-        swapAmount = volatilityAmountToSwap(_amount, _poolIndex, isInverse, 0);
+    ) internal view returns (uint256 swapAmount, uint256 amountOut, uint256 fee) {
+        swapAmount = volatilityAmountToSwap(_amount, _pool, isInverse, 0);
 
         (, fee) = _pool.getTokenAmountOut(
             _tokenIn,
@@ -533,7 +540,7 @@ contract VolmexController is OwnableUpgradeable {
                 _pool.getComplementDerivativeAddress() : _pool.getPrimaryDerivativeAddress()
         );
 
-        swapAmount = volatilityAmountToSwap(_amount, _poolIndex, isInverse, fee);
+        swapAmount = volatilityAmountToSwap(_amount, _pool, isInverse, fee);
 
         (amountOut, fee) = _pool.getTokenAmountOut(
             _tokenIn,
@@ -541,14 +548,6 @@ contract VolmexController is OwnableUpgradeable {
             _pool.getPrimaryDerivativeAddress() == _tokenIn ?
                 _pool.getComplementDerivativeAddress() : _pool.getPrimaryDerivativeAddress()
         );
-
-        collateralAmount = calculateAssetQuantity(
-            amountOut * _volatilityCapRatio,
-            _protocol.redeemFees(),
-            false
-        );
-
-        leftOverAmount = _amount - swapAmount - amountOut;
     }
 }
 /**
