@@ -390,7 +390,7 @@ contract VolmexController is OwnableUpgradeable {
             true
         );
 
-        require(protocolAmounts[1] + tokenAmounts[1] >= _amounts[1], 'VolmexController: Insufficient collateral amount');
+        require(protocolAmounts[1] + tokenAmounts[1] >= _amounts[1], 'VolmexController: Volatility amount below expectation');
 
         transferAsset(IERC20Modified(_tokens[1]), protocolAmounts[1] + tokenAmounts[1], msg.sender);
 
