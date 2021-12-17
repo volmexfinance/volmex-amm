@@ -60,6 +60,8 @@ contract VolmexController is OwnableUpgradeable {
     uint256 public stableCoinIndex;
     // Used to set the index of pool
     uint256 public poolIndex;
+    // Used to store the pools
+    address[] public allPools;
 
 
     /**
@@ -113,6 +115,7 @@ contract VolmexController is OwnableUpgradeable {
         oracle = _oracle;
 
         isPool[address(_pool)] = true;
+        allPools.push(address(_pool));
 
         _volatilityCapRatio = _protocol.volatilityCapRatio();
         _minimumCollateralQty = _protocol.minimumCollateralQty();
@@ -128,6 +131,7 @@ contract VolmexController is OwnableUpgradeable {
         pools[poolIndex] = _pool;
 
         isPool[address(_pool)] = true;
+        allPools.push(address(_pool));
 
         emit SetPool(poolIndex, address(_pool));
     }
