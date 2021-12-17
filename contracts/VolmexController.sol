@@ -506,6 +506,17 @@ contract VolmexController is OwnableUpgradeable {
     }
 
     /**
+     * @notice Used to collect the pool token
+     *
+     * @param _pool Address of the pool
+     */
+    function collect(IVolmexAMM _pool) external onlyOwner {
+        uint256 collected = IERC20(_pool).balanceOf(address(this));
+        bool xfer = _pool.transfer(owner(), collected);
+        require(xfer, 'ERC20_FAILED');
+    }
+
+    /**
      * @notice Used to get collateral amount, fees, left over amount while swapping volatility
      * to collateral/stablecoin
      *
