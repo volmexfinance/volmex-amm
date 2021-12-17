@@ -7,7 +7,6 @@ const createPool = async () => {
   const Pool = await ethers.getContractFactory('VolmexAMM');
   const VolmexRepricer = await ethers.getContractFactory('VolmexRepricer');
   const VolmexOracle = await ethers.getContractFactory('VolmexOracle');
-  const VolmexAMMRegistry = await ethers.getContractFactory('VolmexAMMRegistry');
   const ControllerFactory = await ethers.getContractFactory('VolmexController');
   const VolmexAMMView = await ethers.getContractFactory('VolmexAMMView');
 
@@ -123,21 +122,17 @@ const createPool = async () => {
 
   console.log('Pool finalised!');
 
-  console.log('\nRegistering pool...');
-
-  const registry = await upgrades.deployProxy(VolmexAMMRegistry, []);
-  await registry.deployed();
+  console.log('Deploying AMM view ...');
 
   const volmexAMMView = await upgrades.deployProxy(VolmexAMMView, []);
   await volmexAMMView.deployed();
 
-  console.log('Registered AMM');
+  console.log('Deployed AMM view');
 
   console.log('VolmexAMM: ', pool.address);
   console.log('VolmexRepricer: ', repricer.address);
   console.log('VolmexOracle: ', oracle.address);
   console.log('Controller: ', controller.address);
-  console.log('Registry: ', registry.address);
   console.log('VolmexAMMView: ', volmexAMMView.address);
 
   const proxyAdmin = await upgrades.admin.getInstance();
@@ -156,10 +151,6 @@ const createPool = async () => {
 
   await run("verify:verify", {
     address: await proxyAdmin.getProxyImplementation(controller.address),
-  });
-
-  await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(registry.address),
   });
 
   await run("verify:verify", {
