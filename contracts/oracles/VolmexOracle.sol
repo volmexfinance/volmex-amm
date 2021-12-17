@@ -21,14 +21,12 @@ contract VolmexOracle is OwnableUpgradeable {
         uint256 volatilityTokenPrice
     );
 
-    // Store the price of volatility of ETHV and BTCV
-    mapping(string => uint256) public volatilityTokenPriceBySymbol;
     // Store the price of volatility by indexes { 0 - ETHV, 1 = BTCV }
     mapping(uint256 => uint256) public volatilityTokenPriceByIndex;
     // Store the proof of hash of the current volatility token price
     mapping(uint256 => bytes32) public volatilityTokenPriceProofHash;
     // Store the symbol of volatility per index
-    mapping(uint256 => string) public volatilitySymbolByIndex;
+    mapping(string => uint256) public volatilityIndexBySymbol;
     // Store the number of indexes
     uint256 public indexCount;
 
@@ -51,16 +49,14 @@ contract VolmexOracle is OwnableUpgradeable {
     function initialize() external initializer {
         __Ownable_init();
         volatilityTokenPriceByIndex[indexCount] = 1250000;
-        volatilityTokenPriceBySymbol['ETHV'] = 1250000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
-        volatilitySymbolByIndex[indexCount] = 'ETHV';
+        volatilityIndexBySymbol['ETHV'] = indexCount;
 
         indexCount++;
 
         volatilityTokenPriceByIndex[indexCount] = 1250000;
-        volatilityTokenPriceBySymbol['BTCV'] = 1250000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
-        volatilitySymbolByIndex[indexCount] = 'BTCV';
+        volatilityIndexBySymbol['BTCV'] = indexCount;
     }
 
     /**
@@ -85,7 +81,6 @@ contract VolmexOracle is OwnableUpgradeable {
         _checkVolatilityPrice(_volatilityTokenPrice)
     {
         volatilityTokenPriceByIndex[_volatilityIndex] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
-        volatilityTokenPriceBySymbol[volatilitySymbolByIndex[_volatilityIndex]] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
         volatilityTokenPriceProofHash[_volatilityIndex] = _proofHash;
 
         emit VolatilityTokenPriceUpdated(_volatilityTokenPrice, _volatilityIndex, _proofHash);
@@ -96,20 +91,33 @@ contract VolmexOracle is OwnableUpgradeable {
      *
      * @param _volatilityTokenPrice Price of the adding volatility token
      * @param _volatilityTokenSymbol Symbol of the adding volatility token
+     * @param _proofHash Bytes32 value of token price proof of hash
      */
     function addVolatilityTokenPrice(
         uint256 _volatilityTokenPrice,
         string calldata _volatilityTokenSymbol,
         bytes32 _proofHash
     ) external onlyOwner _checkVolatilityPrice(_volatilityTokenPrice) {
-        volatilityTokenPriceBySymbol[_volatilityTokenSymbol] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
         volatilityTokenPriceByIndex[++indexCount] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
         volatilityTokenPriceProofHash[indexCount] = _proofHash;
+        volatilityIndexBySymbol[_volatilityTokenSymbol] = indexCount;
+
 
         emit VolatilityTokenPriceAdded(
             indexCount,
             _volatilityTokenSymbol,
             _volatilityTokenPrice
         );
+    }
+
+    /**
+     * @notice Get the volatility token price by symbol
+     *
+     * @param _volatilityTokenSymbol Symbol of the volatility token
+     */
+    function getVolatilityPriceBySymbol(
+        string calldata _volatilityTokenSymbol
+    ) external view returns (uint256 volatilityTokenPrice) {
+        volatilityTokenPrice = volatilityTokenPriceByIndex[volatilityIndexBySymbol[_volatilityTokenSymbol]];
     }
 }
