@@ -39,7 +39,7 @@ contract VolmexController is OwnableUpgradeable {
         address indexed pool
     );
 
-    event AddedStablecoin(
+    event AddedStableCoin(
         uint256 indexed stableCoinIndex,
         address indexed stableCoin
     );
@@ -141,7 +141,7 @@ contract VolmexController is OwnableUpgradeable {
         stableCoinIndex++;
         stableCoins[stableCoinIndex] = _stableCoin;
 
-        emit AddedStablecoin(stableCoinIndex, address(_stableCoin));
+        emit AddedStableCoin(stableCoinIndex, address(_stableCoin));
     }
 
     /**
@@ -215,12 +215,18 @@ contract VolmexController is OwnableUpgradeable {
             _tokenOut
         );
 
+        _approveAssets(
+            isInverse ? IERC20Modified(_pool.getPrimaryDerivativeAddress()) : IERC20Modified(_pool.getComplementDerivativeAddress()),
+            volatilityAmount,
+            address(this),
+            address(_pool)
+        );
         (tokenAmountOut,) = _pool.swapExactAmountIn(
             isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress(),
             volatilityAmount,
             _tokenOut,
             tokenAmountOut,
-            msg.sender,
+            address(this),
             true
         );
 
