@@ -185,69 +185,67 @@ contract VolmexController is OwnableUpgradeable {
      * @dev Swaps half the quantity of volatility asset using pool contract
      * @dev Transfers the asset to caller
      *
-     * @param _amount Amount of collateral token
-     * @param _isInverseRequired Bool value token type required { true: iETHV, false: ETHV }
+     * @param _amounts Amount of collateral token and minimum expected volatility token
+     * @param _tokenOut Address of the volatility token out
      * @param _indices Indices of the pool and stablecoin to operate { 0: ETHV, 1: BTCV } { 0: DAI, 1: USDC }
      */
     function swapCollateralToVolatility(
-        uint256 _amount,
-        bool _isInverseRequired,
+        uint256[2] calldata _amounts,
+        address _tokenOut,
         uint256[2] calldata _indices
     ) external {
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IERC20Modified stableCoin = stableCoins[_indices[1]];
-        stableCoin.transferFrom(msg.sender, address(this), _amount);
-        _approveAssets(stableCoin, _amount, address(this), address(_protocol));
+        stableCoin.transferFrom(msg.sender, address(this), _amounts[0]);
+        _approveAssets(stableCoin, _amounts[0], address(this), address(_protocol));
 
-        _protocol.collateralize(_amount);
+        _protocol.collateralize(_amounts[0]);
 
         // AMM and Protocol fee array { 0: AMM, 1: Protocol }
         uint256[2] memory fees;
         uint256 volatilityAmount;
-        (volatilityAmount, fees[1]) = calculateAssetQuantity(_amount, _protocol.issuanceFees(), true);
+        (volatilityAmount, fees[1]) = calculateAssetQuantity(_amounts[0], _protocol.issuanceFees(), true);
 
         IERC20Modified volatilityToken = _protocol.volatilityToken();
         IERC20Modified inverseVolatilityToken = _protocol.inverseVolatilityToken();
 
         IVolmexAMM _pool = pools[_indices[0]];
 
+        bool isInverse = _pool.getComplementDerivativeAddress() == _tokenOut;
+
         uint256 tokenAmountOut;
-        if (_isInverseRequired) {
-            _approveAssets(volatilityToken, volatilityAmount, address(this), address(_pool));
-            (tokenAmountOut, fees[0]) = _pool.swapExactAmountIn(
-                address(_protocol.volatilityToken()),
-                volatilityAmount,
-                address(_protocol.inverseVolatilityToken()),
-                volatilityAmount >> 1,
-                msg.sender,
-                true
-            );
-        } else {
-            _approveAssets(inverseVolatilityToken, volatilityAmount, address(this), address(_pool));
-            (tokenAmountOut, fees[0]) = _pool.swapExactAmountIn(
-                address(_protocol.inverseVolatilityToken()),
-                volatilityAmount,
-                address(_protocol.volatilityToken()),
-                volatilityAmount >> 1,
-                msg.sender,
-                true
-            );
-        }
+        (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
+            isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress(),
+            volatilityAmount,
+            _tokenOut
+        );
+
+        (tokenAmountOut,) = _pool.swapExactAmountIn(
+            isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress(),
+            volatilityAmount,
+            _tokenOut,
+            tokenAmountOut,
+            msg.sender,
+            true
+        );
 
         uint256 totalVolatilityAmount = volatilityAmount + tokenAmountOut;
+
+        require(totalVolatilityAmount >= _amounts[1], 'VolmexController: Insufficient expected volatility amount');
+
         transferAsset(
-            _isInverseRequired ? inverseVolatilityToken : volatilityToken,
+            isInverse ? inverseVolatilityToken : volatilityToken,
             totalVolatilityAmount,
             msg.sender
         );
 
         emit AssetSwaped(
-            _amount,
+            _amounts[0],
             totalVolatilityAmount,
             fees[1],
             fees[0],
             _indices[1],
-            _isInverseRequired ? address(inverseVolatilityToken) : address(volatilityToken)
+            _tokenOut
         );
     }
 
@@ -295,7 +293,7 @@ contract VolmexController is OwnableUpgradeable {
             false
         );
 
-        require(collateralAmount >= _amounts[1], 'VolmexController: Insufficient collateral amount');
+        require(collateralAmount >= _amounts[1], 'VolmexController: Insufficient expected collateral amount');
 
         _tokenIn.transferFrom(msg.sender, address(this), tokenAmountOut);
         _protocol.redeem(tokenAmountOut);
@@ -392,7 +390,7 @@ contract VolmexController is OwnableUpgradeable {
             true
         );
 
-        require(protocolAmounts[1] + tokenAmounts[1] >= _amounts[1], 'VolmexController: Volatility amount below expectation');
+        require(protocolAmounts[1] + tokenAmounts[1] >= _amounts[1], 'VolmexController: Insufficient expected volatility amount');
 
         transferAsset(IERC20Modified(_tokens[1]), protocolAmounts[1] + tokenAmounts[1], msg.sender);
 
