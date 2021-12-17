@@ -180,11 +180,6 @@ contract VolmexController is OwnableUpgradeable {
     /**
      * @notice Used to swap collateral token to a type of volatility token
      *
-     * @dev Amount if transferred to the controller and approved for pool
-     * @dev collateralize the amount to get volatility
-     * @dev Swaps half the quantity of volatility asset using pool contract
-     * @dev Transfers the asset to caller
-     *
      * @param _amounts Amount of collateral token and minimum expected volatility token
      * @param _tokenOut Address of the volatility token out
      * @param _indices Indices of the pool and stablecoin to operate { 0: ETHV, 1: BTCV } { 0: DAI, 1: USDC }
@@ -247,6 +242,35 @@ contract VolmexController is OwnableUpgradeable {
             _indices[1],
             _tokenOut
         );
+    }
+
+    /**
+     * @notice Used to get the volatility amount out
+     *
+     * @param _collateralAmount Amount of minimum expected collateral
+     * @param _tokenOut Address of the token out
+     * @param _indices Index of pool and stableCoin
+     */
+    function getCollateralToVolatilityAmount(
+        uint256 _collateralAmount,
+        address _tokenOut,
+        uint256[2] calldata _indices
+    ) external view returns (uint256 volatilityAmount, uint256[2] memory fees) {
+        IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
+        IVolmexAMM _pool = pools[_indices[0]];
+
+        (volatilityAmount, fees[1]) = calculateAssetQuantity(_collateralAmount, _protocol.issuanceFees(), true);
+
+        bool isInverse = _pool.getComplementDerivativeAddress() == _tokenOut;
+
+        uint256 tokenAmountOut;
+        (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
+            isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress(),
+            volatilityAmount,
+            _tokenOut
+        );
+
+        volatilityAmount += tokenAmountOut;
     }
 
     /**
