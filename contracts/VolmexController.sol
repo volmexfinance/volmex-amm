@@ -8,6 +8,7 @@ import './interfaces/IVolmexAMM.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IERC20Modified.sol';
 import './interfaces/IVolmexOracle.sol';
+import './interfaces/IPausablePool.sol';
 
 /**
  * @title Volmex Controller contract
@@ -179,6 +180,20 @@ contract VolmexController is OwnableUpgradeable {
         _minimumCollateralQty = _minCollateralQty;
 
         emit UpdatedMinimumCollateral(_minCollateralQty);
+    }
+
+    /**
+     * @notice Used to pause the pool
+     */
+    function pausePool(IPausablePool _pool) public onlyOwner {
+        _pool.pause();
+    }
+
+    /**
+     * @notice Used to un-pause the pool
+     */
+    function unpausePool(IPausablePool _pool) public onlyOwner {
+        _pool.unpause();
     }
 
     /**

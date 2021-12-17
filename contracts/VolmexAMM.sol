@@ -999,14 +999,14 @@ contract VolmexAMM is
     /**
      * @notice Used to pause the contract
      */
-    function pause() external onlyOwner {
+    function pause() external onlyController {
         _pause();
     }
 
     /**
      * @notice Used to unpause the contract, if paused
      */
-    function unpause() external onlyOwner {
+    function unpause() external onlyController {
         _unpause();
     }
 
