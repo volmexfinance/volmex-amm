@@ -484,7 +484,16 @@ contract VolmexController is OwnableUpgradeable {
         );
     }
 
-
+    /**
+     * @notice Used to get collateral amount, fees, left over amount while swapping volatility
+     * to collateral/stablecoin
+     *
+     * @param _tokenIn Address of token in
+     * @param _amount Value of amount wants to swap
+     * @param _poolIndex Index of pool on operation
+     * @param _stableCoinIndex Index of the stable coin / collateral
+     * @param _isInverse Bool value of passed token in type
+     */
     function getSwappedAssetAmount(
         address _tokenIn,
         uint256 _amount,
@@ -514,6 +523,66 @@ contract VolmexController is OwnableUpgradeable {
 
         leftOverAmount = _amount - swapAmount - tokenAmountOut;
         fees = [aMMFee, protocolFee];
+    }
+
+    /**
+     * @notice Used to get the token out amount of swap in between multiple pools
+     *
+     * @param _tokenIn Address of token in
+     * @param _tokenOut Address of token out
+     * @param _amountIn Value of amount in or change
+     * @param _tokenInPoolIndex Index of in token pool
+     * @param _tokenOutPoolIndex Index of out toke pool
+     * @param _stableCoinIndex Index of stable coin
+     */
+    function getSwapAmountBetweenPools(
+        address _tokenIn,
+        address _tokenOut,
+        uint256 _amountIn,
+        uint256 _tokenInPoolIndex,
+        uint256 _tokenOutPoolIndex,
+        uint256 _stableCoinIndex
+    ) external view returns (uint256 amountOut, uint256 protocolFee, uint256 aMMFee) {
+        IVolmexAMM _pool = IVolmexAMM(pools[_tokenInPoolIndex]);
+
+        bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
+        uint256 tokenAmountOut;
+        uint256 fee;
+        (, tokenAmountOut, fee) = _getSwappedAssetAmount(
+            _tokenIn,
+            _amountIn,
+            _pool,
+            isInverse
+        );
+        aMMFee += fee;
+
+        IVolmexProtocol _protocol = protocols[_tokenInPoolIndex][_stableCoinIndex];
+        uint256 collateralAmount;
+        (collateralAmount, fee) = calculateAssetQuantity(
+            tokenAmountOut * _volatilityCapRatio,
+            _protocol.redeemFees(),
+            false
+        );
+        protocolFee += fee;
+
+        uint256 volatilityAmount;
+        (volatilityAmount, fee) = calculateAssetQuantity(
+            collateralAmount,
+            _protocol.issuanceFees(),
+            true
+        );
+        protocolFee += fee;
+
+        _pool = IVolmexAMM(pools[_tokenOutPoolIndex]);
+
+        address poolOutTokenIn = _pool.getPrimaryDerivativeAddress() != _tokenOut
+            ? _pool.getPrimaryDerivativeAddress()
+            : _pool.getComplementDerivativeAddress();
+
+        (tokenAmountOut, fee) = _pool.getTokenAmountOut(poolOutTokenIn, volatilityAmount, _tokenOut);
+        aMMFee += fee;
+
+        amountOut = volatilityAmount + tokenAmountOut;
     }
 
     //solium-disable-next-line security/no-assign-params
