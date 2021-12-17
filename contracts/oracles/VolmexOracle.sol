@@ -30,14 +30,12 @@ contract VolmexOracle is OwnableUpgradeable {
     // Store the number of indexes
     uint256 public indexCount;
 
-    uint256 private constant VOLATILITY_PRICE_PRECISION = 10000;
-
     /**
      * @notice Used to check the volatility token price
      */
     modifier _checkVolatilityPrice(uint256 _volatilityTokenPrice) {
         require(
-            _volatilityTokenPrice <= 250,
+            _volatilityTokenPrice <= 250000000,
             'VolmexOracle: _volatilityTokenPrice should be in range of 0 to 250'
         );
         _;
@@ -48,13 +46,13 @@ contract VolmexOracle is OwnableUpgradeable {
      */
     function initialize() external initializer {
         __Ownable_init();
-        volatilityTokenPriceByIndex[indexCount] = 1250000;
+        volatilityTokenPriceByIndex[indexCount] = 125000000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['ETHV'] = indexCount;
 
         indexCount++;
 
-        volatilityTokenPriceByIndex[indexCount] = 1250000;
+        volatilityTokenPriceByIndex[indexCount] = 125000000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['BTCV'] = indexCount;
     }
@@ -68,8 +66,10 @@ contract VolmexOracle is OwnableUpgradeable {
      * @dev Update the proof of hash for the volatility token price
      *
      * @param _volatilityIndex Number value of the volatility index. { eg. 0 }
-     * @param _volatilityTokenPrice Price of volatility token, between {0, 250}
+     * @param _volatilityTokenPrice Price of volatility token, between {0, 250000000}
      * @param _proofHash Bytes32 value of token price proof of hash
+     *
+     * NOTE: Make sure the volatility token price are with 6 decimals, eg. 125000000
      */
     function updateVolatilityTokenPrice(
         uint256 _volatilityIndex,
@@ -80,7 +80,7 @@ contract VolmexOracle is OwnableUpgradeable {
         onlyOwner
         _checkVolatilityPrice(_volatilityTokenPrice)
     {
-        volatilityTokenPriceByIndex[_volatilityIndex] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
+        volatilityTokenPriceByIndex[_volatilityIndex] = _volatilityTokenPrice;
         volatilityTokenPriceProofHash[_volatilityIndex] = _proofHash;
 
         emit VolatilityTokenPriceUpdated(_volatilityTokenPrice, _volatilityIndex, _proofHash);
@@ -98,7 +98,7 @@ contract VolmexOracle is OwnableUpgradeable {
         string calldata _volatilityTokenSymbol,
         bytes32 _proofHash
     ) external onlyOwner _checkVolatilityPrice(_volatilityTokenPrice) {
-        volatilityTokenPriceByIndex[++indexCount] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
+        volatilityTokenPriceByIndex[++indexCount] = _volatilityTokenPrice;
         volatilityTokenPriceProofHash[indexCount] = _proofHash;
         volatilityIndexBySymbol[_volatilityTokenSymbol] = indexCount;
 
