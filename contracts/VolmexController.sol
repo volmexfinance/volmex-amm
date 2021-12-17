@@ -356,20 +356,20 @@ contract VolmexController is OwnableUpgradeable {
         IERC20Modified(_tokens[0]).transferFrom(msg.sender, address(this), tokenAmounts[1]);
         _protocol.redeem(tokenAmounts[1]);
 
-        uint256 _collateralAmount;
-        (_collateralAmount, fees[2]) = calculateAssetQuantity(
+        // Array of collateralAmount {0} and volatilityAmount {1}
+        uint256[] memory protocolAmounts = new uint256[](2);
+        (protocolAmounts[0], fees[2]) = calculateAssetQuantity(
             tokenAmounts[1] * _volatilityCapRatio,
             _protocol.redeemFees(),
             false
         );
 
         _protocol = protocols[_indices[1]][_indices[2]];
-        _approveAssets(stableCoins[_indices[2]], _collateralAmount, address(this), address(_protocol));
-        _protocol.collateralize(_collateralAmount);
+        _approveAssets(stableCoins[_indices[2]], protocolAmounts[0], address(this), address(_protocol));
+        _protocol.collateralize(protocolAmounts[0]);
 
-        uint256 _volatilityAmount;
-        (_volatilityAmount, fees[3]) = calculateAssetQuantity(
-            _collateralAmount,
+        (protocolAmounts[1], fees[3]) = calculateAssetQuantity(
+            protocolAmounts[0],
             _protocol.issuanceFees(),
             true
         );
@@ -379,30 +379,29 @@ contract VolmexController is OwnableUpgradeable {
         isInverse = _pool.getPrimaryDerivativeAddress() != _tokens[1];
         address poolOutTokenIn = isInverse ? _pool.getPrimaryDerivativeAddress() : _pool.getComplementDerivativeAddress();
 
-        (tokenAmounts[1], ) = _pool.getTokenAmountOut(poolOutTokenIn, _volatilityAmount, _tokens[1]);
+        (tokenAmounts[1], ) = _pool.getTokenAmountOut(poolOutTokenIn, protocolAmounts[1], _tokens[1]);
 
         (tokenAmounts[1], fees[1]) = _pool.swapExactAmountIn(
             poolOutTokenIn,
-            _volatilityAmount,
+            protocolAmounts[1],
             _tokens[1],
             tokenAmounts[1],
             msg.sender,
             true
         );
 
-        require(_volatilityAmount + tokenAmounts[1] >= _amounts[1], 'VolmexController: Insufficient collateral amount');
+        require(protocolAmounts[1] + tokenAmounts[1] >= _amounts[1], 'VolmexController: Insufficient collateral amount');
 
-        transferAsset(IERC20Modified(_tokens[1]), _volatilityAmount + tokenAmounts[1], msg.sender);
+        transferAsset(IERC20Modified(_tokens[1]), protocolAmounts[1] + tokenAmounts[1], msg.sender);
 
-        // Unable to resolve the `stack too deep` error, that's why commented
-        // emit AssetBetweemPoolSwapped(
-        //     _amounts[0],
-        //     _volatilityAmount + tokenAmounts[1],
-        //     fees[2] + fees[3],
-        //     fees[0] + fees[1],
-        //     _indices[2],
-        //     _tokens
-        // );
+        emit AssetBetweemPoolSwapped(
+            _amounts[0],
+            protocolAmounts[1] + tokenAmounts[1],
+            fees[2] + fees[3],
+            fees[0] + fees[1],
+            _indices[2],
+            _tokens
+        );
     }
 
     /**
