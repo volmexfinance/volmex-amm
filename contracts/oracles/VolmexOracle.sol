@@ -9,7 +9,11 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract VolmexOracle is OwnableUpgradeable {
-    event VolatilityTokenPriceUpdated(uint256 volatilityTokenPrice);
+    event VolatilityTokenPriceUpdated(
+        uint256 volatilityTokenPrice,
+        uint256 volatilityIndex,
+        bytes32 proofHash
+    );
 
     event VolatilityTokenPriceAdded(
         uint256 indexed volatilityTokenIndex,
@@ -23,6 +27,8 @@ contract VolmexOracle is OwnableUpgradeable {
     mapping(uint256 => uint256) public volatilityTokenPriceByIndex;
     // Store the proof of hash of the current volatility token price
     mapping(uint256 => bytes32) public volatilityTokenPriceProofHash;
+    // Store the symbol of volatility per index
+    mapping(uint256 => string) public volatilitySymbolByIndex;
     // Store the number of indexes
     uint256 public indexCount;
 
@@ -47,12 +53,14 @@ contract VolmexOracle is OwnableUpgradeable {
         volatilityTokenPriceByIndex[indexCount] = 1250000;
         volatilityTokenPriceBySymbol['ETHV'] = 1250000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
+        volatilitySymbolByIndex[indexCount] = 'ETHV';
 
         indexCount++;
 
         volatilityTokenPriceByIndex[indexCount] = 1250000;
         volatilityTokenPriceBySymbol['BTCV'] = 1250000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
+        volatilitySymbolByIndex[indexCount] = 'BTCV';
     }
 
     /**
@@ -77,28 +85,10 @@ contract VolmexOracle is OwnableUpgradeable {
         _checkVolatilityPrice(_volatilityTokenPrice)
     {
         volatilityTokenPriceByIndex[_volatilityIndex] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
+        volatilityTokenPriceBySymbol[volatilitySymbolByIndex[_volatilityIndex]] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
         volatilityTokenPriceProofHash[_volatilityIndex] = _proofHash;
 
-        emit VolatilityTokenPriceUpdated(_volatilityTokenPrice);
-    }
-
-    /**
-     * @notice Updates the volatility token price by symbol
-     *
-     * @dev Check if volatility token price is greater than zero (0)
-     * @dev Update the volatility token price corresponding to the volatility token symbol
-     * @dev Store the volatility token price corresponding to the block number
-     *
-     * @param _volatilityTokenSymbol sttring value of the volatility symbol. { eg. ETHV }
-     * @param _volatilityTokenPrice Price of volatility token, between {0, 250}
-     */
-    function updateVolatilityTokenPriceBySymbol(
-        string calldata _volatilityTokenSymbol,
-        uint256 _volatilityTokenPrice
-    ) external onlyOwner _checkVolatilityPrice(_volatilityTokenPrice) {
-        volatilityTokenPriceBySymbol[_volatilityTokenSymbol] = _volatilityTokenPrice * VOLATILITY_PRICE_PRECISION;
-
-        emit VolatilityTokenPriceUpdated(_volatilityTokenPrice);
+        emit VolatilityTokenPriceUpdated(_volatilityTokenPrice, _volatilityIndex, _proofHash);
     }
 
     /**
