@@ -8,6 +8,7 @@ import './interfaces/IVolmexAMM.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IERC20Modified.sol';
 import './interfaces/IVolmexOracle.sol';
+import './interfaces/IPausablePool.sol';
 
 /**
  * @title Volmex Controller contract
@@ -60,6 +61,8 @@ contract VolmexController is OwnableUpgradeable {
     uint256 public stableCoinIndex;
     // Used to set the index of pool
     uint256 public poolIndex;
+    // Used to store the pools
+    address[] public allPools;
 
 
     /**
@@ -113,6 +116,7 @@ contract VolmexController is OwnableUpgradeable {
         oracle = _oracle;
 
         isPool[address(_pool)] = true;
+        allPools.push(address(_pool));
 
         _volatilityCapRatio = _protocol.volatilityCapRatio();
         _minimumCollateralQty = _protocol.minimumCollateralQty();
@@ -128,6 +132,7 @@ contract VolmexController is OwnableUpgradeable {
         pools[poolIndex] = _pool;
 
         isPool[address(_pool)] = true;
+        allPools.push(address(_pool));
 
         emit AddedPool(poolIndex, address(_pool));
     }
@@ -175,6 +180,20 @@ contract VolmexController is OwnableUpgradeable {
         _minimumCollateralQty = _minCollateralQty;
 
         emit UpdatedMinimumCollateral(_minCollateralQty);
+    }
+
+    /**
+     * @notice Used to pause the pool
+     */
+    function pausePool(IPausablePool _pool) public onlyOwner {
+        _pool.pause();
+    }
+
+    /**
+     * @notice Used to un-pause the pool
+     */
+    function unpausePool(IPausablePool _pool) public onlyOwner {
+        _pool.unpause();
     }
 
     /**
@@ -515,6 +534,17 @@ contract VolmexController is OwnableUpgradeable {
     }
 
     /**
+     * @notice Used to collect the pool token
+     *
+     * @param _pool Address of the pool
+     */
+    function collect(IVolmexAMM _pool) external onlyOwner {
+        uint256 collected = IERC20(_pool).balanceOf(address(this));
+        bool xfer = _pool.transfer(owner(), collected);
+        require(xfer, 'ERC20_FAILED');
+    }
+
+    /**
      * @notice Used to get collateral amount, fees, left over amount while swapping volatility
      * to collateral/stablecoin
      *
@@ -656,7 +686,7 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _fee
     ) internal view returns (uint256 volatilityAmount) {
         uint256 price = oracle.volatilityTokenPriceByIndex(_pool.volatilityIndex());
-        uint256 iPrice = (_volatilityCapRatio * 10000) - price;
+        uint256 iPrice = (_volatilityCapRatio * 1000000) - price; // The decimals are updated in VOL-432 branch
 
         uint256 leverage = _pool.getLeverage(_pool.getPrimaryDerivativeAddress());
         uint256 iLeverage = _pool.getLeverage(_pool.getComplementDerivativeAddress());
