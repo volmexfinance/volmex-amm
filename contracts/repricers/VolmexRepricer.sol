@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.7.6;
+pragma solidity =0.8.10;
 
-import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/introspection/ERC165Upgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol';
 
 import '../interfaces/IVolmexOracle.sol';
 import '../interfaces/IVolmexProtocol.sol';
@@ -15,8 +15,6 @@ import '../maths/NumExtra.sol';
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract VolmexRepricer is ERC165Upgradeable, NumExtra {
-    using SafeMath for uint256;
-
     // Instance of oracle contract
     IVolmexOracle public oracle;
     // Instance of protocol contract
@@ -38,7 +36,7 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
         require(AddressUpgradeable.isContract(address(_protocol)), 'Repricer: Not a protocol contract');
         protocol = _protocol;
 
-        protocolVolatilityCapRatio = protocol.volatilityCapRatio().mul(VOLATILITY_PRICE_PRECISION);
+        protocolVolatilityCapRatio = protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
         __ERC165_init();
     }
 
@@ -60,9 +58,9 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
     {
         estPrimaryPrice = oracle.volatilityTokenPriceByIndex(_volatilityIndex);
 
-        estComplementPrice = protocolVolatilityCapRatio.sub(estPrimaryPrice);
+        estComplementPrice = protocolVolatilityCapRatio - estPrimaryPrice;
 
-        estPrice = (estComplementPrice.mul(BONE)).div(estPrimaryPrice);
+        estPrice = (estComplementPrice * BONE) / estPrimaryPrice;
     }
 
     /**

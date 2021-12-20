@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.7.6;
+pragma solidity =0.8.10;
 
 interface IVolmexOracle {
     function volatilityTokenPriceByIndex(uint256 _volatilityIndex)

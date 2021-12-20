@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity 0.7.6;
+pragma solidity =0.8.10;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/introspection/ERC165CheckerUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
 
 import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
