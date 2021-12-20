@@ -711,7 +711,7 @@ contract VolmexAMM is
         _pullUnderlying(tokenIn, receiver, tokenAmountIn);
         _pushUnderlying(
             tokenOut,
-            toController ? msg.sender : receiver,
+            toController ? controller : receiver,
             tokenAmountOut
         );
     }
