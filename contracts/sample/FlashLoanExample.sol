@@ -27,7 +27,7 @@ contract FlashLoanExample is Num {
         // these amounts.
 
         // Approve the VolmexAMM contract allowance to *pull* the owed amount
-        uint256 amountOwing = add(amount, premium);
+        uint256 amountOwing = amount + premium;
         IERC20Modified(asset).approve(address(IFlashLoanReceiver(initiator).POOL()), amountOwing);
 
         return true;
