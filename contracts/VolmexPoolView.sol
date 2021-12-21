@@ -5,11 +5,11 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 
-import './interfaces/IVolmexAMM.sol';
+import './interfaces/IVolmexPool.sol';
 import './interfaces/IERC20Modified.sol';
 
 /// @title Reading key data from specified derivative trading Pool
-contract VolmexAMMView is Initializable {
+contract VolmexPoolView is Initializable {
 
     /// @notice Contains key information about a derivative token
     struct TokenRecord {
@@ -63,7 +63,7 @@ contract VolmexAMMView is Initializable {
             Config memory config
         )
     {
-        IVolmexAMM pool = IVolmexAMM(_pool);
+        IVolmexPool pool = IVolmexPool(_pool);
 
         address _primaryAddress = address(pool.protocol().volatilityToken());
         primary = TokenRecord(
@@ -135,7 +135,7 @@ contract VolmexAMMView is Initializable {
             uint8 lpDecimals
         )
     {
-        IVolmexAMM pool = IVolmexAMM(_pool);
+        IVolmexPool pool = IVolmexPool(_pool);
 
         primary = address(pool.protocol().volatilityToken());
         complement = address(pool.protocol().inverseVolatilityToken());
@@ -172,7 +172,7 @@ contract VolmexAMMView is Initializable {
             uint256 feeAmpComplement
         )
     {
-        IVolmexAMM pool = IVolmexAMM(_pool);
+        IVolmexPool pool = IVolmexPool(_pool);
         protocol = address(pool.protocol());
         // dynamicFee = address(pool.dynamicFee());
         repricer = address(pool.repricer());
