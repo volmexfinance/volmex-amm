@@ -41,12 +41,12 @@ contract VolmexController is OwnableUpgradeable, Const {
         address indexed pool
     );
 
-    event AddedStableCoin(
+    event StableCoinAdded(
         uint256 indexed stableCoinIndex,
         address indexed stableCoin
     );
 
-    event AddedProtocol(
+    event ProtocolAdded(
         uint256 poolIndex,
         uint256 stableCoinIndex,
         address indexed protocol
@@ -150,7 +150,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         stableCoinIndex++;
         stableCoins[stableCoinIndex] = _stableCoin;
 
-        emit AddedStableCoin(stableCoinIndex, address(_stableCoin));
+        emit StableCoinAdded(stableCoinIndex, address(_stableCoin));
     }
 
     /**
@@ -174,7 +174,7 @@ contract VolmexController is OwnableUpgradeable, Const {
 
         protocols[_poolIndex][_stableCoinIndex] = _protocol;
 
-        emit AddedProtocol(_poolIndex, _stableCoinIndex, address(_protocol));
+        emit ProtocolAdded(_poolIndex, _stableCoinIndex, address(_protocol));
     }
 
     /**
