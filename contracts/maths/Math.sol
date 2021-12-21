@@ -30,7 +30,7 @@ contract Math is Const, Num {
         uint256 swapFee
     ) public pure returns (uint256 spotPrice) {
         uint256 ratio = div(tokenBalanceIn, tokenBalanceOut);
-        uint256 scale = div(BONE, sub(BONE, swapFee));
+        uint256 scale = div(BONE, BONE - swapFee);
         spotPrice = mul(ratio, scale);
     }
 
@@ -48,10 +48,10 @@ contract Math is Const, Num {
         uint256 tokenAmountIn,
         uint256 swapFee
     ) public pure returns (uint256 tokenAmountOut) {
-        uint256 adjustedIn = sub(BONE, swapFee);
+        uint256 adjustedIn = BONE - swapFee;
         adjustedIn = mul(tokenAmountIn, adjustedIn);
-        uint256 y = div(tokenBalanceIn, add(tokenBalanceIn, adjustedIn));
-        uint256 bar = sub(BONE, y);
+        uint256 y = div(tokenBalanceIn, tokenBalanceIn + adjustedIn);
+        uint256 bar = BONE - y;
         tokenAmountOut = mul(tokenBalanceOut, bar);
     }
 
@@ -70,10 +70,10 @@ contract Math is Const, Num {
         uint256 tokenAmountOut,
         uint256 swapFee
     ) public pure returns (uint256 tokenAmountIn) {
-        uint256 diff = sub(tokenBalanceOut, tokenAmountOut);
+        uint256 diff = tokenBalanceOut - tokenAmountOut;
         uint256 y = div(tokenBalanceOut, diff);
-        uint256 foo = sub(y, BONE);
-        tokenAmountIn = sub(BONE, swapFee);
+        uint256 foo = y - BONE;
+        tokenAmountIn = BONE - swapFee;
         tokenAmountIn = div(mul(tokenBalanceIn, foo), tokenAmountIn);
     }
 }
