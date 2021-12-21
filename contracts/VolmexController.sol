@@ -51,6 +51,11 @@ contract VolmexController is OwnableUpgradeable {
         address indexed protocol
     );
 
+    event PoolTokenCollected (
+        address indexed owner,
+        uint256 amount
+    );
+
     event UpdatedMinimumCollateral(uint256 newMinimumCollateralQty);
 
     // Ratio of volatility to be minted per 250 collateral
@@ -542,6 +547,7 @@ contract VolmexController is OwnableUpgradeable {
         uint256 collected = IERC20(_pool).balanceOf(address(this));
         bool xfer = _pool.transfer(owner(), collected);
         require(xfer, 'ERC20_FAILED');
+        emit PoolTokenCollected(owner(), collected);
     }
 
     /**
