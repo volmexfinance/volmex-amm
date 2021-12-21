@@ -98,8 +98,6 @@ contract VolmexController is OwnableUpgradeable, NumExtra {
     mapping(address => bool) public isPool;
     // Address of the oracle
     IVolmexOracle public oracle;
-    // Value of token decimal precision 10^18
-    uint256 private constant BONE = 1000000000000000000;
 
     /**
      * @notice Initializes the contract
@@ -561,7 +559,7 @@ contract VolmexController is OwnableUpgradeable, NumExtra {
      * @param _stableCoinIndex Index of the stable coin / collateral
      * @param _isInverse Bool value of passed token in type
      */
-    function getSwappedAssetAmount(
+    function getVolatilityToCollateralAmount(
         address _tokenIn,
         uint256 _amount,
         uint256 _poolIndex,

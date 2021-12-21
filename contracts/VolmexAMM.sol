@@ -85,7 +85,7 @@ contract VolmexAMM is
     bool private _mutex;
 
     // Address of the pool controller
-    address private controller; // has CONTROL role
+    address private _controller; // has CONTROL role
 
     // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
     bool private _finalized;
@@ -119,7 +119,7 @@ contract VolmexAMM is
     // TODO: Need to understand exposureLimitComplement
     uint256 public exposureLimitComplement;
     // The amount of collateral required to mint both the volatility tokens
-    uint256 private denomination;
+    uint256 private _denomination;
 
     // Currently not is use. Required in x5Repricer and callOption
     // TODO: Need to understand the use of these args in repricer
@@ -143,7 +143,7 @@ contract VolmexAMM is
     /**
      * @notice Used to log the callee's sig, address and data
      */
-    modifier _logs_() {
+    modifier _logs() {
         emit LOG_CALL(msg.sig, msg.sender, msg.data);
         _;
     }
@@ -151,7 +151,7 @@ contract VolmexAMM is
     /**
      * @notice Used to prevent the re-entry
      */
-    modifier _lock_() {
+    modifier _lock() {
         require(!_mutex, 'VolmexAMM: REENTRY');
         _mutex = true;
         _;
@@ -161,7 +161,7 @@ contract VolmexAMM is
     /**
      * @notice Used to prevent multiple call to view methods
      */
-    modifier _viewlock_() {
+    modifier _viewlock() {
         require(!_mutex, 'VolmexAMM: REENTRY');
         _;
     }
@@ -169,7 +169,7 @@ contract VolmexAMM is
     /**
      * @notice Used to check the pool is finalised
      */
-    modifier onlyFinalized() {
+    modifier _onlyFinalized() {
         require(_finalized, 'VolmexAMM: AMM is not finalized');
         _;
     }
@@ -177,7 +177,7 @@ contract VolmexAMM is
     /**
      * @notice Used to check the protocol is not settled
      */
-    modifier onlyNotSettled() {
+    modifier _onlyNotSettled() {
         require(!protocol.isSettled(), 'VolmexAMM: Protocol is settled');
         _;
     }
@@ -185,8 +185,8 @@ contract VolmexAMM is
     /**
      * @notice Used to check the caller is controller
      */
-    modifier onlyController() {
-        require(msg.sender == controller, 'VolmexAMM: Caller is not controller');
+    modifier _onlyController() {
+        require(msg.sender == _controller, 'VolmexAMM: Caller is not controller');
         _;
     }
 
@@ -227,7 +227,7 @@ contract VolmexAMM is
 
         volatilityIndex = _volatilityIndex;
 
-        denomination = protocol.volatilityCapRatio();
+        _denomination = protocol.volatilityCapRatio();
 
         adminFee = 30;
         FLASHLOAN_PREMIUM_TOTAL = 9;
@@ -243,13 +243,13 @@ contract VolmexAMM is
     /**
      * @notice Set controller of the AMM
      *
-     * @param _controller Address of the pool contract controller
+     * @param controller Address of the pool contract controller
      */
-    function setController(address _controller) external onlyOwner {
-        require(_controller != address(0), 'VolmexAMM: Deployer can not be zero address');
-        controller = _controller;
+    function setController(address controller) external onlyOwner {
+        require(controller != address(0), 'VolmexAMM: Deployer can not be zero address');
+        _controller = controller;
 
-        emit SetController(controller);
+        emit SetController(_controller);
     }
 
     /**
@@ -275,7 +275,7 @@ contract VolmexAMM is
         address assetToken,
         uint256 amount,
         bytes calldata params
-    ) external _lock_ whenNotPaused onlyController {
+    ) external _lock whenNotPaused _onlyController {
         _records[assetToken].balance = _records[assetToken].balance - amount;
         IERC20Modified(assetToken).transfer(receiverAddress, amount);
 
@@ -308,7 +308,7 @@ contract VolmexAMM is
         uint256 poolAmountOut,
         uint256[2] calldata maxAmountsIn,
         address receiver
-    ) external _logs_ _lock_ onlyFinalized onlyController {
+    ) external _logs _lock _onlyFinalized _onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountOut, poolTotal);
         require(ratio != 0, 'VolmexAMM: Invalid math approximation');
@@ -344,7 +344,7 @@ contract VolmexAMM is
         uint256 poolAmountIn,
         uint256[2] calldata minAmountsOut,
         address receiver
-    ) external _logs_ _lock_ onlyFinalized onlyController {
+    ) external _logs _lock _onlyFinalized _onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountIn, poolTotal);
         require(ratio != 0, 'VolmexAMM: Invalid math approximation');
@@ -387,12 +387,12 @@ contract VolmexAMM is
         bool toController
     )
         external
-        _logs_
-        _lock_
+        _logs
+        _lock
         whenNotPaused
-        onlyFinalized
-        onlyNotSettled
-        onlyController
+        _onlyFinalized
+        _onlyNotSettled
+        _onlyController
         returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
     {
         require(tokenIn != tokenOut, 'VolmexAMM: Passed same token addresses');
@@ -476,7 +476,7 @@ contract VolmexAMM is
         uint256 _exposureLimitComplement,
         uint256 _pMin,
         uint256 _qMin
-    ) external _logs_ _lock_ onlyNotSettled onlyOwner {
+    ) external _logs _lock _onlyNotSettled onlyOwner {
         require(!_finalized, 'VolmexAMM: AMM is finalized');
 
         require(_primaryBalance == _complementBalance, 'VolmexAMM: Assets balance should be same');
@@ -524,7 +524,7 @@ contract VolmexAMM is
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
-    ) internal _logs_ _lock_ onlyNotSettled {
+    ) internal _logs _lock _onlyNotSettled {
         baseFee = _baseFee;
         maxFee = _maxFee;
         feeAmpPrimary = _feeAmpPrimary;
@@ -711,7 +711,7 @@ contract VolmexAMM is
         _pullUnderlying(tokenIn, receiver, tokenAmountIn);
         _pushUnderlying(
             tokenOut,
-            toController ? controller : receiver,
+            toController ? _controller : receiver,
             tokenAmountOut
         );
     }
@@ -791,7 +791,7 @@ contract VolmexAMM is
         uint256 amount
     ) internal returns (uint256) {
         uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
-        IVolmexController(controller).transferAssetToPool(
+        IVolmexController(_controller).transferAssetToPool(
             IERC20Modified(erc20),
             from,
             amount
@@ -998,14 +998,14 @@ contract VolmexAMM is
     /**
      * @notice Used to pause the contract
      */
-    function pause() external onlyController {
+    function pause() external _onlyController {
         _pause();
     }
 
     /**
      * @notice Used to unpause the contract, if paused
      */
-    function unpause() external onlyController {
+    function unpause() external _onlyController {
         _unpause();
     }
 
@@ -1019,7 +1019,7 @@ contract VolmexAMM is
     /**
      * @notice Used to get the token addresses
      */
-    function getTokens() external view _viewlock_ returns (address[BOUND_TOKENS] memory tokens) {
+    function getTokens() external view _viewlock returns (address[BOUND_TOKENS] memory tokens) {
         return _tokens;
     }
 
@@ -1028,7 +1028,7 @@ contract VolmexAMM is
      *
      * @param token Address of the token, either primary or complement
      */
-    function getLeverage(address token) external view _viewlock_ returns (uint256) {
+    function getLeverage(address token) external view _viewlock returns (uint256) {
         return _records[token].leverage;
     }
 
@@ -1037,7 +1037,7 @@ contract VolmexAMM is
      *
      * @param token Address of the token. either primary or complement
      */
-    function getBalance(address token) external view _viewlock_ returns (uint256) {
+    function getBalance(address token) external view _viewlock returns (uint256) {
         return _records[token].balance;
     }
 
@@ -1050,7 +1050,7 @@ contract VolmexAMM is
     }
 
     function getDerivativeDenomination() internal view returns (uint256) {
-        return denomination;
+        return _denomination;
     }
 
     function _getPrimaryDerivativeAddress() internal view returns (address) {

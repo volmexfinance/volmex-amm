@@ -84,7 +84,7 @@ contract VolmexProtocol is
     /**
      * @notice Used to check contract is active
      */
-    modifier onlyActive() {
+    modifier _onlyActive() {
         require(active, "Volmex: Protocol not active");
         _;
     }
@@ -92,7 +92,7 @@ contract VolmexProtocol is
     /**
      * @notice Used to check contract is not settled
      */
-    modifier onlyNotSettled() {
+    modifier _onlyNotSettled() {
         require(!isSettled, "Volmex: Protocol settled");
         _;
     }
@@ -100,7 +100,7 @@ contract VolmexProtocol is
     /**
      * @notice Used to check contract is settled
      */
-    modifier onlySettled() {
+    modifier _onlySettled() {
         require(isSettled, "Volmex: Protocol not settled");
         _;
     }
@@ -194,8 +194,8 @@ contract VolmexProtocol is
     function collateralize(uint256 _collateralQty)
         external
         virtual
-        onlyActive
-        onlyNotSettled
+        _onlyActive
+        _onlyNotSettled
     {
         require(
             _collateralQty >= minimumCollateralQty,
@@ -238,8 +238,8 @@ contract VolmexProtocol is
     function redeem(uint256 _positionTokenQty)
         external
         virtual
-        onlyActive
-        onlyNotSettled
+        _onlyActive
+        _onlyNotSettled
     {
         uint256 collQtyToBeRedeemed = _positionTokenQty * volatilityCapRatio;
 
@@ -261,7 +261,7 @@ contract VolmexProtocol is
     function redeemSettled(
         uint256 _volatilityIndexTokenQty,
         uint256 _inverseVolatilityIndexTokenQty
-    ) external virtual onlyActive onlySettled {
+    ) external virtual _onlyActive _onlySettled {
         uint256 collQtyToBeRedeemed =
             (_volatilityIndexTokenQty * settlementPrice) +
                 (_inverseVolatilityIndexTokenQty *
@@ -285,7 +285,7 @@ contract VolmexProtocol is
         external
         virtual
         onlyOwner
-        onlyNotSettled
+        _onlyNotSettled
     {
         require(
             _settlementPrice <= volatilityCapRatio,
