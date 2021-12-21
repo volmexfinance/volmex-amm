@@ -9,12 +9,13 @@ import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IERC20Modified.sol';
 import './interfaces/IVolmexOracle.sol';
 import './interfaces/IPausablePool.sol';
+import '../maths/NumExtra.sol';
 
 /**
  * @title Volmex Controller contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexController is OwnableUpgradeable {
+contract VolmexController is OwnableUpgradeable, NumExtra {
     event AdminFeeUpdated(uint256 adminFee);
 
     event AssetSwaped(
@@ -692,7 +693,7 @@ contract VolmexController is OwnableUpgradeable {
         uint256 _fee
     ) internal view returns (uint256 volatilityAmount) {
         uint256 price = oracle.volatilityTokenPriceByIndex(_pool.volatilityIndex());
-        uint256 iPrice = (_volatilityCapRatio * 1000000) - price; // The decimals are updated in VOL-432 branch
+        uint256 iPrice = (_volatilityCapRatio * VOLATILITY_PRICE_PRECISION) - price; 
 
         uint256 leverage = _pool.getLeverage(_pool.getPrimaryDerivativeAddress());
         uint256 iLeverage = _pool.getLeverage(_pool.getComplementDerivativeAddress());

@@ -25,5 +25,5 @@ contract Const {
     uint256 public constant MAX_IN_RATIO = BONE / 2;
     uint256 public constant MAX_OUT_RATIO = (BONE / 3) + 1 wei;
 
-    uint256 public constant VOLATILITY_PRICE_PRECISION = 10**4;
+    uint256 public constant VOLATILITY_PRICE_PRECISION = 10**6;
 }
