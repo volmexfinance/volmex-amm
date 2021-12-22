@@ -5,9 +5,7 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol';
-
 import '../interfaces/IVolmexOracle.sol';
-import '../interfaces/IVolmexProtocol.sol';
 import '../maths/NumExtra.sol';
 
 /**
@@ -17,21 +15,14 @@ import '../maths/NumExtra.sol';
 contract VolmexRepricer is ERC165Upgradeable, NumExtra {
     // Instance of oracle contract
     IVolmexOracle public oracle;
-    // Instance of protocol contract
-    IVolmexProtocol public protocol;
 
     /**
      * @notice Initializes the contract, setting the required state variables
-     *
      * @param _oracle Address of the Volmex Oracle contract
-     * @param _protocol Address of the Volmex Protocol contract
      */
-    function initialize(IVolmexOracle _oracle, IVolmexProtocol _protocol) external initializer {
+    function initialize(IVolmexOracle _oracle) external initializer {
         require(AddressUpgradeable.isContract(address(_oracle)), 'Repricer: Not an oracle contract');
         oracle = _oracle;
-
-        require(AddressUpgradeable.isContract(address(_protocol)), 'Repricer: Not a protocol contract');
-        protocol = _protocol;
 
         __ERC165_init();
     }
