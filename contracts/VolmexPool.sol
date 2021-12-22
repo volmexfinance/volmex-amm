@@ -61,7 +61,7 @@ contract VolmexPool is
         uint256 maxFee,
         uint256 feeAmpPrimary,
         uint256 feeAmpComplement
-    ); // TODO: Understand what is Amp here.
+    );
 
     event LOG_CALL(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
 
@@ -111,20 +111,16 @@ contract VolmexPool is
     // Max fee on the swap operation
     uint256 public maxFee;
 
-    // TODO: Understand the pMin
+    // Minimum amount of tokens in the pool
     uint256 public pMin;
+    // Minimum amount of token required for swap
     uint256 public qMin;
-    // TODO: Need to understand exposureLimitPrimary
+    // Difference in the primary token amount while swapping with the complement token
     uint256 public exposureLimitPrimary;
-    // TODO: Need to understand exposureLimitComplement
+    // Difference in the complement token amount while swapping with the primary token
     uint256 public exposureLimitComplement;
     // The amount of collateral required to mint both the volatility tokens
     uint256 private _denomination;
-
-    // Currently not is use. Required in x5Repricer and callOption
-    // TODO: Need to understand the use of these args in repricer
-    // uint256 public repricerParam1;
-    // uint256 public repricerParam2;
 
     // Address of the volmex repricer contract
     IVolmexRepricer public repricer;
@@ -462,10 +458,10 @@ contract VolmexPool is
      * @param _primaryLeverage Leverage value of primary token
      * @param _complementBalance  Balance amount of complement token
      * @param _complementLeverage  Leverage value of complement token
-     * @param _exposureLimitPrimary TODO: Need to check this
-     * @param _exposureLimitComplement TODO: Need to check this
-     * @param _pMin TODO: Need to check this
-     * @param _qMin TODO: Need to check this
+     * @param _exposureLimitPrimary Primary to complement swap difference limit
+     * @param _exposureLimitComplement Complement to primary swap difference limit
+     * @param _pMin Minimum amount of tokens in the pool
+     * @param _qMin Minimum amount of token required for swap
      */
     function finalize(
         uint256 _primaryBalance,
@@ -536,7 +532,43 @@ contract VolmexPool is
         emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
-    function getRepriced(address tokenIn) internal view returns (Record[2] memory) {
+
+    /**
+     * @notice getter, used to fetch the token amount out and fee
+     *
+     * @param _tokenIn Address of the token in 
+     * @param _tokenAmountIn Amount of in token
+     */
+    function getTokenAmountOut(
+        address _tokenIn,
+        uint256 _tokenAmountIn
+    ) external view returns (uint256 tokenAmountOut, uint256 fee) {
+        (Record memory inRecord, Record memory outRecord) = getRepriced(_tokenIn);
+
+        tokenAmountOut = calcOutGivenIn(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            _tokenAmountIn,
+            0
+        );
+
+        fee = calcFee(
+            inRecord,
+            _tokenAmountIn,
+            outRecord,
+            tokenAmountOut,
+            _getPrimaryDerivativeAddress() == _tokenIn ? feeAmpPrimary : feeAmpComplement
+        );
+
+        tokenAmountOut = calcOutGivenIn(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            _tokenAmountIn,
+            fee
+        );
+    }
+
+    function getRepriced(address tokenIn) internal view returns (Record memory inRecord, Record memory outRecord) {
         Record memory primaryRecord = _records[_getPrimaryDerivativeAddress()];
         Record memory complementRecord = _records[_getComplementDerivativeAddress()];
 
@@ -561,41 +593,9 @@ contract VolmexPool is
             )
         );
         complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
-        return [
-            _getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord,
-            _getComplementDerivativeAddress() == tokenIn ? primaryRecord : complementRecord
-        ];
-    }
 
-    function getTokenAmountOut(
-        address tokenIn,
-        uint256 tokenAmountIn,
-        address tokenOut
-    ) external view returns (uint256 tokenAmountOut, uint256 fee) {
-        Record memory inRecord = getRepriced(tokenIn)[0];
-        Record memory outRecord = getRepriced(tokenIn)[1];
-
-        tokenAmountOut = calcOutGivenIn(
-            _getLeveragedBalance(inRecord),
-            _getLeveragedBalance(outRecord),
-            tokenAmountIn,
-            0
-        );
-
-        fee = calcFee(
-            inRecord,
-            tokenAmountIn,
-            outRecord,
-            tokenAmountOut,
-            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
-        );
-
-        tokenAmountOut = calcOutGivenIn(
-            _getLeveragedBalance(inRecord),
-            _getLeveragedBalance(outRecord),
-            tokenAmountIn,
-            fee
-        );
+        inRecord = _getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord;
+        outRecord = _getComplementDerivativeAddress() == tokenIn ? primaryRecord : complementRecord;
     }
 
     /**
@@ -625,7 +625,6 @@ contract VolmexPool is
             complementRecordLeverageBefore
         );
 
-        // TODO: Need to lookover the sqrtWrapped equation and calculation
         primaryRecord.leverage = uint256(
             repricer.sqrtWrapped(
                 int256(
@@ -666,7 +665,6 @@ contract VolmexPool is
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
 
-        // TODO: Need to understand this and it's sub/used method
         _requireBoundaryConditions(
             inRecord,
             tokenAmountIn,

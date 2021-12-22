@@ -69,6 +69,6 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
      * @param x Value of which the square root will be calculated
      */
     function sqrtWrapped(int256 x) external pure returns (int256) {
-        return sqrt(x); // TODO: Need to understand the sqrt method from abdk-libraries
+        return sqrt(x);
     }
 }
