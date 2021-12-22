@@ -124,7 +124,7 @@ contract VolmexController is OwnableUpgradeable, Const {
      *
      * @param _stableCoin Address of the stableCoin
      */
-    function addStablecoin(IERC20Modified _stableCoin) external onlyOwner {
+    function addStableCoin(IERC20Modified _stableCoin) external onlyOwner {
         require(
             address(_stableCoin) != address(0),
             "VolmexController: address of stable coin can't be zero"
