@@ -13,8 +13,7 @@ contract FlashLoanExample is Num {
         address asset,
         uint256 amount,
         uint256 premium,
-        address initiator,
-        bytes calldata params
+        address initiator
     ) external returns (bool) {
         //
         // This contract now has the funds requested.
