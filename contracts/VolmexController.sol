@@ -690,8 +690,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         bool _isInverse,
         uint256 _fee
     ) internal view returns (uint256 volatilityAmount) {
-        uint256 price = oracle.volatilityTokenPriceByIndex(_pool.volatilityIndex());
-        uint256 iPrice = (_volatilityCapRatio * VOLATILITY_PRICE_PRECISION) - price; 
+        (uint256 price, uint256 iPrice) = oracle.getVolatilityTokenPriceByIndex(_pool.volatilityIndex());
 
         uint256 leverage = _pool.getLeverage(_pool.getPrimaryDerivativeAddress());
         uint256 iLeverage = _pool.getLeverage(_pool.getComplementDerivativeAddress());
