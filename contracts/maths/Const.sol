@@ -12,7 +12,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.8.10;
+pragma solidity =0.8.11;
 
 contract Const {
     uint256 public constant BONE = 10**18;
@@ -25,5 +25,5 @@ contract Const {
     uint256 public constant MAX_IN_RATIO = BONE / 2;
     uint256 public constant MAX_OUT_RATIO = (BONE / 3) + 1 wei;
 
-    uint256 public constant VOLATILITY_PRICE_PRECISION = 10**4;
+    uint256 public constant VOLATILITY_PRICE_PRECISION = 10**6;
 }

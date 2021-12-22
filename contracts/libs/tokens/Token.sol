@@ -12,7 +12,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.8.10;
+pragma solidity =0.8.11;
 
 import '../../maths/Num.sol';
 
@@ -45,15 +45,15 @@ contract TokenBase is Num {
     event Transfer(address indexed src, address indexed dst, uint256 amt);
 
     function _mint(uint256 amt) internal {
-        _balance[address(this)] = add(_balance[address(this)], amt);
-        _totalSupply = add(_totalSupply, amt);
+        _balance[address(this)] = _balance[address(this)] + amt;
+        _totalSupply = _totalSupply + amt;
         emit Transfer(address(0), address(this), amt);
     }
 
     function _burn(uint256 amt) internal {
         require(_balance[address(this)] >= amt, 'INSUFFICIENT_BAL');
-        _balance[address(this)] = sub(_balance[address(this)], amt);
-        _totalSupply = sub(_totalSupply, amt);
+        _balance[address(this)] = _balance[address(this)] - amt;
+        _totalSupply = _totalSupply - amt;
         emit Transfer(address(this), address(0), amt);
     }
 
@@ -63,8 +63,8 @@ contract TokenBase is Num {
         uint256 amt
     ) internal {
         require(_balance[src] >= amt, 'INSUFFICIENT_BAL');
-        _balance[src] = sub(_balance[src], amt);
-        _balance[dst] = add(_balance[dst], amt);
+        _balance[src] = _balance[src] - amt;
+        _balance[dst] = _balance[dst] + amt;
         emit Transfer(src, dst, amt);
     }
 
@@ -121,7 +121,7 @@ contract Token is TokenBase, IERC20 {
     }
 
     function increaseApproval(address dst, uint256 amt) external returns (bool) {
-        _allowance[msg.sender][dst] = add(_allowance[msg.sender][dst], amt);
+        _allowance[msg.sender][dst] = _allowance[msg.sender][dst] + amt;
         emit Approval(msg.sender, dst, _allowance[msg.sender][dst]);
         return true;
     }
@@ -131,7 +131,7 @@ contract Token is TokenBase, IERC20 {
         if (amt > oldValue) {
             _allowance[msg.sender][dst] = 0;
         } else {
-            _allowance[msg.sender][dst] = sub(oldValue, amt);
+            _allowance[msg.sender][dst] = oldValue - amt;
         }
         emit Approval(msg.sender, dst, _allowance[msg.sender][dst]);
         return true;
@@ -151,7 +151,7 @@ contract Token is TokenBase, IERC20 {
         require(msg.sender == src || amt <= oldValue, 'TOKEN_BAD_CALLER');
         _move(src, dst, amt);
         if (msg.sender != src && oldValue != type(uint128).max) {
-            _allowance[src][msg.sender] = sub(oldValue, amt);
+            _allowance[src][msg.sender] = oldValue - amt;
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
         return true;

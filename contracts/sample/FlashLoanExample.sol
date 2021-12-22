@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.8.10;
+pragma solidity =0.8.11;
 
 import '../interfaces/IFlashLoanReceiver.sol';
 import '../maths/Num.sol';
@@ -26,8 +26,8 @@ contract FlashLoanExample is Num {
         // Therefore ensure your contract has enough to repay
         // these amounts.
 
-        // Approve the VolmexAMM contract allowance to *pull* the owed amount
-        uint256 amountOwing = add(amount, premium);
+        // Approve the VolmexPool contract allowance to *pull* the owed amount
+        uint256 amountOwing = amount + premium;
         IERC20Modified(asset).approve(address(IFlashLoanReceiver(initiator).POOL()), amountOwing);
 
         return true;

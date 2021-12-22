@@ -12,7 +12,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.8.10;
+pragma solidity =0.8.11;
 
 import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 
@@ -20,7 +20,7 @@ import '../libs/tokens/Token.sol';
 import './IVolmexProtocol.sol';
 import './IVolmexRepricer.sol';
 
-interface IVolmexAMM is IERC20, IERC165Upgradeable {
+interface IVolmexPool is IERC20, IERC165Upgradeable {
     function repricingBlock() external view returns (uint256);
 
     function baseFee() external view returns (uint256);
@@ -55,6 +55,8 @@ interface IVolmexAMM is IERC20, IERC165Upgradeable {
 
     function getPrimaryDerivativeAddress() external view returns (address);
 
+    function volatilityIndex() external view returns (uint256);
+
     function getComplementDerivativeAddress() external view returns (address);
 
     function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn, address receiver) external;
@@ -66,7 +68,8 @@ interface IVolmexAMM is IERC20, IERC165Upgradeable {
         uint256 tokenAmountIn,
         address tokenOut,
         uint256 minAmountOut,
-        address receiver
+        address receiver,
+        bool _toController
     ) external returns (uint256 tokenAmountOut, uint256 spotPriceAfter);
 
     function paused() external view returns (bool);
@@ -81,4 +84,10 @@ interface IVolmexAMM is IERC20, IERC165Upgradeable {
         uint256 amount,
         bytes calldata params
     ) external;
+
+    function getTokenAmountOut(
+        address tokenIn,
+        uint256 tokenAmountIn,
+        address tokenOut
+    ) external view returns (uint256, uint256);
 }
