@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.0;
 
 // ----------------------------------------------------------------------------
 // BokkyPooBah's DateTime Library v1.01

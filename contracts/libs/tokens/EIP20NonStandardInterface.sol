@@ -1,6 +1,6 @@
-// "SPDX-License-Identifier: GPL-3.0-or-later"
+// SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity 0.7.6;
+pragma solidity =0.8.10;
 
 /// @title EIP20NonStandardInterface
 /// @dev Version of ERC20 with no return values for `transfer` and `transferFrom`

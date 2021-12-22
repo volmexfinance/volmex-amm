@@ -12,7 +12,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity 0.7.6;
+pragma solidity =0.8.10;
 
 import '../../maths/Num.sol';
 
@@ -150,7 +150,7 @@ contract Token is TokenBase, IERC20 {
         uint256 oldValue = _allowance[src][msg.sender];
         require(msg.sender == src || amt <= oldValue, 'TOKEN_BAD_CALLER');
         _move(src, dst, amt);
-        if (msg.sender != src && oldValue != uint256(-1)) {
+        if (msg.sender != src && oldValue != type(uint128).max) {
             _allowance[src][msg.sender] = sub(oldValue, amt);
             emit Approval(msg.sender, dst, _allowance[src][msg.sender]);
         }
