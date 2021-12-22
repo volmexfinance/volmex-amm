@@ -20,9 +20,6 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
     // Instance of protocol contract
     IVolmexProtocol public protocol;
 
-    // Has the value of volatility cap ratio of protocol { 250 }
-    uint256 public protocolVolatilityCapRatio;
-
     /**
      * @notice Initializes the contract, setting the required state variables
      *
@@ -36,7 +33,6 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
         require(AddressUpgradeable.isContract(address(_protocol)), 'Repricer: Not a protocol contract');
         protocol = _protocol;
 
-        protocolVolatilityCapRatio = protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
         __ERC165_init();
     }
 
