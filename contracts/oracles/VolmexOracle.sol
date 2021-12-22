@@ -39,8 +39,9 @@ contract VolmexOracle is OwnableUpgradeable {
      */
     modifier _checkVolatilityPrice(uint256 _index, uint256 _volatilityTokenPrice) {
         require(
-            _volatilityTokenPrice <= volatilityCapRatioByIndex[_index],
-            'VolmexOracle: _volatilityTokenPrice should be greater than 1000000'
+            _volatilityTokenPrice >= 1000000 &&
+                _volatilityTokenPrice <= volatilityCapRatioByIndex[_index],
+            'VolmexOracle: _volatilityTokenPrice should be in range from 1000000 to volatilityCapRatio'
         );
         _;
     }
@@ -102,7 +103,10 @@ contract VolmexOracle is OwnableUpgradeable {
      *
      * NOTE: Make sure the volatility cap ratio are with 6 decimals, eg. 125000000
      */
-    function updateVolatilityCapRatio(uint256 _index, uint256 _volatilityCapRatio) external onlyOwner {
+    function updateVolatilityCapRatio(uint256 _index, uint256 _volatilityCapRatio)
+        external
+        onlyOwner
+    {
         require(
             _volatilityCapRatio >= 1000000,
             'VolmexOracle: volatility cap ratio should be greater than 1000000'
