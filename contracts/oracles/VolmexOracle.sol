@@ -39,7 +39,7 @@ contract VolmexOracle is OwnableUpgradeable {
     modifier _checkVolatilityPrice(uint256 _index, uint256 _volatilityTokenPrice) {
         require(
             _volatilityTokenPrice <= volatilityCapRatioByIndex[_index],
-            "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
+            'VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio'
         );
         _;
     }
@@ -86,12 +86,12 @@ contract VolmexOracle is OwnableUpgradeable {
         require(
             _volatilityIndexes.length == _volatilityTokenPrices.length &&
                 _indexes.length == _proofHashes.length,
-            "VolmexOracle: length of arrays input are not equal"
+            'VolmexOracle: length of arrays input are not equal'
         );
         for (uint256 i = 0; i < _volatilityIndexes.length; i++) {
             require(
                 _volatilityTokenPrices[i] <= volatilityCapRatioByIndex[_indexes[i]],
-                "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
+                'VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio'
             );
             _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _volatilityTokenPrices[i];
             volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
@@ -122,7 +122,7 @@ contract VolmexOracle is OwnableUpgradeable {
     ) external onlyOwner _checkVolatilityPrice(_index, _volatilityTokenPrice) {
         require(
             _volatilityCapRatio >= 1000000,
-            "VolmexOracle: volatility cap ratio should be greater than 1000000"
+            'VolmexOracle: volatility cap ratio should be greater than 1000000'
         );
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;
         _volatilityTokenPriceByIndex[++indexCount] = _volatilityTokenPrice;
