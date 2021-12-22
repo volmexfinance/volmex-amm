@@ -3,13 +3,12 @@
 pragma solidity =0.8.11;
 
 interface IVolmexOracle {
-    function volatilityTokenPriceByIndex(uint256 _volatilityIndex)
-        external
-        view
-        returns (uint256);
+
+    function getVolatilityTokenPriceByIndex(uint256 _index) external view returns (uint256, uint256);
 
     function updateVolatilityTokenPrice(
         string calldata _volatilityTokenSymbol,
         uint256 _volatilityTokenPrice
     ) external;
+
 }
