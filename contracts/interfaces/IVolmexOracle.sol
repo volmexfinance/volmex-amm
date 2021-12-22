@@ -8,19 +8,23 @@ interface IVolmexOracle {
         view
         returns (uint256, uint256);
 
-    function updateVolatilityTokenPrice(
-        uint256 _volatilityIndex,
-        uint256 _volatilityTokenPrice,
-        uint256 _index,
-        bytes32 _proofHash
+    function getVolatilityPriceBySymbol(string calldata _volatilityTokenSymbol)
+        external
+        view
+        returns (uint256 volatilityTokenPrice, uint256 iVolatilityTokenPrice);
+
+    function updateBatchVolatilityTokenPrices(
+        uint256[] memory _volatilityIndexes,
+        uint256[] memory _volatilityTokenPrices,
+        uint256[] memory _indexes,
+        bytes32[] memory _proofHashes
     ) external;
 
-    function updateVolatilityCapRatio(uint256 _index, uint256 _volatilityCapRatio) external;
-
-    function addVolatilityTokenPrice(
+    function addVolatilityIndex(
         uint256 _volatilityTokenPrice,
-        uint256 _index,
+        uint256 _volatilityCapRatio,
         string calldata _volatilityTokenSymbol,
         bytes32 _proofHash
     ) external;
+
 }
