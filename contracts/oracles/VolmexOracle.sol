@@ -20,7 +20,7 @@ contract VolmexOracle is OwnableUpgradeable {
     // Store the number of indexes
     uint256 public indexCount;
 
-    event BatchVolatilityTokenPricesUpdated(
+    event BatchVolatilityTokenPriceUpdated(
         uint256[] _volatilityIndexes,
         uint256[] _volatilityTokenPrices,
         bytes32[] _proofHashes
@@ -97,7 +97,7 @@ contract VolmexOracle is OwnableUpgradeable {
             volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
         }
 
-        emit BatchVolatilityTokenPricesUpdated(
+        emit BatchVolatilityTokenPriceUpdated(
             _volatilityIndexes,
             _volatilityTokenPrices,
             _proofHashes
@@ -108,29 +108,28 @@ contract VolmexOracle is OwnableUpgradeable {
      * @notice Add volatility token price by index
      *
      * @param _volatilityTokenPrice Price of the adding volatility token
-     * @param _index index of volatilitycap ratio
      * @param _volatilityCapRatio volatility cap ratio, between {0, 250000000}
      * @param _volatilityTokenSymbol Symbol of the adding volatility token
      * @param _proofHash Bytes32 value of token price proof of hash
      */
     function addVolatilityIndex(
         uint256 _volatilityTokenPrice,
-        uint256 _index,
         uint256 _volatilityCapRatio,
         string calldata _volatilityTokenSymbol,
         bytes32 _proofHash
-    ) external onlyOwner _checkVolatilityPrice(_index, _volatilityTokenPrice) {
+    ) external onlyOwner _checkVolatilityPrice(indexCount++, _volatilityTokenPrice) {
         require(
             _volatilityCapRatio >= 1000000,
             'VolmexOracle: volatility cap ratio should be greater than 1000000'
         );
+        uint256 _index = indexCount;
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;
-        _volatilityTokenPriceByIndex[++indexCount] = _volatilityTokenPrice;
-        volatilityTokenPriceProofHash[indexCount] = _proofHash;
-        volatilityIndexBySymbol[_volatilityTokenSymbol] = indexCount;
+        _volatilityTokenPriceByIndex[++_index] = _volatilityTokenPrice;
+        volatilityTokenPriceProofHash[_index] = _proofHash;
+        volatilityIndexBySymbol[_volatilityTokenSymbol] = _index;
 
         emit VolatilityIndexAdded(
-            indexCount,
+            _index,
             _volatilityTokenSymbol,
             _volatilityTokenPrice,
             _volatilityCapRatio
