@@ -12,7 +12,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.8.10;
+pragma solidity =0.8.11;
 
 import './Const.sol';
 
@@ -23,14 +23,6 @@ contract Num is Const {
 
     function floor(uint256 a) internal pure returns (uint256) {
         return toi(a) * BONE;
-    }
-
-    function add(uint256 a, uint256 b) internal pure returns (uint256 c) {
-        c = a + b;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256 c) {
-        (c,) = subSign(a, b);
     }
 
     function subSign(uint256 a, uint256 b) internal pure returns (uint256, bool) {
@@ -75,7 +67,7 @@ contract Num is Const {
         require(base <= MAX_POW_BASE, 'POW_BASE_TOO_HIGH');
 
         uint256 whole = floor(exp);
-        uint256 remain = sub(exp, whole);
+        uint256 remain = exp - whole;
 
         uint256 wholePow = powi(base, toi(whole));
 
@@ -105,7 +97,7 @@ contract Num is Const {
         // continue until term is less than precision
         for (uint256 i = 1; term >= precision; i++) {
             uint256 bigK = i * BONE;
-            (uint256 c, bool cneg) = subSign(a, sub(bigK, BONE));
+            (uint256 c, bool cneg) = subSign(a, bigK - BONE);
             term = mul(term, mul(c, x));
             term = div(term, bigK);
             if (term == 0) break;
@@ -113,9 +105,9 @@ contract Num is Const {
             if (xneg) negative = !negative;
             if (cneg) negative = !negative;
             if (negative) {
-                sum = sub(sum, term);
+                sum = sum - term;
             } else {
-                sum = add(sum, term);
+                sum = sum + term;
             }
         }
     }
