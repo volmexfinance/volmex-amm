@@ -15,5 +15,7 @@ interface IVolmexRepricer is IERC165Upgradeable {
             uint256 estPrice
         );
 
+    function oracle() external view returns (address);
+
     function sqrtWrapped(int256 value) external pure returns (int256);
 }
