@@ -3,7 +3,7 @@ const { ethers, upgrades } = require('hardhat');
 import { Signer } from 'ethers';
 const { expectRevert, time } = require("@openzeppelin/test-helpers");
 
-describe('VolmexAMM', function () {
+describe('VolmexPool', function () {
   let accounts: Signer[];
   let owner: string;
   let volmexOracleFactory: any;
@@ -29,7 +29,7 @@ describe('VolmexAMM', function () {
 
     volmexOracleFactory = await ethers.getContractFactory('VolmexOracle');
 
-    poolFactory = await ethers.getContractFactory('VolmexAMM');
+    poolFactory = await ethers.getContractFactory('VolmexPool');
 
     collateralFactory = await ethers.getContractFactory('TestCollateralToken');
 
@@ -73,12 +73,11 @@ describe('VolmexAMM', function () {
     volreceipt = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volreceipt.wait();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [protocol.address]);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [
-      volmexOracle.address,
-      protocol.address
+      volmexOracle.address
     ]);
     await repricer.deployed();
 
@@ -198,7 +197,9 @@ describe('VolmexAMM', function () {
     controller = await upgrades.deployProxy(controllerFactory, [
       collateral.address,
       pool.address,
-      protocol.address
+      protocol.address,
+      volmexOracle.address
+
     ]);
     await controller.deployed();
 
@@ -472,7 +473,7 @@ describe('VolmexAMM', function () {
         inverseVolatility.address,
         '1000000000000000000'
       ),
-      'VolmexAMM: Protocol is settled'
+      'VolmexPool: Protocol is settled'
     );
   });
 
@@ -481,7 +482,7 @@ describe('VolmexAMM', function () {
 
     await expectRevert(
       pool.setController('0x0000000000000000000000000000000000000000'),
-      'VolmexAMM: Deployer can not be zero address'
+      'VolmexPool: Deployer can not be zero address'
     );
   });
 
@@ -504,7 +505,7 @@ describe('VolmexAMM', function () {
         pMin,
         qMin
       ),
-      'VolmexAMM: AMM is finalized'
+      'VolmexPool: Pool is finalized'
     );
   });
 
@@ -517,7 +518,7 @@ describe('VolmexAMM', function () {
         ['20000000000000000000','20000000000000000000'],
         '0'
       ),
-      'VolmexAMM: Invalid math approximation'
+      'VolmexPool: Invalid math approximation'
     );
 
     await expectRevert(
@@ -526,7 +527,7 @@ describe('VolmexAMM', function () {
         ['2000000000000000000','2000000000000000000'],
         '0'
       ),
-      'VolmexAMM: Amount in limit exploit'
+      'VolmexPool: Amount in limit exploit'
     );
   });
 
@@ -537,7 +538,7 @@ describe('VolmexAMM', function () {
         ['1000000000000000000','1000000000000000000'],
         '0'
       ),
-      'VolmexAMM: Invalid math approximation'
+      'VolmexPool: Invalid math approximation'
     );
 
     await expectRevert(
@@ -546,7 +547,7 @@ describe('VolmexAMM', function () {
         ['2000000000000000000','2000000000000000000'],
         '0'
       ),
-      'VolmexAMM: Amount out limit exploit'
+      'VolmexPool: Amount out limit exploit'
     );
   });
 
@@ -560,7 +561,7 @@ describe('VolmexAMM', function () {
         volatility.address,
         '1000000000000000000'
       ),
-      'VolmexAMM: Passed same token addresses'
+      'VolmexPool: Passed same token addresses'
     );
 
     await (await volatility.approve(controller.address, '3000000000000000000')).wait();
@@ -572,7 +573,7 @@ describe('VolmexAMM', function () {
         inverseVolatility.address,
         '1000000000000000000'
       ),
-      'VolmexAMM: Amount in quantity should be larger'
+      'VolmexPool: Amount in quantity should be larger'
     );
 
     await (await volatility.approve(controller.address, '6599999999999998746')).wait();
@@ -584,7 +585,7 @@ describe('VolmexAMM', function () {
         inverseVolatility.address,
         '1000000000000000000'
       ),
-      'VolmexAMM: Amount in max ratio exploit'
+      'VolmexPool: Amount in max ratio exploit'
     );
   });
 
@@ -607,7 +608,7 @@ describe('VolmexAMM', function () {
         inverseVolatility.address,
         '3000000000000000000'
       ),
-      'VolmexAMM: Amount out limit exploit'
+      'VolmexPool: Amount out limit exploit'
     );
   });
 
@@ -630,7 +631,7 @@ describe('VolmexAMM', function () {
         inverseVolatility.address,
         '1000000000000000000'
       ),
-      'VolmexAMM: Exposure boundary'
+      'VolmexPool: Exposure boundary'
     );
   });
 
@@ -687,7 +688,7 @@ describe('VolmexAMM', function () {
     const collateralBefore = Number(await collateral.balanceOf(owner));
 
     const swapReceipt = await controller.swapVolatilityToCollateral(
-      '2000000000000000000', false, '0'
+      ['2000000000000000000','2000000000000000000'], ['0','1'], await pool.address
     );
     const {events} = await swapReceipt.wait();
     const collateralAfter = Number(await collateral.balanceOf(owner));
