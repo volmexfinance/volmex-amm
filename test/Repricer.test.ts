@@ -72,12 +72,12 @@ describe('Repricer', function () {
     ]);
   });
 
-  it.only('Should deploy repricer', async () => {
+  it('Should deploy repricer', async () => {
     const receipt = await repricer.deployed();
     expect(receipt.confirmations).not.equal(0);
   });
 
-  it.only('Should call the reprice method', async () => {
+  it('Should call the reprice method', async () => {
     let reciept = await volmexOracle.updateBatchVolatilityTokenPrices(
       ['0'],
       ['125000000'],
@@ -90,7 +90,7 @@ describe('Repricer', function () {
     assert.equal(reciept[0].toString(),'125000000');
   });
 
-  it.only('Should revert on not contract', async () => {
+  it('Should revert on not contract', async () => {
     const [other] = accounts;
 
     await expectRevert(
@@ -98,7 +98,7 @@ describe('Repricer', function () {
       'Repricer: Not an oracle contract'
     );
   });
-  it.only('should calculate the correct square root', async () => {
+  it('should calculate the correct square root', async () => {
     let output = await repricer.sqrtWrapped(4);
     assert.equal(output.toString(), '1999999999');
   })
