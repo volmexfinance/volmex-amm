@@ -3,6 +3,7 @@
 pragma solidity =0.8.11;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -15,7 +16,7 @@ import './maths/Const.sol';
  * @title Volmex Controller contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexController is OwnableUpgradeable, Const {
+contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
     // Used to set the index of pool
@@ -189,7 +190,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         uint256[2] calldata _amounts,
         address _tokenOut,
         uint256[2] calldata _indices
-    ) external {
+    ) external whenNotPaused {
         IERC20Modified stableCoin = stableCoins[_indices[1]];
         stableCoin.transferFrom(msg.sender, address(this), _amounts[0]);
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
@@ -277,7 +278,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         uint256[2] calldata _amounts,
         uint256[2] calldata _indices,
         IERC20Modified _tokenIn
-    ) external {
+    ) external whenNotPaused{
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
@@ -350,7 +351,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         address[2] calldata _tokens,
         uint256[2] calldata _amounts,
         uint256[3] calldata _indices
-    ) external {
+    ) external whenNotPaused{
         IVolmexPool _pool = pools[_indices[0]];
 
         bool isInverse = _pool.getComplementDerivativeAddress() == _tokens[0];
@@ -467,7 +468,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         uint256 _poolAmountOut,
         uint256[2] calldata _maxAmountsIn,
         uint256 _poolIndex
-    ) external {
+    ) external whenNotPaused{
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.joinPool(_poolAmountOut, _maxAmountsIn, msg.sender);
@@ -484,7 +485,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         uint256 _poolAmountIn,
         uint256[2] calldata _minAmountsOut,
         uint256 _poolIndex
-    ) external {
+    ) external whenNotPaused{
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.exitPool(_poolAmountIn, _minAmountsOut, msg.sender);
@@ -507,7 +508,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         uint256 _amount,
         bytes calldata _params,
         uint256 _poolIndex
-    ) external {
+    ) external whenNotPaused{
         IVolmexPool _pool = pools[_poolIndex];
         _pool.flashLoan(msg.sender, _assetToken, _amount, _params);
     }
@@ -518,7 +519,7 @@ contract VolmexController is OwnableUpgradeable, Const {
         uint256 _amountIn,
         address _tokenOut,
         uint256 _amountOut
-    ) external {
+    ) external whenNotPaused{
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
