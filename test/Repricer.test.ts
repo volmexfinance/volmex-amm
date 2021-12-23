@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
 import { Signer } from 'ethers';
+const assert = require('assert');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 
 describe('Repricer', function () {
@@ -67,39 +68,38 @@ describe('Repricer', function () {
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [
-      volmexOracle.address,
-      protocol.address,
+      volmexOracle.address
     ]);
   });
 
-  it('Should deploy repricer', async () => {
+  it.only('Should deploy repricer', async () => {
     const receipt = await repricer.deployed();
     expect(receipt.confirmations).not.equal(0);
   });
 
-  it('Should call the reprice method', async () => {
-    let reciept = await volmexOracle.updateVolatilityTokenPrice(
-      '0',
-      '125',
-      '0x6c00000000000000000000000000000000000000000000000000000000000000'
+  it.only('Should call the reprice method', async () => {
+    let reciept = await volmexOracle.updateBatchVolatilityTokenPrices(
+      ['0'],
+      ['125000000'],
+      ['0'],
+      ['0x6c00000000000000000000000000000000000000000000000000000000000000']
     );
     await reciept.wait();
 
     reciept = await repricer.reprice('0');
-    expect(await reciept).not.equal(null);
+    assert.equal(reciept[0].toString(),'125000000');
   });
 
-  it('Should revert on not contract', async () => {
+  it.only('Should revert on not contract', async () => {
     const [other] = accounts;
 
     await expectRevert(
-      upgrades.deployProxy(repricerFactory, [await other.getAddress(), protocol.address]),
+      upgrades.deployProxy(repricerFactory, [await other.getAddress()]),
       'Repricer: Not an oracle contract'
     );
-
-    await expectRevert(
-      upgrades.deployProxy(repricerFactory, [volmexOracle.address, await other.getAddress()]),
-      'Repricer: Not a protocol contract'
-    );
   });
+  it.only('should calculate the correct square root', async () => {
+    let output = await repricer.sqrtWrapped(4);
+    assert.equal(output.toString(), '1999999999');
+  })
 });
