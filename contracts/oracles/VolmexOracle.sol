@@ -34,17 +34,6 @@ contract VolmexOracle is OwnableUpgradeable {
     );
 
     /**
-     * @notice Used to check the volatility token price
-     */
-    modifier _checkVolatilityPrice(uint256 _index, uint256 _volatilityTokenPrice) {
-        require(
-            _volatilityTokenPrice <= volatilityCapRatioByIndex[_index],
-            'VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio'
-        );
-        _;
-    }
-
-    /**
      * @notice Initializes the contract setting the deployer as the initial owner.
      */
     function initialize() external initializer {
@@ -77,7 +66,7 @@ contract VolmexOracle is OwnableUpgradeable {
      *
      * NOTE: Make sure the volatility token price are with 6 decimals, eg. 125000000
      */
-    function updateBatchVolatilityTokenPrices(
+    function updateBatchVolatilityTokenPrice(
         uint256[] memory _volatilityIndexes,
         uint256[] memory _volatilityTokenPrices,
         uint256[] memory _indexes,
@@ -117,14 +106,15 @@ contract VolmexOracle is OwnableUpgradeable {
         uint256 _volatilityCapRatio,
         string calldata _volatilityTokenSymbol,
         bytes32 _proofHash
-    ) external onlyOwner _checkVolatilityPrice(indexCount++, _volatilityTokenPrice) {
+    ) external onlyOwner {
         require(
             _volatilityCapRatio >= 1000000,
             'VolmexOracle: volatility cap ratio should be greater than 1000000'
         );
-        uint256 _index = indexCount;
+        uint256 _index = ++indexCount;
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;
-        _volatilityTokenPriceByIndex[++_index] = _volatilityTokenPrice;
+        
+        _volatilityTokenPriceByIndex[_index] = _volatilityTokenPrice;
         volatilityTokenPriceProofHash[_index] = _proofHash;
         volatilityIndexBySymbol[_volatilityTokenSymbol] = _index;
 
