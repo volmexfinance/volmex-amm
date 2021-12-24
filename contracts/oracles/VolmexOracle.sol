@@ -20,8 +20,8 @@ contract VolmexOracle is OwnableUpgradeable {
     mapping(string => uint256) public volatilityIndexBySymbol;
     // Store the number of indexes
     uint256 public indexCount;
-    // Store the address of protocol
-    IVolmexProtocol public protocol;
+    // price precision constant upto 6 decimal places
+    uint256 private constant VOLATILITY_PRICE_PRECISION = 1000000;
 
     event BatchVolatilityTokenPriceUpdated(
         uint256[] _volatilityIndexes,
@@ -31,6 +31,7 @@ contract VolmexOracle is OwnableUpgradeable {
 
     event VolatilityIndexAdded(
         uint256 indexed volatilityTokenIndex,
+        uint256 volatilityCapRatio,
         string volatilityTokenSymbol,
         uint256 volatilityTokenPrice
     );
@@ -40,9 +41,8 @@ contract VolmexOracle is OwnableUpgradeable {
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
      */
-    function initialize(IVolmexProtocol _protocol) external initializer {
+    function initialize() external initializer {
         __Ownable_init();
-        protocol = _protocol;
         _volatilityTokenPriceByIndex[indexCount] = 125000000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['ETHV'] = indexCount;
@@ -54,18 +54,6 @@ contract VolmexOracle is OwnableUpgradeable {
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['BTCV'] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
-    }
-
-    /**
-     * @notice update the protocol
-     *
-     * @param _protocol address of protocol
-     */
-    function updateProtocol(IVolmexProtocol _protocol) external onlyOwner {
-        require(address(_protocol) != address(0), "VolmexOracle: protocol address can't be zero");
-        protocol = _protocol;
-
-        emit ProtocolUpdated(address(_protocol));
     }
 
     /**
@@ -117,10 +105,12 @@ contract VolmexOracle is OwnableUpgradeable {
      */
     function addVolatilityIndex(
         uint256 _volatilityTokenPrice,
+        IVolmexProtocol _protocol,
         string calldata _volatilityTokenSymbol,
         bytes32 _proofHash
     ) external onlyOwner {
-        uint256 _volatilityCapRatio = (IVolmexProtocol(protocol).volatilityCapRatio()) * 1000000;
+        require(address(_protocol) != address(0), "volmexOracle: protocol address can't be zero");
+        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
         require(
             _volatilityCapRatio >= 1000000,
             'VolmexOracle: volatility cap ratio should be greater than 1000000'
@@ -138,6 +128,7 @@ contract VolmexOracle is OwnableUpgradeable {
 
         emit VolatilityIndexAdded(
             _index,
+            _volatilityCapRatio,
             _volatilityTokenSymbol,
             _volatilityTokenPrice
         );
