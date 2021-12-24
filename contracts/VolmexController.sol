@@ -85,23 +85,31 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
      *
      * @dev Sets the volatilityCapRatio and _minimumCollateralQty
      *
-     * @param _stableCoin Address of the collateral token used in protocol
-     * @param _pool Address of the pool contract
-     * @param _protocol Address of the protocol contract
+     * @param _stableCoins Address of the collateral token used in protocol
+     * @param _pools Address of the pool contract
+     * @param _protocols Address of the protocol contract
      */
     function initialize(
-        IERC20Modified _stableCoin,
-        IVolmexPool _pool,
-        IVolmexProtocol _protocol,
+        IERC20Modified[2] memory _stableCoins,
+        IVolmexPool[2] memory _pools,
+        IVolmexProtocol[4] memory _protocols,
         IVolmexOracle _oracle
     ) external initializer {
-        pools[poolIndex] = _pool;
-        stableCoins[stableCoinIndex] = _stableCoin;
-        protocols[poolIndex][stableCoinIndex] = _protocol;
+        pools[poolIndex] = _pools[0];
+        stableCoins[stableCoinIndex] = _stableCoins[0];
+        protocols[poolIndex][stableCoinIndex] = _protocols[0];
+        stableCoinIndex++;
+        stableCoins[stableCoinIndex] = _stableCoins[1];
+        protocols[poolIndex][stableCoinIndex] = _protocols[1];
+        poolIndex++;
+        protocols[poolIndex][stableCoinIndex - 1] = _protocols[2];
+        pools[poolIndex] = _pools[1];
+        protocols[poolIndex][stableCoinIndex] = _protocols[3];
         oracle = _oracle;
-
-        isPool[address(_pool)] = true;
-        allPools.push(address(_pool));
+        isPool[address(_pools[0])] = true;
+        isPool[address(_pools[1])] = true;
+        allPools.push(address(_pools[0]));
+        allPools.push(address(_pools[1]));
     }
 
     /**
@@ -278,7 +286,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256[2] calldata _amounts,
         uint256[2] calldata _indices,
         IERC20Modified _tokenIn
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
@@ -351,7 +359,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         address[2] calldata _tokens,
         uint256[2] calldata _amounts,
         uint256[3] calldata _indices
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_indices[0]];
 
         bool isInverse = _pool.getComplementDerivativeAddress() == _tokens[0];
@@ -468,7 +476,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256 _poolAmountOut,
         uint256[2] calldata _maxAmountsIn,
         uint256 _poolIndex
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.joinPool(_poolAmountOut, _maxAmountsIn, msg.sender);
@@ -485,7 +493,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256 _poolAmountIn,
         uint256[2] calldata _minAmountsOut,
         uint256 _poolIndex
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.exitPool(_poolAmountIn, _minAmountsOut, msg.sender);
@@ -508,7 +516,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256 _amount,
         bytes calldata _params,
         uint256 _poolIndex
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
         _pool.flashLoan(msg.sender, _assetToken, _amount, _params);
     }
@@ -519,7 +527,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256 _amountIn,
         address _tokenOut,
         uint256 _amountOut
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
