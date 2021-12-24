@@ -119,6 +119,8 @@ contract VolmexPool is
     uint256 public exposureLimitPrimary;
     // Difference in the complement token amount while swapping with the primary token
     uint256 public exposureLimitComplement;
+    // The amount of collateral required to mint both the volatility tokens
+    uint256 private _denomination;
 
     // Address of the volmex repricer contract
     IVolmexRepricer public repricer;
@@ -220,6 +222,8 @@ contract VolmexPool is
         upperBoundary = protocol.volatilityCapRatio() * BONE;
 
         volatilityIndex = _volatilityIndex;
+
+        _denomination = protocol.volatilityCapRatio();
 
         adminFee = 30;
         FLASHLOAN_PREMIUM_TOTAL = 9;
@@ -528,17 +532,17 @@ contract VolmexPool is
         emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
-
     /**
      * @notice getter, used to fetch the token amount out and fee
      *
-     * @param _tokenIn Address of the token in 
+     * @param _tokenIn Address of the token in
      * @param _tokenAmountIn Amount of in token
      */
-    function getTokenAmountOut(
-        address _tokenIn,
-        uint256 _tokenAmountIn
-    ) external view returns (uint256 tokenAmountOut, uint256 fee) {
+    function getTokenAmountOut(address _tokenIn, uint256 _tokenAmountIn)
+        external
+        view
+        returns (uint256 tokenAmountOut, uint256 fee)
+    {
         (Record memory inRecord, Record memory outRecord) = getRepriced(_tokenIn);
 
         tokenAmountOut = calcOutGivenIn(
@@ -564,7 +568,11 @@ contract VolmexPool is
         );
     }
 
-    function getRepriced(address tokenIn) internal view returns (Record memory inRecord, Record memory outRecord) {
+    function getRepriced(address tokenIn)
+        internal
+        view
+        returns (Record memory inRecord, Record memory outRecord)
+    {
         Record memory primaryRecord = _records[_getPrimaryDerivativeAddress()];
         Record memory complementRecord = _records[_getComplementDerivativeAddress()];
 
@@ -591,7 +599,9 @@ contract VolmexPool is
         complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
 
         inRecord = _getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord;
-        outRecord = _getComplementDerivativeAddress() == tokenIn ? primaryRecord : complementRecord;
+        outRecord = _getComplementDerivativeAddress() == tokenIn
+            ? primaryRecord
+            : complementRecord;
     }
 
     /**
@@ -1035,6 +1045,10 @@ contract VolmexPool is
 
     function getComplementDerivativeAddress() external view returns (address) {
         return _getComplementDerivativeAddress();
+    }
+
+    function getDerivativeDenomination() internal view returns (uint256) {
+        return _denomination;
     }
 
     function _getPrimaryDerivativeAddress() internal view returns (address) {
