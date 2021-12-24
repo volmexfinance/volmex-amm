@@ -278,7 +278,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256[2] calldata _amounts,
         uint256[2] calldata _indices,
         IERC20Modified _tokenIn
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
@@ -351,7 +351,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         address[2] calldata _tokens,
         uint256[2] calldata _amounts,
         uint256[3] calldata _indices
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_indices[0]];
 
         bool isInverse = _pool.getComplementDerivativeAddress() == _tokens[0];
@@ -468,7 +468,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256 _poolAmountOut,
         uint256[2] calldata _maxAmountsIn,
         uint256 _poolIndex
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.joinPool(_poolAmountOut, _maxAmountsIn, msg.sender);
@@ -485,7 +485,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256 _poolAmountIn,
         uint256[2] calldata _minAmountsOut,
         uint256 _poolIndex
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.exitPool(_poolAmountIn, _minAmountsOut, msg.sender);
@@ -508,7 +508,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256 _amount,
         bytes calldata _params,
         uint256 _poolIndex
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
         _pool.flashLoan(msg.sender, _assetToken, _amount, _params);
     }
@@ -519,7 +519,7 @@ contract VolmexController is OwnableUpgradeable, PausableUpgradeable, Const {
         uint256 _amountIn,
         address _tokenOut,
         uint256 _amountOut
-    ) external whenNotPaused{
+    ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
