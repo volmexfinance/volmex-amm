@@ -77,17 +77,23 @@ describe('Repricer', function () {
   });
 
   it('Should call the reprice method', async () => {
+    const reciept1 = await repricer.reprice('0');
+    const reciept2 = await repricer.reprice('1');
+    assert.equal(reciept1[0].toString(), '125000000');
+    assert.equal(reciept1[1].toString(), '125000000');
+    assert.equal(reciept1[2].toString(), '1000000000000000000');
+    assert.equal(reciept2[0].toString(), '125000000');
+    assert.equal(reciept2[1].toString(), '125000000');
+    assert.equal(reciept2[2].toString(), '1000000000000000000');
     let reciept = await volmexOracle.updateBatchVolatilityTokenPrice(
-      ['0'],
-      ['125000000'],
+      ['1'],
+      ['105000000'],
       ['0x6c00000000000000000000000000000000000000000000000000000000000000']
     );
     await reciept.wait();
-
-    reciept = await repricer.reprice('0');
-    assert.equal(reciept[0].toString(), '125000000');
-    assert.equal(reciept[1].toString(), '125000000');
-    assert.equal(reciept[2].toString(), '1000000000000000000');
+    reciept = await repricer.reprice('1');
+    assert.equal(reciept[0].toString(), '105000000');
+    assert.equal(reciept[1].toString(), '145000000');
   });
 
   it('Should revert on not contract', async () => {
