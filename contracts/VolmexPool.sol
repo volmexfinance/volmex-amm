@@ -119,8 +119,6 @@ contract VolmexPool is
     uint256 public exposureLimitPrimary;
     // Difference in the complement token amount while swapping with the primary token
     uint256 public exposureLimitComplement;
-    // The amount of collateral required to mint both the volatility tokens
-    uint256 private _denomination;
 
     // Address of the volmex repricer contract
     IVolmexRepricer public repricer;
@@ -222,8 +220,6 @@ contract VolmexPool is
         upperBoundary = protocol.volatilityCapRatio() * BONE;
 
         volatilityIndex = _volatilityIndex;
-
-        _denomination = protocol.volatilityCapRatio();
 
         adminFee = 30;
         FLASHLOAN_PREMIUM_TOTAL = 9;
@@ -1039,10 +1035,6 @@ contract VolmexPool is
 
     function getComplementDerivativeAddress() external view returns (address) {
         return _getComplementDerivativeAddress();
-    }
-
-    function getDerivativeDenomination() internal view returns (uint256) {
-        return _denomination;
     }
 
     function _getPrimaryDerivativeAddress() internal view returns (address) {
