@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
 const assert = require('assert');
-import { Signer } from 'ethers';
+import { Signer, ContractReceipt, ContractTransaction } from 'ethers';
 const { expectRevert, expectEvent } = require('@openzeppelin/test-helpers');
 
 describe('Volmex Oracle', function () {
@@ -73,12 +73,19 @@ describe('Volmex Oracle', function () {
     volatilityIndexes = ['0'];
     volatilityTokenPrices = ['105000000'];
     proofHashes = ['0x6c00000000000000000000000000000000000000000000000000000000000000'];
-    const receipt = await volmexOracle.updateBatchVolatilityTokenPrice(
+    const contractTx = await volmexOracle.updateBatchVolatilityTokenPrice(
       volatilityIndexes,
       volatilityTokenPrices,
       proofHashes
     );
-    expect((await receipt.wait()).confirmations).not.equal(0);
+    const contractReceipt: ContractReceipt = await contractTx.wait();
+    const event = contractReceipt.events?.find(
+      (event) => event.event === 'BatchVolatilityTokenPriceUpdated'
+    );
+    expect((await contractTx.wait()).confirmations).not.equal(0);
+    assert.equal(event?.args?._volatilityIndexes.length, 1);
+    assert.equal(event?.args?._volatilityTokenPrices.length, 1);
+    assert.equal(event?.args?._proofHashes.length, 1);
     let prices = await volmexOracle.getVolatilityTokenPriceByIndex('0');
     assert.equal(prices[0].toString(), '105000000');
     assert.equal(prices[1].toString(), '145000000');
@@ -109,15 +116,29 @@ describe('Volmex Oracle', function () {
     );
   });
 
+  it('should update index by symbol', async () => {
+    const contractTx: ContractTransaction = await volmexOracle.updateIndexBySymbol('ETHV', 3);
+    const contractReceipt: ContractReceipt = await contractTx.wait();
+    const event = contractReceipt.events?.find((event) => event.event === 'SymbolIndexUpdated');
+    assert.equal(event?.args?._index, 3);
+    assert.equal(3, await volmexOracle.volatilityIndexBySymbol('ETHV'));
+  });
+
   it('should add volatility index', async () => {
-    const tx = await volmexOracle.addVolatilityIndex(
+    const contractTx = await volmexOracle.addVolatilityIndex(
       '125000000',
       protocol.address,
       'ETHV3x',
       '0x6c00000000000000000000000000000000000000000000000000000000000000'
     );
+    const contractReceipt: ContractReceipt = await contractTx.wait();
+    const event = contractReceipt.events?.find((event) => event.event === 'VolatilityIndexAdded');
     const price = await volmexOracle.getVolatilityPriceBySymbol('ETHV3x');
     const price1 = await volmexOracle.getVolatilityTokenPriceByIndex(2);
+    assert.equal(event?.args?.volatilityTokenIndex, 2);
+    assert.equal(event?.args?.volatilityCapRatio, 250000000);
+    assert.equal(event?.args?.volatilityTokenSymbol, 'ETHV3x');
+    assert.equal(event?.args?.volatilityTokenPrice, 125000000);
     assert.equal(price[0].toString(), '125000000');
     assert.equal(price[1].toString(), '125000000');
     assert.equal(price1[0].toString(), '125000000');
@@ -150,7 +171,7 @@ describe('Volmex Oracle', function () {
   });
 
   it('should revert if protocol address is zero', async () => {
-    zeroAddress = '0x0000000000000000000000000000000000000000'
+    zeroAddress = '0x0000000000000000000000000000000000000000';
     await expectRevert(
       volmexOracle.addVolatilityIndex(
         '125000000',
