@@ -54,7 +54,7 @@ describe('Volmex Oracle', function () {
       '250',
     ]);
     await protocol.deployed();
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [protocol.address]);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
 
     await volmexOracle.deployed();
   });
@@ -62,40 +62,11 @@ describe('Volmex Oracle', function () {
   it('Should deploy volmex oracle', async () => {
     const receipt = await volmexOracle.deployed();
     expect(receipt.confirmations).not.equal(0);
-    assert.equal(await receipt.protocol(), protocol.address);
     assert.equal(await protocol.collateral(), collateral.address);
     assert.equal(await protocol.volatilityToken(), volatility.address);
     assert.equal(await protocol.inverseVolatilityToken(), inverseVolatility.address);
     assert.equal(await protocol.minimumCollateralQty(), '25000000000000000000');
     assert.equal(await protocol.volatilityCapRatio(), '250');
-  });
-
-  it('should update the protocol address', async () => {
-    const receipt = await volmexOracle.deployed();
-    protocol = await upgrades.deployProxy(protocolFactory, [
-      `${collateral.address}`,
-      `${volatility.address}`,
-      `${inverseVolatility.address}`,
-      '25000000000000000000',
-      '300',
-    ]);
-    await protocol.deployed();
-    const tx = await receipt.updateProtocol(protocol.address);
-    assert.equal(await receipt.protocol(), protocol.address);
-    assert.equal(await protocol.collateral(), collateral.address);
-    assert.equal(await protocol.volatilityToken(), volatility.address);
-    assert.equal(await protocol.inverseVolatilityToken(), inverseVolatility.address);
-    assert.equal(await protocol.minimumCollateralQty(), '25000000000000000000');
-    assert.equal(await protocol.volatilityCapRatio(), '300');
-  });
-
-  it('should revert if protocol address is zero', async () => {
-    zeroAddress = '0x0000000000000000000000000000000000000000';
-    const receipt = await volmexOracle.deployed();
-    await expectRevert(
-      receipt.updateProtocol(zeroAddress),
-      "VolmexOracle: protocol address can't be zero"
-    );
   });
 
   it('Should update the Batch volatility Token price', async () => {
@@ -141,12 +112,16 @@ describe('Volmex Oracle', function () {
   it('should add volatility index', async () => {
     const tx = await volmexOracle.addVolatilityIndex(
       '125000000',
+      protocol.address,
       'ETHV3x',
       '0x6c00000000000000000000000000000000000000000000000000000000000000'
     );
     const price = await volmexOracle.getVolatilityPriceBySymbol('ETHV3x');
+    const price1 = await volmexOracle.getVolatilityTokenPriceByIndex(2);
     assert.equal(price[0].toString(), '125000000');
     assert.equal(price[1].toString(), '125000000');
+    assert.equal(price1[0].toString(), '125000000');
+    assert.equal(price1[1].toString(), '125000000');
   });
 
   it('should revert when cap ratio is smaller than 1000000', async () => {
@@ -158,7 +133,7 @@ describe('Volmex Oracle', function () {
       '0',
     ]);
     await protocol.deployed();
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [protocol.address]);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
     assert.equal(await protocol.collateral(), collateral.address);
     assert.equal(await protocol.volatilityToken(), volatility.address);
     assert.equal(await protocol.inverseVolatilityToken(), inverseVolatility.address);
@@ -166,6 +141,7 @@ describe('Volmex Oracle', function () {
     await expectRevert(
       volmexOracle.addVolatilityIndex(
         '125000000',
+        protocol.address,
         'ETHV2x',
         '0x6c00000000000000000000000000000000000000000000000000000000000000'
       ),
@@ -173,7 +149,20 @@ describe('Volmex Oracle', function () {
     );
   });
 
-  it('should revert when cap ratio is smaller than 1000000', async () => {
+  it('should revert if protocol address is zero', async () => {
+    zeroAddress = '0x0000000000000000000000000000000000000000'
+    await expectRevert(
+      volmexOracle.addVolatilityIndex(
+        '125000000',
+        zeroAddress,
+        'ETHV4x',
+        '0x6c00000000000000000000000000000000000000000000000000000000000000'
+      ),
+      "volmexOracle: protocol address can't be zero"
+    );
+  });
+
+  it('should revert when volatility token price is greater than cap ratio', async () => {
     protocol = await upgrades.deployProxy(protocolFactory, [
       `${collateral.address}`,
       `${volatility.address}`,
@@ -182,7 +171,6 @@ describe('Volmex Oracle', function () {
       '250',
     ]);
     await protocol.deployed();
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [protocol.address]);
     assert.equal(await protocol.collateral(), collateral.address);
     assert.equal(await protocol.volatilityToken(), volatility.address);
     assert.equal(await protocol.inverseVolatilityToken(), inverseVolatility.address);
@@ -190,6 +178,7 @@ describe('Volmex Oracle', function () {
     await expectRevert(
       volmexOracle.addVolatilityIndex(
         '251000000',
+        protocol.address,
         'ETHV2x',
         '0x6c00000000000000000000000000000000000000000000000000000000000000'
       ),

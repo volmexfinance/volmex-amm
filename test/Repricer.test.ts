@@ -64,7 +64,7 @@ describe('Repricer', function () {
     volReciept = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volReciept.wait();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [protocol.address]);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);
