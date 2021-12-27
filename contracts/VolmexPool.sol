@@ -569,6 +569,67 @@ contract VolmexPool is
     }
 
     /**
+     * @notice getter, used to fetch the token amount in and fee
+     *
+     * @param _tokenOut Address of the token out
+     * @param _tokenAmountOut Amount of out token
+     */
+    function getTokenAmountIn(address _tokenOut, uint256 _tokenAmountOut)
+        external
+        view
+        returns (uint256 tokenAmountIn, uint256 fee)
+    {
+        (Record memory inRecord, Record memory outRecord) = _getRepriced(_tokenOut);
+
+        tokenAmountIn = calcInGivenOut(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            _tokenAmountOut,
+            0
+        );
+
+        fee = _calcFee(
+            inRecord,
+            _tokenAmountOut,
+            outRecord,
+            tokenAmountIn,
+            _getPrimaryDerivativeAddress() == _tokenOut ? feeAmpPrimary : feeAmpComplement
+        );
+
+        tokenAmountIn = calcInGivenOut(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            _tokenAmountOut,
+            fee
+        );
+    }
+
+    function getTokensToJoin(uint256[2] calldata maxAmountsIn) external view returns (uint256) {
+        uint256[2] memory poolAmountsOut;
+        uint256 poolTotal = totalSupply();
+        for (uint256 i = 0; i < BOUND_TOKENS; i++) {
+            uint256 bal = _records[_tokens[i]].balance;
+            poolAmountsOut[i] = div(mul(maxAmountsIn[i], poolTotal), bal);
+        }
+        return min(poolAmountsOut[0], poolAmountsOut[1]);
+    }
+
+    function getTokensToExit(uint256[2] calldata minAmountsOut) external view returns (uint256) {
+        uint256[2] memory poolAmountsIn;
+        uint256 poolTotal = totalSupply();
+        for (uint256 i = 0; i < BOUND_TOKENS; i++) {
+            uint256 bal = _records[_tokens[i]].balance;
+            poolAmountsIn[i] = div(mul(minAmountsOut[i], poolTotal), bal);
+            uint256 tokenAmount = mul(div(poolAmountsIn[i], upperBoundary), BONE);
+            uint256 feeAmount = div(mul(tokenAmount, adminFee), 10000);
+            if (poolAmountsIn[i] > tokenAmount) {
+                poolAmountsIn[i] -= feeAmount;
+            }
+        }
+        return min(poolAmountsIn[0], poolAmountsIn[1]);
+    }
+
+    /**
      * @dev See {IERC165-supportsInterface}.
      */
     function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
@@ -1041,7 +1102,7 @@ contract VolmexPool is
         uint256 tokenAmount = mul(div(_poolAmountIn, upperBoundary), BONE);
         amountOut = mul(_ratio, _tokenReserve);
         if (amountOut > tokenAmount) {
-            uint256 feeAmount = mul(tokenAmount, div(adminFee, 10000));
+            uint256 feeAmount = div(mul(tokenAmount, adminFee), 10000);
             amountOut = amountOut - feeAmount;
         }
     }
