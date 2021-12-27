@@ -106,10 +106,6 @@ contract VolmexController is
         pools[poolIndex] = _pools[0];
         stableCoins[stableCoinIndex] = _stableCoins[0];
         require(
-            address(_protocols[0]) != address(0),
-            "VolmexController: address of protocol can't be zero"
-        );
-        require(
             _stableCoins[stableCoinIndex] == _protocols[0].collateral(),
             'VolmexController: Incorrect stableCoin for add protocol'
         );
@@ -123,10 +119,6 @@ contract VolmexController is
         stableCoins[stableCoinIndex] = _stableCoins[1];
 
         require(
-            address(_protocols[1]) != address(0),
-            "VolmexController: address of protocol can't be zero"
-        );
-        require(
             _stableCoins[stableCoinIndex] == _protocols[1].collateral(),
             'VolmexController: Incorrect stableCoin for add protocol'
         );
@@ -139,10 +131,6 @@ contract VolmexController is
         poolIndex++;
 
         require(
-            address(_protocols[2]) != address(0),
-            "VolmexController: address of protocol can't be zero"
-        );
-        require(
             _stableCoins[stableCoinIndex] == _protocols[2].collateral(),
             'VolmexController: Incorrect stableCoin for add protocol'
         );
@@ -154,10 +142,6 @@ contract VolmexController is
         protocols[poolIndex][stableCoinIndex - 1] = _protocols[2];
         pools[poolIndex] = _pools[1];
 
-        require(
-            address(_protocols[3]) != address(0),
-            "VolmexController: address of protocol can't be zero"
-        );
         require(
             _stableCoins[stableCoinIndex] == _protocols[3].collateral(),
             'VolmexController: Incorrect stableCoin for add protocol'
@@ -223,10 +207,6 @@ contract VolmexController is
         uint256 _stableCoinIndex,
         IVolmexProtocol _protocol
     ) external onlyOwner {
-        require(
-            address(_protocol) != address(0),
-            "VolmexController: address of protocol can't be zero"
-        );
         require(
             stableCoins[_stableCoinIndex] == _protocol.collateral(),
             'VolmexController: Incorrect stableCoin for add protocol'
