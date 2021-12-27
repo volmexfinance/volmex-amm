@@ -5,12 +5,14 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IERC20Modified.sol';
 import './interfaces/IVolmexOracle.sol';
 import './interfaces/IPausablePool.sol';
+import './interfaces/IVolmexController.sol';
 import './maths/Const.sol';
 
 /**
@@ -119,6 +121,7 @@ contract VolmexController is
         protocols[poolIndex][stableCoinIndex] = _protocols[0];
         stableCoinIndex++;
         stableCoins[stableCoinIndex] = _stableCoins[1];
+
         require(
             address(_protocols[1]) != address(0),
             "VolmexController: address of protocol can't be zero"
@@ -134,6 +137,7 @@ contract VolmexController is
         );
         protocols[poolIndex][stableCoinIndex] = _protocols[1];
         poolIndex++;
+
         require(
             address(_protocols[2]) != address(0),
             "VolmexController: address of protocol can't be zero"
@@ -149,6 +153,7 @@ contract VolmexController is
         );
         protocols[poolIndex][stableCoinIndex - 1] = _protocols[2];
         pools[poolIndex] = _pools[1];
+
         require(
             address(_protocols[3]) != address(0),
             "VolmexController: address of protocol can't be zero"
@@ -169,11 +174,11 @@ contract VolmexController is
         allPools.push(address(_pools[0]));
         allPools.push(address(_pools[1]));
         __ERC165Storage_init_unchained();
-        _registerInterface(type(IVolmexPool).interfaceId);
-        _registerInterface(type(IVolmexOracle).interfaceId);
-        _registerInterface(type(IVolmexProtocol).interfaceId);
-        _registerInterface(type(IERC20Modified).interfaceId);
-        _registerInterface(type(IPausablePool).interfaceId);
+        _registerInterface(type(IVolmexController).interfaceId);
+        require(
+            ERC165CheckerUpgradeable.supportsInterface(address(_oracle), type(IVolmexOracle).interfaceId),
+            'VolmexController: Oracle does not supports interface'
+        );
     }
 
     /**

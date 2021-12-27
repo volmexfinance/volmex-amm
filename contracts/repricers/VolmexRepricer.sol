@@ -5,7 +5,9 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
 import '../interfaces/IVolmexOracle.sol';
+import '../interfaces/IVolmexRepricer.sol';
 import '../maths/NumExtra.sol';
 
 /**
@@ -27,7 +29,11 @@ contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra {
         );
         oracle = _oracle;
         __ERC165Storage_init_unchained();
-        _registerInterface(type(IVolmexOracle).interfaceId);
+        _registerInterface(type(IVolmexRepricer).interfaceId);
+        require(
+            ERC165CheckerUpgradeable.supportsInterface(address(_oracle), type(IVolmexOracle).interfaceId),
+            'VolmexController: Oracle does not supports interface'
+        );
     }
 
     /**
