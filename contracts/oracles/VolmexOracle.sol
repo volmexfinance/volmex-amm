@@ -36,7 +36,7 @@ contract VolmexOracle is OwnableUpgradeable {
         uint256 volatilityTokenPrice
     );
 
-    event ProtocolUpdated(address _protocol);
+    event SymbolIndexUpdated(uint256 indexed _index);
 
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
@@ -94,6 +94,18 @@ contract VolmexOracle is OwnableUpgradeable {
             _volatilityTokenPrices,
             _proofHashes
         );
+    }
+
+    /**
+     * @notice Update the volatility token index by symbol
+     *
+     * @param _index Number value of the index. { eg. 0 }
+     * @param _tokenSymbol Symbol of the adding volatility token
+     */
+    function updateIndexBySymbol(string calldata _tokenSymbol, uint256 _index) external onlyOwner {
+        volatilityIndexBySymbol[_tokenSymbol] = _index;
+
+        emit SymbolIndexUpdated(_index);
     }
 
     /**
