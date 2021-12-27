@@ -3,13 +3,14 @@
 pragma solidity =0.8.11;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 import '../interfaces/IVolmexProtocol.sol';
 
 /**
  * @title Volmex Oracle contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexOracle is OwnableUpgradeable {
+contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
     // Store the price of volatility by indexes { 0 - ETHV, 1 = BTCV }
     mapping(uint256 => uint256) private _volatilityTokenPriceByIndex;
     // Store the volatilitycapratio by index
@@ -54,6 +55,8 @@ contract VolmexOracle is OwnableUpgradeable {
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['BTCV'] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
+        __ERC165Storage_init_unchained();
+        _registerInterface(type(IVolmexProtocol).interfaceId);
     }
 
     /**
