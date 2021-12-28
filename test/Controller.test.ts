@@ -239,4 +239,53 @@ describe('VolmexController', function () {
     const controllerReceipt = await controller.deployed();
     expect(controllerReceipt.confirmations).not.equal(0);
   });
+
+  it('Should swap collateral to volatility', async () => {
+    await (await volatilities['ETH'].approve(controller.address, "599999999000000000000000000")).wait();
+    await (await inverseVolatilities['ETH'].approve(controller.address, "599999999000000000000000000")).wait();
+
+    const add = await controller.addLiquidity(
+      '250000000000000000000000000',
+      ['599999999000000000000000000','599999999000000000000000000'],
+      '0'
+    );
+    await add.wait();
+
+    const volAmount = await controller.getCollateralToVolatility(
+      '1500000000000000000000',
+      volatilities['ETH'].address,
+      [0,0]
+    );
+
+    await (await collateral['DAI'].approve(controller.address, "1500000000000000000000")).wait();
+    const balanceBefore = await volatilities['ETH'].balanceOf(owner);
+
+    const swap = await controller.swapCollateralToVolatility(
+      ['1500000000000000000000', volAmount[0].toString()],
+      volatilities['ETH'].address,
+      [0,0]
+    );
+    const {events} = await swap.wait();
+    const balanceAfter = await volatilities['ETH'].balanceOf(owner);
+
+    const logData = getEventLog(events, 'AssetSwaped');
+
+    const changedAmount = balanceAfter.sub(balanceBefore)
+
+    expect(Number(changedAmount.toString())).to.equal(Number(logData[1].toString()));
+  });
 });
+
+const getEventLog = (events: any[], eventName: string): any => {
+  let data;
+  events.forEach((log: any) => {
+    if (log['event'] == 'AssetSwaped') {
+      data = log['data'];
+    }
+  })
+  const logData = ethers.utils.defaultAbiCoder.decode(
+    [ 'uint256', 'uint256', 'uint256', 'uint256' ],
+    data
+  );
+  return logData;
+}
