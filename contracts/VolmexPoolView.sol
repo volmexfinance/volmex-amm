@@ -10,7 +10,6 @@ import './interfaces/IERC20Modified.sol';
 
 /// @title Reading key data from specified derivative trading Pool
 contract VolmexPoolView is Initializable {
-
     /// @notice Contains key information about a derivative token
     struct TokenRecord {
         address self;
@@ -184,7 +183,5 @@ contract VolmexPoolView is Initializable {
         feeAmpPrimary = pool.feeAmpPrimary();
         feeAmpComplement = pool.feeAmpComplement();
         maxFee = pool.maxFee();
-        // repricerParam1 = pool.repricerParam1();
-        // repricerParam2 = pool.repricerParam2();
     }
 }
