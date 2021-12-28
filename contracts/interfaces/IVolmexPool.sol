@@ -90,4 +90,15 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         uint256 tokenAmountIn,
         address tokenOut
     ) external view returns (uint256, uint256);
+
+    function getTokensToJoin(uint256 poolAmountOut) external view returns (uint256[2] memory maxAmountsIn);
+
+    function swapExactAmountOut(
+        address tokenIn,
+        uint256 maxAmountIn,
+        address tokenOut,
+        uint256 tokenAmountOut,
+        address receiver,
+        bool _toController
+    ) external returns (uint256 tokenAmountIn, uint256 spotPriceAfter);
 }
