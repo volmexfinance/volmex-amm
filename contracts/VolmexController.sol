@@ -265,8 +265,7 @@ contract VolmexController is
             isInverse
                 ? _pool.getPrimaryDerivativeAddress()
                 : _pool.getComplementDerivativeAddress(),
-            volatilityAmount,
-            _tokenOut
+            volatilityAmount
         );
 
         _approveAssets(
@@ -275,7 +274,7 @@ contract VolmexController is
                 : IERC20Modified(_pool.getComplementDerivativeAddress()),
             volatilityAmount,
             address(this),
-            address(_pool)
+            address(this)
         );
         (tokenAmountOut, ) = _pool.swapExactAmountIn(
             isInverse
@@ -467,8 +466,7 @@ contract VolmexController is
 
         (tokenAmounts[1], ) = _pool.getTokenAmountOut(
             poolOutTokenIn,
-            protocolAmounts[1],
-            _tokens[1]
+            protocolAmounts[1]
         );
 
         (tokenAmounts[1], fees[1]) = _pool.swapExactAmountIn(
@@ -628,8 +626,7 @@ contract VolmexController is
             isInverse
                 ? _pool.getPrimaryDerivativeAddress()
                 : _pool.getComplementDerivativeAddress(),
-            volatilityAmount,
-            _tokenOut
+            volatilityAmount
         );
 
         volatilityAmount += tokenAmountOut;
@@ -730,8 +727,7 @@ contract VolmexController is
             _pool.getPrimaryDerivativeAddress() != _tokens[1]
                 ? _pool.getPrimaryDerivativeAddress()
                 : _pool.getComplementDerivativeAddress(),
-            protocolAmount[1],
-            _tokens[1]
+            protocolAmount[1]
         );
         fees[1] += fee;
 
@@ -818,20 +814,14 @@ contract VolmexController is
 
         (, fee) = _pool.getTokenAmountOut(
             _tokenIn,
-            swapAmount,
-            _pool.getPrimaryDerivativeAddress() == _tokenIn
-                ? _pool.getComplementDerivativeAddress()
-                : _pool.getPrimaryDerivativeAddress()
+            swapAmount
         );
 
         swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, fee);
 
         (amountOut, fee) = _pool.getTokenAmountOut(
             _tokenIn,
-            swapAmount,
-            _pool.getPrimaryDerivativeAddress() == _tokenIn
-                ? _pool.getComplementDerivativeAddress()
-                : _pool.getPrimaryDerivativeAddress()
+            swapAmount
         );
     }
 }
