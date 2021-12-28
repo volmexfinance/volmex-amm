@@ -310,6 +310,50 @@ describe('VolmexController', function () {
 
     expect(Number(changedBalance.toString())).to.equal(Number(logData[1].toString()));
   });
+
+  it('Should swap between multiple pools', async () => {
+    await (await volatilities['ETH'].approve(controller.address, "599999999000000000000000000")).wait();
+    await (await inverseVolatilities['ETH'].approve(controller.address, "599999999000000000000000000")).wait();
+
+    const addEth = await controller.addLiquidity(
+      '250000000000000000000000000',
+      ['599999999000000000000000000','599999999000000000000000000'],
+      '0'
+    );
+    await addEth.wait();
+
+    await (await volatilities['BTC'].approve(controller.address, "599999999000000000000000000")).wait();
+    await (await inverseVolatilities['BTC'].approve(controller.address, "599999999000000000000000000")).wait();
+
+    const addBtc = await controller.addLiquidity(
+      '250000000000000000000000000',
+      ['599999999000000000000000000','599999999000000000000000000'],
+      '1'
+    );
+    await addBtc.wait();
+
+    const volAmountOut = await controller.getSwapAmountBetweenPools(
+      [volatilities['ETH'].address, volatilities['BTC'].address],
+      '20000000000000000000',
+      [0, 1, 0]
+    );
+
+    await (await volatilities['ETH'].approve(controller.address, "20000000000000000000")).wait();
+
+    const balanceBefore = await volatilities['BTC'].balanceOf(owner);
+    const swap = await controller.swapBetweenPools(
+      [volatilities['ETH'].address, volatilities['BTC'].address],
+      ['20000000000000000000', volAmountOut[0].toString()],
+      [0, 1, 0]
+    );
+    const {events} = await swap.wait();
+    const logData = getEventLog(events, 'AssetSwappedBetweenPool', ['uint256', 'uint256', 'uint256', 'uint256', 'address']);
+    const balanceAfter = await volatilities['BTC'].balanceOf(owner);
+
+    const changedBalance = balanceAfter.sub(balanceBefore);
+
+    expect(Number(changedBalance.toString())).to.equal(Number(logData[1].toString()));
+  });
 });
 
 const getEventLog = (events: any[], eventName: string, params: string[]): any => {
