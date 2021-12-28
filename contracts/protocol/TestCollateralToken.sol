@@ -6,6 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol"
 
 contract TestCollateralToken is ERC20PresetMinterPauser {
     constructor(string memory symbol) ERC20PresetMinterPauser("VolmexTestCollateralToken", symbol) {
-        mint(msg.sender, 10000000000000000000000);
+        mint(msg.sender, 100000000000000000000000000000000);
     }
 }
