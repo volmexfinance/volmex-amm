@@ -73,7 +73,7 @@ describe('VolmexPool', function () {
     volreceipt = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volreceipt.wait();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [protocol.address]);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [
@@ -110,104 +110,20 @@ describe('VolmexPool', function () {
     await (await collateral.approve(protocol.address, MAX)).wait();
     await (await protocol.collateralize(MAX)).wait();
 
-    // Test non-controller finalise
-    // await expectRevert(
-    //   pool.finalize(
-    //     '1000000000000000000',
-    //     leveragePrimary,
-    //     '1000000000000000000',
-    //     leverageComplement,
-    //     exposureLimitPrimary,
-    //     exposureLimitComplement,
-    //     pMin,
-    //     qMin
-    //   ),
-    //   'NOT_SET_FEE_PARAMS'
-    // );
+    // controller = await upgrades.deployProxy(controllerFactory, [
+    //   collateral.address,
+    //   pool.address,
+    //   protocol.address,
+    //   volmexOracle.address
 
-    // // Test the finalize modifier
-    // await expectRevert(
-    //   pool.joinPool(
-    //     '3000000000000000000000',
-    //     ['20000000000000000000','20000000000000000000']
-    //   ),
-    //   'NOT_FINALIZED'
-    // );
+    // ]);
+    // await controller.deployed();
 
-    // // Test non-controller finalise
-    // await expectRevert(
-    //   pool.connect(accounts[1]).finalize(
-    //     '1000000000000000000',
-    //     leveragePrimary,
-    //     '1000000000000000000',
-    //     leverageComplement,
-    //     exposureLimitPrimary,
-    //     exposureLimitComplement,
-    //     pMin,
-    //     qMin
-    //   ),
-    //   'NOT_CONTROLLER'
-    // );
-
-    // // Test tokens balance
-    // await expectRevert(
-    //   pool.finalize(
-    //     '1000000000000000000',
-    //     leveragePrimary,
-    //     '100000000000000000',
-    //     leverageComplement,
-    //     exposureLimitPrimary,
-    //     exposureLimitComplement,
-    //     pMin,
-    //     qMin
-    //   ),
-    //   'NOT_SYMMETRIC'
-    // );
-
-    // // Test the bind require checks
-    // await expectRevert(
-    //   pool.finalize(
-    //     '100000',
-    //     leveragePrimary,
-    //     '100000',
-    //     leverageComplement,
-    //     exposureLimitPrimary,
-    //     exposureLimitComplement,
-    //     pMin,
-    //     qMin
-    //   ),
-    //   'MIN_BALANCE'
-    // );
-
-    // // Test token leverage
-    // await expectRevert(
-    //   pool.finalize(
-    //     '1000000000000000000',
-    //     '0',
-    //     '1000000000000000000',
-    //     '0',
-    //     exposureLimitPrimary,
-    //     exposureLimitComplement,
-    //     pMin,
-    //     qMin
-    //   ),
-    //   'ZERO_LEVERAGE'
-    // );
-
-    controller = await upgrades.deployProxy(controllerFactory, [
-      collateral.address,
-      pool.address,
-      protocol.address,
-      volmexOracle.address
-
-    ]);
-    await controller.deployed();
-
-    const setController = await pool.setController(controller.address);
+    const setController = await pool.setController(owner);
     await setController.wait();
 
-    await (await volatility.approve(controller.address, "1000000000000000000")).wait();
-    await (await inverseVolatility.approve(controller.address, "1000000000000000000")).wait();
+    await (await volatility.approve(pool.address, "1000000000000000000")).wait();
+    await (await inverseVolatility.approve(pool.address, "1000000000000000000")).wait();
 
     const finalizeReceipt = await pool.finalize(
       '1000000000000000000',
@@ -225,6 +141,116 @@ describe('VolmexPool', function () {
   it('should deploy pool', async () => {
     const poolreceipt = await pool.deployed();
     expect(poolreceipt.confirmations).not.equal(0);
+  });
+
+  it('Should add liquidity', async () => {
+    await (await volatility.approve(pool.address, "28000000000000000000")).wait();
+    await (await inverseVolatility.approve(pool.address, "28000000000000000000")).wait();
+
+    const balanceBefore = Number(await volatility.balanceOf(owner));
+
+    const join = await pool.joinPool(
+      '7000000000000000000000',
+      ['28000000000000000000','28000000000000000000'],
+      owner
+    );
+    const {events} = await join.wait();
+
+    const balanceAfter = Number(await volatility.balanceOf(owner));
+
+    let data;
+    events.forEach((log: any) => {
+      if (log['event'] == 'LogJoin') {
+        data = log['data'];
+      }
+    })
+    const logData = ethers.utils.defaultAbiCoder.decode(
+      [ 'uint256' ],
+      data
+    );
+
+    expect(Number(balanceBefore - balanceAfter)).be.closeTo(Number(logData[0].toString()), 0);
+  });
+
+  it('Should remove liquidity', async () => {
+    await (await volatility.approve(pool.address, "28000000000000000000")).wait();
+    await (await inverseVolatility.approve(pool.address, "28000000000000000000")).wait();
+
+    const join = await pool.joinPool(
+      '7000000000000000000000',
+      ['28000000000000000000','28000000000000000000'],
+      owner
+    );
+    await join.wait();
+
+    const balanceBefore = Number(await volatility.balanceOf(owner));
+
+    const exit = await pool.exitPool(
+      '700000000000000000000',
+      ['2700000000000000000','2700000000000000000'],
+      owner
+    );
+    const {events} = await exit.wait();
+
+    const balanceAfter = Number(await volatility.balanceOf(owner));
+
+    let data;
+    events.forEach((log: any) => {
+      if (log['event'] == 'LogExit') {
+        data = log['data'];
+      }
+    })
+    const logData = ethers.utils.defaultAbiCoder.decode(
+      [ 'uint256' ],
+      data
+    );
+
+    expect(Number(balanceAfter - balanceBefore)).be.closeTo(Number(logData[0].toString()), 14);
+  });
+
+  it('Should swap the token', async () => {
+    await (await volatility.approve(pool.address, "38960000000000000000")).wait();
+    await (await inverseVolatility.approve(pool.address, "38960000000000000000")).wait();
+
+    const join = await pool.joinPool(
+      '7000000000000000000000',
+      ['38960000000000000000','38960000000000000000'],
+      owner
+    );
+    await join.wait();
+
+    const amountOut = await pool.getTokenAmountOut(
+      volatility.address,
+      "5960000000000000000"
+    );
+
+    await (await volatility.approve(pool.address, "5960000000000000000")).wait();
+    // await (await inverseVolatility.approve(pool.address, "38960000000000000000")).wait();
+
+    const balanceBefore = Number(await inverseVolatility.balanceOf(owner));
+    const swap = await pool.swapExactAmountIn(
+      volatility.address,
+      "5960000000000000000",
+      inverseVolatility.address,
+      amountOut[0].toString(),
+      owner,
+      false
+    );
+    const {events} = await swap.wait();
+    const balanceAfter = Number(await inverseVolatility.balanceOf(owner));
+
+    let data;
+    events.forEach((log: any) => {
+      if (log['event'] == 'LogSwap') {
+        data = log['data'];
+      }
+    })
+    const logData = ethers.utils.defaultAbiCoder.decode(
+      [ 'uint256' , 'uint256' , 'uint256', 'uint256', 'uint256', 'uint256', 'uint256'],
+      data
+    );
+
+    expect(Number(balanceAfter - balanceBefore)).be.closeTo(Number(logData[1].toString()), 490);
   });
 
   it("Should check the swap amount", async () => {
