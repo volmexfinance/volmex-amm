@@ -25,6 +25,7 @@ contract VolmexController is
     ERC165StorageUpgradeable,
     Const
 {
+    using ERC165CheckerUpgradeable for address;
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
     // Used to set the index of pool
@@ -60,6 +61,12 @@ contract VolmexController is
     // Address of the oracle
     IVolmexOracle public oracle;
 
+    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
+
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
+
+    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
+
     event AdminFeeUpdated(uint256 adminFee);
 
     event AssetSwaped(
@@ -91,7 +98,7 @@ contract VolmexController is
     /**
      * @notice Initializes the contract
      *
-     * @dev Sets the volatilityCapRatio and _minimumCollateralQty
+     * @dev Sets the volatilityCapRatio
      *
      * @param _stableCoins Address of the collateral token used in protocol
      * @param _pools Address of the pool contract
@@ -103,66 +110,34 @@ contract VolmexController is
         IVolmexProtocol[4] memory _protocols,
         IVolmexOracle _oracle
     ) external initializer {
-        pools[poolIndex] = _pools[0];
-        stableCoins[stableCoinIndex] = _stableCoins[0];
         require(
-            _stableCoins[stableCoinIndex] == _protocols[0].collateral(),
-            'VolmexController: Incorrect stableCoin for add protocol'
-        );
-        require(
-            _pools[poolIndex].getPrimaryDerivativeAddress() ==
-                address(_protocols[0].volatilityToken()),
-            'VolmexController: Incorrect pool for add protocol'
-        );
-        protocols[poolIndex][stableCoinIndex] = _protocols[0];
-        stableCoinIndex++;
-        stableCoins[stableCoinIndex] = _stableCoins[1];
-
-        require(
-            _stableCoins[stableCoinIndex] == _protocols[1].collateral(),
-            'VolmexController: Incorrect stableCoin for add protocol'
-        );
-        require(
-            _pools[poolIndex].getPrimaryDerivativeAddress() ==
-                address(_protocols[1].volatilityToken()),
-            'VolmexController: Incorrect pool for add protocol'
-        );
-        protocols[poolIndex][stableCoinIndex] = _protocols[1];
-        poolIndex++;
-
-        require(
-            _stableCoins[stableCoinIndex] == _protocols[2].collateral(),
-            'VolmexController: Incorrect stableCoin for add protocol'
-        );
-        require(
-            _pools[poolIndex].getPrimaryDerivativeAddress() ==
-                address(_protocols[2].volatilityToken()),
-            'VolmexController: Incorrect pool for add protocol'
-        );
-        protocols[poolIndex][stableCoinIndex - 1] = _protocols[2];
-        pools[poolIndex] = _pools[1];
-
-        require(
-            _stableCoins[stableCoinIndex] == _protocols[3].collateral(),
-            'VolmexController: Incorrect stableCoin for add protocol'
-        );
-        require(
-            _pools[poolIndex].getPrimaryDerivativeAddress() ==
-                address(_protocols[3].volatilityToken()),
-            'VolmexController: Incorrect pool for add protocol'
-        );
-        protocols[poolIndex][stableCoinIndex] = _protocols[3];
-        oracle = _oracle;
-        isPool[address(_pools[0])] = true;
-        isPool[address(_pools[1])] = true;
-        allPools.push(address(_pools[0]));
-        allPools.push(address(_pools[1]));
-        __ERC165Storage_init_unchained();
-        _registerInterface(type(IVolmexController).interfaceId);
-        require(
-            ERC165CheckerUpgradeable.supportsInterface(address(_oracle), type(IVolmexOracle).interfaceId),
+            _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
             'VolmexController: Oracle does not supports interface'
         );
+        // Note: Since loop size is very small so nested loop won't be a problem
+        for (uint256 i; i < 2; i++) {
+            pools[i] = _pools[i];
+            stableCoins[i] = _stableCoins[i];
+            isPool[address(_pools[i])] = true;
+            allPools.push(address(_pools[i]));
+            for (uint256 j; j < 2; j++) {
+                uint256 count;
+                require(
+                    _pools[i].getPrimaryDerivativeAddress() ==
+                        address(_protocols[count].volatilityToken()),
+                    'VolmexController: Incorrect pool for add protocol'
+                );
+                require(
+                    _stableCoins[j] == _protocols[count].collateral(),
+                    'VolmexController: Incorrect stableCoin for add protocol'
+                );
+                protocols[i][j] = _protocols[count];
+                count++;
+            }
+        }
+        oracle = _oracle;
+        __ERC165Storage_init_unchained();
+        _registerInterface(_IVOLMEX_CONTROLLER_ID);
     }
 
     /**
@@ -171,7 +146,10 @@ contract VolmexController is
      * @param _pool Address of the Pool contract
      */
     function addPool(IVolmexPool _pool) external onlyOwner {
-        require(address(_pool) != address(0), "VolmexController: address of pool can't be zero");
+        require(
+            _pool.supportsInterface(_IVOLMEX_POOL_ID),
+            'VolmexController: Pool does not supports interface'
+        );
         poolIndex++;
         pools[poolIndex] = _pool;
 
@@ -552,7 +530,7 @@ contract VolmexController is
      * @notice Used to call flash loan on Pool
      *
      * @dev This method is for developers.
-     * Make sure you call this metehod from a contract with the implementation
+     * Make sure you call this method from a contract with the implementation
      * of IFlashLoanReceiver interface
      *
      * @param _assetToken Address of the token in need
