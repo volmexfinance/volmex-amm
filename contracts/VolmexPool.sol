@@ -5,6 +5,7 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 
 import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
@@ -23,10 +24,12 @@ import './interfaces/IVolmexController.sol';
 contract VolmexPool is
     OwnableUpgradeable,
     PausableUpgradeable,
+    ERC165StorageUpgradeable,
     Token,
     Math,
     TokenMetadataGenerator
 {
+    using ERC165CheckerUpgradeable for address;
     struct Record {
         uint256 leverage;
         uint256 balance;
@@ -81,7 +84,9 @@ contract VolmexPool is
     // Number value of the volatility token index at oracle { 0 - ETHV, 1 - BTCV }
     uint256 public volatilityIndex;
 
-    bytes4 private constant _INTERFACE_ID_ERC165 = 0x01ffc9a7;
+    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
+
+    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
 
     uint256 public adminFee;
 
@@ -208,16 +213,16 @@ contract VolmexPool is
         uint256 _feeAmpComplement
     ) external initializer {
         require(
-            ERC165CheckerUpgradeable.supportsInterface(address(_repricer), _INTERFACE_ID_ERC165),
+            _repricer.supportsInterface(_IVOLMEX_REPRICER_ID),
             'VolmexPool: Repricer does not supports interface'
         );
-        repricer = _repricer;
-
-        // NOTE: Intentionally skipped require check for protocol
-        protocol = _protocol;
-
         __Ownable_init();
         __Pausable_init_unchained();
+        __ERC165Storage_init_unchained();
+        _registerInterface(_IVOLMEX_POOL_ID);
+        repricer = _repricer;
+
+        protocol = _protocol;
 
         upperBoundary = protocol.volatilityCapRatio() * BONE;
 
@@ -509,30 +514,6 @@ contract VolmexPool is
     }
 
     /**
-     * @notice Sets all type of fees
-     *
-     * @dev Checks the contract is finalised and caller is controller of the pool
-     *
-     * @param _baseFee Fee of the pool contract
-     * @param _maxFee Max fee of the pool while swap
-     * @param _feeAmpPrimary Fee on the primary token
-     * @param _feeAmpComplement Fee on the complement token
-     */
-    function setFeeParams(
-        uint256 _baseFee,
-        uint256 _maxFee,
-        uint256 _feeAmpPrimary,
-        uint256 _feeAmpComplement
-    ) internal _logs _lock _onlyNotSettled {
-        baseFee = _baseFee;
-        maxFee = _maxFee;
-        feeAmpPrimary = _feeAmpPrimary;
-        feeAmpComplement = _feeAmpComplement;
-
-        emit LogSetFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
-    }
-
-    /**
      * @notice getter, used to fetch the token amount out and fee
      *
      * @param _tokenIn Address of the token in
@@ -604,36 +585,32 @@ contract VolmexPool is
         );
     }
 
-    function getTokensToJoin(uint256[2] calldata maxAmountsIn) external view returns (uint256) {
-        uint256[2] memory poolAmountsOut;
+    function getTokensToJoin(uint256 poolAmountOut)
+        external
+        view
+        returns (uint256[2] memory maxAmountsIn)
+    {
         uint256 poolTotal = totalSupply();
+        uint256 ratio = div(poolAmountOut, poolTotal);
+        require(ratio != 0, 'VolmexPool: Invalid math approximation');
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             uint256 bal = _records[_tokens[i]].balance;
-            poolAmountsOut[i] = div(mul(maxAmountsIn[i], poolTotal), bal);
+            maxAmountsIn[i] = mul(ratio, bal);
         }
-        return min(poolAmountsOut[0], poolAmountsOut[1]);
     }
 
-    function getTokensToExit(uint256[2] calldata minAmountsOut) external view returns (uint256) {
-        uint256[2] memory poolAmountsIn;
+    function getTokensToExit(uint256 poolAmountIn)
+        external
+        view
+        returns (uint256[2] memory minAmountsOut)
+    {
         uint256 poolTotal = totalSupply();
+        uint256 ratio = div(poolAmountIn, poolTotal);
+        require(ratio != 0, 'VolmexPool: Invalid math approximation');
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             uint256 bal = _records[_tokens[i]].balance;
-            poolAmountsIn[i] = div(mul(minAmountsOut[i], poolTotal), bal);
-            uint256 tokenAmount = mul(div(poolAmountsIn[i], upperBoundary), BONE);
-            uint256 feeAmount = div(mul(tokenAmount, adminFee), 10000);
-            if (poolAmountsIn[i] > tokenAmount) {
-                poolAmountsIn[i] -= feeAmount;
-            }
+            minAmountsOut[i] = _calculateAmountOut(poolAmountIn, ratio, bal);
         }
-        return min(poolAmountsIn[0], poolAmountsIn[1]);
-    }
-
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
-        return interfaceId == type(IVolmexPool).interfaceId;
     }
 
     /**
@@ -688,6 +665,30 @@ contract VolmexPool is
 
     function getComplementDerivativeAddress() external view returns (address) {
         return _getComplementDerivativeAddress();
+    }
+
+    /**
+     * @notice Sets all type of fees
+     *
+     * @dev Checks the contract is finalised and caller is controller of the pool
+     *
+     * @param _baseFee Fee of the pool contract
+     * @param _maxFee Max fee of the pool while swap
+     * @param _feeAmpPrimary Fee on the primary token
+     * @param _feeAmpComplement Fee on the complement token
+     */
+    function setFeeParams(
+        uint256 _baseFee,
+        uint256 _maxFee,
+        uint256 _feeAmpPrimary,
+        uint256 _feeAmpComplement
+    ) internal _logs _lock _onlyNotSettled {
+        baseFee = _baseFee;
+        maxFee = _maxFee;
+        feeAmpPrimary = _feeAmpPrimary;
+        feeAmpComplement = _feeAmpComplement;
+
+        emit LogSetFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
     function _getRepriced(address tokenIn)
