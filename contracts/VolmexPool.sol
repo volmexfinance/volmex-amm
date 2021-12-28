@@ -915,7 +915,10 @@ contract VolmexPool is
         uint256 amount
     ) internal returns (uint256) {
         uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
-        IVolmexController(_controller).transferAssetToPool(IERC20Modified(erc20), from, amount);
+
+        _controller == owner()
+            ? EIP20NonStandardInterface(erc20).transferFrom(from, address(this), amount)
+            : IVolmexController(_controller).transferAssetToPool(IERC20Modified(erc20), from, amount);
 
         bool success;
         //solium-disable-next-line security/no-inline-assembly
