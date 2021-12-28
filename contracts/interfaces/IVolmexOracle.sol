@@ -2,7 +2,9 @@
 
 pragma solidity =0.8.11;
 
-interface IVolmexOracle {
+import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
+
+interface IVolmexOracle is IERC165Upgradeable {
     function getVolatilityTokenPriceByIndex(uint256 _index)
         external
         view
