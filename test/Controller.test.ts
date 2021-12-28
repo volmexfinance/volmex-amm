@@ -268,23 +268,59 @@ describe('VolmexController', function () {
     const {events} = await swap.wait();
     const balanceAfter = await volatilities['ETH'].balanceOf(owner);
 
-    const logData = getEventLog(events, 'AssetSwaped');
+    const logData = getEventLog(events, 'AssetSwaped', ['uint256', 'uint256', 'uint256', 'uint256']);
 
     const changedAmount = balanceAfter.sub(balanceBefore)
 
     expect(Number(changedAmount.toString())).to.equal(Number(logData[1].toString()));
   });
+
+  it('Should swap volatility to collateral', async () => {
+    await (await volatilities['ETH'].approve(controller.address, "599999999000000000000000000")).wait();
+    await (await inverseVolatilities['ETH'].approve(controller.address, "599999999000000000000000000")).wait();
+
+    const add = await controller.addLiquidity(
+      '250000000000000000000000000',
+      ['599999999000000000000000000','599999999000000000000000000'],
+      '0'
+    );
+    await add.wait();
+
+    const colAmount = await controller.getVolatilityToCollateral(
+      volatilities['ETH'].address,
+      "20000000000000000000",
+      0, 0,
+      false
+    );
+
+    await (await volatilities['ETH'].approve(controller.address, "20000000000000000000")).wait();
+    const collateralBefore = await collateral['DAI'].balanceOf(owner);
+
+    const swap = await controller.swapVolatilityToCollateral(
+      ["20000000000000000000", colAmount[0].toString()],
+      ["0", "0"],
+      volatilities['ETH'].address
+    );
+    const {events} = await swap.wait();
+    const collateralAfter = await collateral['DAI'].balanceOf(owner);
+
+    const changedBalance = collateralAfter.sub(collateralBefore);
+
+    const logData = getEventLog(events, 'AssetSwaped', ['uint256', 'uint256', 'uint256', 'uint256']);
+
+    expect(Number(changedBalance.toString())).to.equal(Number(logData[1].toString()));
+  });
 });
 
-const getEventLog = (events: any[], eventName: string): any => {
+const getEventLog = (events: any[], eventName: string, params: string[]): any => {
   let data;
   events.forEach((log: any) => {
-    if (log['event'] == 'AssetSwaped') {
+    if (log['event'] == eventName) {
       data = log['data'];
     }
   })
   const logData = ethers.utils.defaultAbiCoder.decode(
-    [ 'uint256', 'uint256', 'uint256', 'uint256' ],
+    params,
     data
   );
   return logData;
