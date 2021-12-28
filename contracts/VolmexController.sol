@@ -61,10 +61,11 @@ contract VolmexController is
     // Address of the oracle
     IVolmexOracle public oracle;
 
+    // Interface ID of VolmexController contract
     bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
-
+    // Interface ID of VolmexOracle contract
     bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
-
+    // Interface ID of VolmexPool contract
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
 
     event AdminFeeUpdated(uint256 adminFee);

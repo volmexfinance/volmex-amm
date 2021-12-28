@@ -26,6 +26,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
     // price precision constant upto 6 decimal places
     uint256 private constant VOLATILITY_PRICE_PRECISION = 1000000;
 
+    // Interface ID of VolmexOracle contract
     bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
 
     event BatchVolatilityTokenPriceUpdated(

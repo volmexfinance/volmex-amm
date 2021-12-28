@@ -84,8 +84,9 @@ contract VolmexPool is
     // Number value of the volatility token index at oracle { 0 - ETHV, 1 - BTCV }
     uint256 public volatilityIndex;
 
+    // Interface ID of VolmexRepricer contract
     bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
-
+    // Interface ID of VolmexPool contract
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
 
     uint256 public adminFee;

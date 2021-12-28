@@ -12,6 +12,7 @@ import './interfaces/IVolmexPoolView.sol';
 
 /// @title Reading key data from specified derivative trading Pool
 contract VolmexPoolView is Initializable, ERC165StorageUpgradeable {
+    // Interface ID of VolmexPoolView contract
     bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
     /// @notice Contains key information about a derivative token
     struct TokenRecord {
