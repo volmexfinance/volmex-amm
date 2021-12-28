@@ -380,6 +380,8 @@ contract VolmexPool is
      * @param tokenAmountIn Amount of asset the user supply
      * @param tokenOut Address of the pool asset which the user wants
      * @param minAmountOut Minimum amount of asset the user wants
+     * @param receiver Address of the contract/user from tokens are pulled
+     * @param toController Bool value, if `true` push to controller, else to `receiver`
      */
     function swapExactAmountIn(
         address tokenIn,
@@ -463,15 +465,17 @@ contract VolmexPool is
      * @dev Perform swaps
      *
      * @param tokenIn Address of the pool asset which the user supply
-     * @param tokenAmountOut Amount of asset the user wants
+     * @param maxAmountIn Maximum expected amount of asset the user can supply
      * @param tokenOut Address of the pool asset which the user wants
-     * @param minAmountIn Minimum amount of asset the user can supply
+     * @param tokenAmountOut Amount of asset the user wants
+     * @param receiver Address of the contract/user from tokens are pulled
+     * @param toController Bool value, if `true` push to controller, else to `receiver`
      */
     function swapExactAmountOut(
         address tokenIn,
-        uint256 tokenAmountOut,
+        uint256 maxAmountIn,
         address tokenOut,
-        uint256 minAmountIn,
+        uint256 tokenAmountOut,
         address receiver,
         bool toController
     )
@@ -519,7 +523,7 @@ contract VolmexPool is
             tokenAmountOut,
             fee
         );
-        require(tokenAmountOut >= minAmountIn, 'VolmexPool: Amount out limit exploit');
+        require(tokenAmountIn <= maxAmountIn, 'VolmexPool: Amount out limit exploit');
 
         uint256 spotPriceBefore = calcSpotPrice(
             _getLeveragedBalance(inRecord),
