@@ -114,30 +114,39 @@ contract VolmexController is
             _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
             'VolmexController: Oracle does not supports interface'
         );
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_CONTROLLER_ID);
+        uint256 protocolCount;
         // Note: Since loop size is very small so nested loop won't be a problem
         for (uint256 i; i < 2; i++) {
+            require(
+                _pools[i].supportsInterface(_IVOLMEX_POOL_ID),
+                'VolmexController: Pool does not supports interface'
+            );
+            require(
+                address(_stableCoins[i]) != address(0),
+                "VolmexController: address of stable coin can't be zero"
+            );
+
             pools[i] = _pools[i];
             stableCoins[i] = _stableCoins[i];
             isPool[address(_pools[i])] = true;
             allPools.push(address(_pools[i]));
             for (uint256 j; j < 2; j++) {
-                uint256 count;
                 require(
                     _pools[i].getPrimaryDerivativeAddress() ==
-                        address(_protocols[count].volatilityToken()),
+                        address(_protocols[protocolCount].volatilityToken()),
                     'VolmexController: Incorrect pool for add protocol'
                 );
                 require(
-                    _stableCoins[j] == _protocols[count].collateral(),
+                    _stableCoins[j] == _protocols[protocolCount].collateral(),
                     'VolmexController: Incorrect stableCoin for add protocol'
                 );
-                protocols[i][j] = _protocols[count];
-                count++;
+                protocols[i][j] = _protocols[protocolCount];
+                protocolCount++;
             }
         }
         oracle = _oracle;
-        __ERC165Storage_init_unchained();
-        _registerInterface(_IVOLMEX_CONTROLLER_ID);
     }
 
     /**
@@ -500,6 +509,23 @@ contract VolmexController is
      * @param _poolIndex Index of the pool in which user wants to add liquidity
      */
     function addLiquidity(
+        uint256 _poolAmountOut,
+        uint256[2] calldata _maxAmountsIn,
+        uint256 _poolIndex
+    ) external whenNotPaused {
+        IVolmexPool _pool = pools[_poolIndex];
+
+        _pool.joinPool(_poolAmountOut, _maxAmountsIn, msg.sender);
+    }
+
+    /**
+     * @notice Used to add liquidity in the pool
+     *
+     * @param _poolAmountOut Amount of pool token mint and transfer to LP
+     * @param _maxAmountsIn Max amount of pool assets an LP can supply
+     * @param _poolIndex Index of the pool in which user wants to add liquidity
+     */
+    function addLiquiditySingleSide(
         uint256 _poolAmountOut,
         uint256[2] calldata _maxAmountsIn,
         uint256 _poolIndex
