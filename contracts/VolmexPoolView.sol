@@ -4,12 +4,15 @@ pragma solidity =0.8.11;
 pragma abicoder v2;
 
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IERC20Modified.sol';
+import './interfaces/IVolmexPoolView.sol';
 
 /// @title Reading key data from specified derivative trading Pool
-contract VolmexPoolView is Initializable {
+contract VolmexPoolView is Initializable, ERC165StorageUpgradeable {
+    bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
     /// @notice Contains key information about a derivative token
     struct TokenRecord {
         address self;
@@ -44,7 +47,10 @@ contract VolmexPoolView is Initializable {
         uint256 feeAmpComplement;
     }
 
-    function initialize() external initializer {}
+    function initialize() external initializer {
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_POOLVIEW_ID);
+    }
 
     /// @notice Getting information about Pool configuration, it's derivative and pool(LP) tokens
     /// @param _pool the vault address
@@ -157,12 +163,9 @@ contract VolmexPoolView is Initializable {
         view
         returns (
             address protocol,
-            // address dynamicFee,
             address repricer,
             uint256 exposureLimitPrimary,
             uint256 exposureLimitComplement,
-            // uint256 repricerParam1,
-            // uint256 repricerParam2,
             uint256 pMin,
             uint256 qMin,
             uint256 baseFee,
@@ -173,7 +176,6 @@ contract VolmexPoolView is Initializable {
     {
         IVolmexPool pool = IVolmexPool(_pool);
         protocol = address(pool.protocol());
-        // dynamicFee = address(pool.dynamicFee());
         repricer = address(pool.repricer());
         pMin = pool.pMin();
         qMin = pool.qMin();
