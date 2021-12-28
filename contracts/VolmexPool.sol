@@ -216,7 +216,7 @@ contract VolmexPool is
             _repricer.supportsInterface(_IVOLMEX_REPRICER_ID),
             'VolmexPool: Repricer does not supports interface'
         );
-        require(address(_protocol) != address(0), "volmexPool: protocol address can't be zero");
+        require(address(_protocol) != address(0), "VolmexPool: protocol address can't be zero");
         __Ownable_init();
         __Pausable_init();
         __ERC165Storage_init();
