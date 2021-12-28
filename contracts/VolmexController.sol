@@ -534,11 +534,51 @@ contract VolmexController is
     function addLiquiditySingleSide(
         uint256 _poolAmountOut,
         uint256[2] calldata _maxAmountsIn,
+        address _tokenIn,
         uint256 _poolIndex
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
-        _pool.joinPool(_poolAmountOut, _maxAmountsIn, msg.sender);
+        uint256[2] memory maxAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
+
+        bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
+
+        _pool.swapExactAmountOut(
+            _tokenIn,
+            isInverse ? maxAmountsIn[1] : maxAmountsIn[0],
+            isInverse
+                ? _pool.getPrimaryDerivativeAddress()
+                : _pool.getComplementDerivativeAddress(),
+            isInverse ? maxAmountsIn[0] : maxAmountsIn[1],
+            msg.sender,
+            true
+        );
+
+        IERC20(_tokenIn).transferFrom(
+            msg.sender,
+            address(this),
+            isInverse ? maxAmountsIn[1] : maxAmountsIn[0]
+        );
+
+        _approveAssets(
+            IERC20Modified(_pool.getPrimaryDerivativeAddress()),
+            maxAmountsIn[0],
+            address(this),
+            address(this)
+        );
+
+        _approveAssets(
+            IERC20Modified(_pool.getComplementDerivativeAddress()),
+            maxAmountsIn[1],
+            address(this),
+            address(this)
+        );
+
+        _pool.joinPool(_poolAmountOut, maxAmountsIn, address(this));
+
+        transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
+
+        // Add event for the call
     }
 
     /**
