@@ -69,6 +69,12 @@ contract VolmexController is
 
     event AdminFeeUpdated(uint256 adminFee);
 
+    event AssetSwappedSamePool(
+        uint256 volatilityInAmount,
+        uint256 volatilityOutAmount,
+        address indexed tokenIn
+    );
+
     event AssetSwaped(
         uint256 volatilityInAmount,
         uint256 collateralOutAmount,
@@ -581,7 +587,13 @@ contract VolmexController is
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
-        _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
+        (uint256 _tokenAmountOut,) = _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
+
+        emit AssetSwappedSamePool(
+            _amountIn,
+            _tokenAmountOut,
+            _tokenIn
+        );
     }
 
     /**
