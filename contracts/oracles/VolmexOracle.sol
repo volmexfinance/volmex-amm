@@ -128,7 +128,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
         string calldata _volatilityTokenSymbol,
         bytes32 _proofHash
     ) external onlyOwner {
-        require(address(_protocol) != address(0), "volmexOracle: protocol address can't be zero");
+        require(address(_protocol) != address(0), "VolmexOracle: protocol address can't be zero");
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
         require(
             _volatilityCapRatio >= 1000000,
