@@ -5,7 +5,7 @@ pragma solidity =0.8.11;
 import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol";
 
 contract TestCollateralToken is ERC20PresetMinterPauser {
-    constructor() ERC20PresetMinterPauser("VolmexTestCollateralToken", "VUSD") {
+    constructor(string memory symbol) ERC20PresetMinterPauser("VolmexTestCollateralToken", symbol) {
         mint(msg.sender, 10000000000000000000000);
     }
 }

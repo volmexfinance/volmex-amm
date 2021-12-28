@@ -33,7 +33,7 @@ describe('Repricer', function () {
   });
 
   this.beforeEach(async function () {
-    collateral = await collateralFactory.deploy();
+    collateral = await collateralFactory.deploy("VUSD");
     await collateral.deployed();
 
     volatility = await volatilityFactory.deploy();
