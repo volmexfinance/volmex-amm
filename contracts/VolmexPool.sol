@@ -144,7 +144,7 @@ contract VolmexPool is
     /**
      * @notice Used to log the callee's sig, address and data
      */
-    modifier _logs() {
+    modifier logs() {
         emit LogCall(msg.sig, msg.sender, msg.data);
         _;
     }
@@ -152,7 +152,7 @@ contract VolmexPool is
     /**
      * @notice Used to prevent the re-entry
      */
-    modifier _lock() {
+    modifier lock() {
         require(!_mutex, 'VolmexPool: REENTRY');
         _mutex = true;
         _;
@@ -162,7 +162,7 @@ contract VolmexPool is
     /**
      * @notice Used to prevent multiple call to view methods
      */
-    modifier _viewlock() {
+    modifier viewlock() {
         require(!_mutex, 'VolmexPool: REENTRY');
         _;
     }
@@ -170,7 +170,7 @@ contract VolmexPool is
     /**
      * @notice Used to check the pool is finalised
      */
-    modifier _onlyFinalized() {
+    modifier onlyFinalized() {
         require(_finalized, 'VolmexPool: Pool is not finalized');
         _;
     }
@@ -178,7 +178,7 @@ contract VolmexPool is
     /**
      * @notice Used to check the protocol is not settled
      */
-    modifier _onlyNotSettled() {
+    modifier onlyNotSettled() {
         require(!protocol.isSettled(), 'VolmexPool: Protocol is settled');
         _;
     }
@@ -186,7 +186,7 @@ contract VolmexPool is
     /**
      * @notice Used to check the caller is controller
      */
-    modifier _onlyController() {
+    modifier onlyController() {
         require(msg.sender == _controller, 'VolmexPool: Caller is not controller');
         _;
     }
@@ -216,9 +216,10 @@ contract VolmexPool is
             _repricer.supportsInterface(_IVOLMEX_REPRICER_ID),
             'VolmexPool: Repricer does not supports interface'
         );
+        require(address(_protocol) != address(0), "volmexPool: protocol address can't be zero");
         __Ownable_init();
-        __Pausable_init_unchained();
-        __ERC165Storage_init_unchained();
+        __Pausable_init();
+        __ERC165Storage_init();
         _registerInterface(_IVOLMEX_POOL_ID);
         repricer = _repricer;
 
@@ -276,7 +277,7 @@ contract VolmexPool is
         address assetToken,
         uint256 amount,
         bytes calldata params
-    ) external _lock whenNotPaused _onlyController {
+    ) external lock whenNotPaused onlyController {
         _records[assetToken].balance = _records[assetToken].balance - amount;
         IERC20Modified(assetToken).transfer(receiverAddress, amount);
 
@@ -309,7 +310,7 @@ contract VolmexPool is
         uint256 poolAmountOut,
         uint256[2] calldata maxAmountsIn,
         address receiver
-    ) external _logs _lock _onlyFinalized _onlyController {
+    ) external logs lock onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountOut, poolTotal);
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
@@ -345,7 +346,7 @@ contract VolmexPool is
         uint256 poolAmountIn,
         uint256[2] calldata minAmountsOut,
         address receiver
-    ) external _logs _lock _onlyFinalized _onlyController {
+    ) external logs lock onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(poolAmountIn, poolTotal);
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
@@ -388,12 +389,12 @@ contract VolmexPool is
         bool toController
     )
         external
-        _logs
-        _lock
+        logs
+        lock
         whenNotPaused
-        _onlyFinalized
-        _onlyNotSettled
-        _onlyController
+        onlyFinalized
+        onlyNotSettled
+        onlyController
         returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
     {
         require(tokenIn != tokenOut, 'VolmexPool: Passed same token addresses');
@@ -425,12 +426,6 @@ contract VolmexPool is
             _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
-        uint256 spotPriceBefore = calcSpotPrice(
-            _getLeveragedBalance(inRecord),
-            _getLeveragedBalance(outRecord),
-            0
-        );
-
         tokenAmountOut = calcOutGivenIn(
             _getLeveragedBalance(inRecord),
             _getLeveragedBalance(outRecord),
@@ -438,6 +433,98 @@ contract VolmexPool is
             fee
         );
         require(tokenAmountOut >= minAmountOut, 'VolmexPool: Amount out limit exploit');
+
+        uint256 spotPriceBefore = calcSpotPrice(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            0
+        );
+
+        spotPriceAfter = _performSwap(
+            tokenIn,
+            tokenAmountIn,
+            tokenOut,
+            tokenAmountOut,
+            spotPriceBefore,
+            fee,
+            receiver,
+            toController
+        );
+    }
+
+    /**
+     * @notice Used to swap the pool asset
+     *
+     * @dev Checks the token address, should be different
+     * @dev token amount in should be greater than qMin
+     * @dev reprices the assets
+     * @dev Calculates the token amount out and spot price
+     * @dev Perform swaps
+     *
+     * @param tokenIn Address of the pool asset which the user supply
+     * @param tokenAmountOut Amount of asset the user wants
+     * @param tokenOut Address of the pool asset which the user wants
+     * @param minAmountIn Minimum amount of asset the user can supply
+     */
+    function swapExactAmountOut(
+        address tokenIn,
+        uint256 tokenAmountOut,
+        address tokenOut,
+        uint256 minAmountIn,
+        address receiver,
+        bool toController
+    )
+        external
+        logs
+        lock
+        whenNotPaused
+        onlyFinalized
+        onlyNotSettled
+        onlyController
+        returns (uint256 tokenAmountIn, uint256 spotPriceAfter)
+    {
+        require(tokenIn != tokenOut, 'VolmexPool: Passed same token addresses');
+        require(tokenAmountOut >= qMin, 'VolmexPool: Amount in quantity should be larger');
+
+        _reprice();
+
+        Record memory inRecord = _records[tokenIn];
+        Record memory outRecord = _records[tokenOut];
+
+        require(
+            tokenAmountOut <=
+                mul(min(_getLeveragedBalance(outRecord), outRecord.balance), MAX_OUT_RATIO),
+            'VolmexPool: Amount in max ratio exploit'
+        );
+
+        tokenAmountIn = calcInGivenOut(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            tokenAmountOut,
+            0
+        );
+
+        uint256 fee = _calcFee(
+            inRecord,
+            tokenAmountIn,
+            outRecord,
+            tokenAmountOut,
+            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+        );
+
+        tokenAmountIn = calcInGivenOut(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            tokenAmountOut,
+            fee
+        );
+        require(tokenAmountOut >= minAmountIn, 'VolmexPool: Amount out limit exploit');
+
+        uint256 spotPriceBefore = calcSpotPrice(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            0
+        );
 
         spotPriceAfter = _performSwap(
             tokenIn,
@@ -477,7 +564,7 @@ contract VolmexPool is
         uint256 _exposureLimitComplement,
         uint256 _pMin,
         uint256 _qMin
-    ) external _logs _lock _onlyNotSettled onlyOwner {
+    ) external logs lock onlyNotSettled onlyOwner {
         require(!_finalized, 'VolmexPool: Pool is finalized');
 
         require(
@@ -523,7 +610,8 @@ contract VolmexPool is
         external
         view
         returns (uint256 tokenAmountOut, uint256 fee)
-    {
+    {   
+        
         (Record memory inRecord, Record memory outRecord) = _getRepriced(_tokenIn);
 
         tokenAmountOut = calcOutGivenIn(
@@ -616,14 +704,14 @@ contract VolmexPool is
     /**
      * @notice Used to pause the contract
      */
-    function pause() external _onlyController {
+    function pause() external onlyController {
         _pause();
     }
 
     /**
      * @notice Used to unpause the contract, if paused
      */
-    function unpause() external _onlyController {
+    function unpause() external onlyController {
         _unpause();
     }
 
@@ -637,7 +725,7 @@ contract VolmexPool is
     /**
      * @notice Used to get the token addresses
      */
-    function getTokens() external view _viewlock returns (address[BOUND_TOKENS] memory tokens) {
+    function getTokens() external view viewlock returns (address[BOUND_TOKENS] memory tokens) {
         return _tokens;
     }
 
@@ -646,7 +734,7 @@ contract VolmexPool is
      *
      * @param token Address of the token, either primary or complement
      */
-    function getLeverage(address token) external view _viewlock returns (uint256) {
+    function getLeverage(address token) external view viewlock returns (uint256) {
         return _records[token].leverage;
     }
 
@@ -655,7 +743,7 @@ contract VolmexPool is
      *
      * @param token Address of the token. either primary or complement
      */
-    function getBalance(address token) external view _viewlock returns (uint256) {
+    function getBalance(address token) external view viewlock returns (uint256) {
         return _records[token].balance;
     }
 
@@ -682,7 +770,7 @@ contract VolmexPool is
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
-    ) internal _logs _lock _onlyNotSettled {
+    ) internal logs lock onlyNotSettled {
         baseFee = _baseFee;
         maxFee = _maxFee;
         feeAmpPrimary = _feeAmpPrimary;
@@ -775,8 +863,6 @@ contract VolmexPool is
             complementRecord.leverage,
             estPricePrimary,
             estPriceComplement
-            // underlyingStarts: Value of underlying assets (derivative) in USD in the beginning
-            // derivativeVault.underlyingStarts(0)
         );
     }
 
@@ -1122,7 +1208,7 @@ contract VolmexPool is
 
     // ==
     // 'Underlying' token-manipulation functions make external calls but are NOT locked
-    // You must `_lock_` or otherwise ensure reentry-safety
+    // You must `lock` or otherwise ensure reentry-safety
 
     function _pullPoolShare(address from, uint256 amount) internal {
         _pull(from, amount);
