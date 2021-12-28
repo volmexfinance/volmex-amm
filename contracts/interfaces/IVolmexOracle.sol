@@ -15,10 +15,9 @@ interface IVolmexOracle is IERC165Upgradeable {
         view
         returns (uint256 volatilityTokenPrice, uint256 iVolatilityTokenPrice);
 
-    function updateBatchVolatilityTokenPrices(
+    function updateBatchVolatilityTokenPrice(
         uint256[] memory _volatilityIndexes,
         uint256[] memory _volatilityTokenPrices,
-        uint256[] memory _indexes,
         bytes32[] memory _proofHashes
     ) external;
 
