@@ -29,13 +29,14 @@ contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra {
      * @param _oracle Address of the Volmex Oracle contract
      */
     function initialize(IVolmexOracle _oracle) external initializer {
-        __ERC165Storage_init();
-        _registerInterface(_IVOLMEX_REPRICER_ID);
         require(
             _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
             'VolmexController: Oracle does not supports interface'
         );
         oracle = _oracle;
+
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_REPRICER_ID);
     }
 
     /**

@@ -49,8 +49,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
      */
     function initialize() external initializer {
         __Ownable_init();
-        __ERC165Storage_init();
-        _registerInterface(_IVOLMEX_ORACLE_ID);
+
         _volatilityTokenPriceByIndex[indexCount] = 125000000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['ETHV'] = indexCount;
@@ -62,6 +61,9 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['BTCV'] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
+
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_ORACLE_ID);
     }
 
     /**

@@ -219,7 +219,7 @@ contract VolmexPool is
         );
         require(address(_protocol) != address(0), "VolmexPool: protocol address can't be zero");
         __Ownable_init();
-        __Pausable_init();
+        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
         __ERC165Storage_init();
         _registerInterface(_IVOLMEX_POOL_ID);
         repricer = _repricer;

@@ -115,8 +115,10 @@ contract VolmexController is
             _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
             'VolmexController: Oracle does not supports interface'
         );
-        __ERC165Storage_init();
-        _registerInterface(_IVOLMEX_CONTROLLER_ID);
+
+        __Ownable_init();
+        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
+
         uint256 protocolCount;
         // Note: Since loop size is very small so nested loop won't be a problem
         for (uint256 i; i < 2; i++) {
@@ -148,6 +150,9 @@ contract VolmexController is
             }
         }
         oracle = _oracle;
+
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_CONTROLLER_ID);
     }
 
     /**
