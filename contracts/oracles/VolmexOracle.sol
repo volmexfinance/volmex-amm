@@ -12,6 +12,7 @@ import '../interfaces/IVolmexOracle.sol';
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
+
     // Store the price of volatility by indexes { 0 - ETHV, 1 = BTCV }
     mapping(uint256 => uint256) private _volatilityTokenPriceByIndex;
     // Store the volatilitycapratio by index
@@ -24,6 +25,8 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
     uint256 public indexCount;
     // price precision constant upto 6 decimal places
     uint256 private constant VOLATILITY_PRICE_PRECISION = 1000000;
+
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
 
     event BatchVolatilityTokenPriceUpdated(
         uint256[] _volatilityIndexes,
@@ -57,7 +60,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
         volatilityIndexBySymbol['BTCV'] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
         __ERC165Storage_init_unchained();
-        _registerInterface(type(IVolmexOracle).interfaceId);
+        _registerInterface(_IVOLMEX_ORACLE_ID);
     }
 
     /**

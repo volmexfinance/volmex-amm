@@ -15,8 +15,14 @@ import '../maths/NumExtra.sol';
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra {
+
+    using ERC165CheckerUpgradeable for address;
     // Instance of oracle contract
     IVolmexOracle public oracle;
+
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
+
+    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
 
     /**
      * @notice Initializes the contract, setting the required state variables
@@ -24,16 +30,12 @@ contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra {
      */
     function initialize(IVolmexOracle _oracle) external initializer {
         require(
-            AddressUpgradeable.isContract(address(_oracle)),
-            'Repricer: Not an oracle contract'
+            _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
+            'VolmexController: Oracle does not supports interface'
         );
         oracle = _oracle;
         __ERC165Storage_init_unchained();
-        _registerInterface(type(IVolmexRepricer).interfaceId);
-        require(
-            ERC165CheckerUpgradeable.supportsInterface(address(_oracle), type(IVolmexOracle).interfaceId),
-            'VolmexController: Oracle does not supports interface'
-        );
+        _registerInterface(_IVOLMEX_REPRICER_ID);
     }
 
     /**
