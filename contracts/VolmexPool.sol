@@ -88,6 +88,8 @@ contract VolmexPool is
     bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
     // Interface ID of VolmexPool contract
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
+    // Interface ID of VolmexController contract
+    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
 
     uint256 public adminFee;
 
@@ -246,11 +248,14 @@ contract VolmexPool is
     /**
      * @notice Set controller of the Pool
      *
-     * @param controller Address of the pool contract controller
+     * @param __controller Address of the pool contract controller
      */
-    function setController(address controller) external onlyOwner {
-        require(controller != address(0), 'VolmexPool: Deployer can not be zero address');
-        _controller = controller;
+    function setController(address __controller) external onlyOwner {
+        require(
+            __controller.supportsInterface(_IVOLMEX_CONTROLLER_ID),
+            'VolmexPool: Not Controller'
+        );
+        _controller = __controller;
 
         emit SetController(_controller);
     }
