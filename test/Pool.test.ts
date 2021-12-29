@@ -29,7 +29,7 @@ describe('VolmexPool', function () {
 
     volmexOracleFactory = await ethers.getContractFactory('VolmexOracle');
 
-    poolFactory = await ethers.getContractFactory('VolmexPool');
+    poolFactory = await ethers.getContractFactory('VolmexPoolMock');
 
     collateralFactory = await ethers.getContractFactory('TestCollateralToken');
 
