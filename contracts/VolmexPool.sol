@@ -205,6 +205,12 @@ contract VolmexPool is
      * @param _repricer Address of the volmex repricer contract
      * @param _protocol Address of the volmex protocol contract
      * @param _volatilityIndex Index of the volatility price in oracle
+     * @param _baseFee Fee of the pool contract
+     * @param _maxFee Max fee of the pool while swap
+     * @param _feeAmpPrimary Fee on the primary token
+     * @param _feeAmpComplement Fee on the complement token
+     *
+     * NOTE: The baseFee should be set considering a range not more than 0.02 * 10^18
      */
     function initialize(
         IVolmexRepricer _repricer,
