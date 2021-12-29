@@ -534,6 +534,7 @@ contract VolmexController is
      * @notice Used to add liquidity in the pool
      *
      * @param _tokenIn Address of the supplied token by user
+     * @param _maxAmountIn Maximum expected volatility amount in
      * @param _poolAmountOut Amount of pool token mint and transfer to LP
      * @param _poolIndex Index of the pool in which user wants to add liquidity
      */
