@@ -153,9 +153,9 @@ interface IVolmexController is IERC165Upgradeable {
 
     event PoolTokensCollected(address indexed owner, uint256 amount);
 
-    event AddedSingleSideLiquidity(
+    event SingleSideLiquidityAdded(
         address indexed tokenIn,
         uint256 poolAmountOut,
-        uint256[2] maxAmountsIn
+        uint256 totalTokenAmountIn
     );
 }

@@ -501,8 +501,8 @@ contract VolmexController is
      */
     function addSingleSideLiquidity(
         address _tokenIn,
-        uint256 _maxAmountIn,
         uint256 _poolAmountOut,
+        uint256 _maxAmountIn,
         uint256 _poolIndex
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
@@ -512,7 +512,7 @@ contract VolmexController is
         bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
 
         // TODO: Need to check tokenAmountIn and volatilityAmountIn of same are equal
-        (uint256 tokenAmountIn,) = _pool.swapExactAmountOut(
+        (uint256 totalTokenAmountIn,) = _pool.swapExactAmountOut(
             _tokenIn,
             _maxAmountIn - (isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0]),
             isInverse
@@ -543,10 +543,11 @@ contract VolmexController is
             address(this)
         );
 
-        tokenAmountIn += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
+        // Used same variable to save space/gas
+        totalTokenAmountIn += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
 
         require(
-            tokenAmountIn <= _maxAmountIn,
+            totalTokenAmountIn <= _maxAmountIn,
             'VolmexController: Insufficient expected volatility amount'
         );
 
@@ -554,10 +555,10 @@ contract VolmexController is
 
         transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
 
-        emit AddedSingleSideLiquidity(
+        emit SingleSideLiquidityAdded(
             _tokenIn,
             _poolAmountOut,
-            volatilityAmountsIn
+            totalTokenAmountIn
         );
     }
 
