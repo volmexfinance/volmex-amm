@@ -153,7 +153,7 @@ interface IVolmexController is IERC165Upgradeable {
 
     event PoolTokensCollected(address indexed owner, uint256 amount);
 
-    event SingleSideLiquidityAdded(
+    event LogJoinSingleSide(
         address indexed tokenIn,
         uint256 poolAmountOut,
         uint256 totalTokenAmountIn

@@ -555,7 +555,7 @@ contract VolmexController is
 
         transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
 
-        emit SingleSideLiquidityAdded(
+        emit LogJoinSingleSide(
             _tokenIn,
             _poolAmountOut,
             totalTokenAmountIn
