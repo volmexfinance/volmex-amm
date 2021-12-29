@@ -507,17 +507,17 @@ contract VolmexController is
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
-        uint256[2] memory maxAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
+        uint256[2] memory volatilityAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
 
         bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
 
         (uint256 tokenAmountIn,) = _pool.swapExactAmountOut(
             _tokenIn,
-            isInverse ? maxAmountsIn[1] : maxAmountsIn[0],
+            isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0],
             isInverse
                 ? _pool.getPrimaryDerivativeAddress()
                 : _pool.getComplementDerivativeAddress(),
-            isInverse ? maxAmountsIn[0] : maxAmountsIn[1],
+            isInverse ? volatilityAmountsIn[0] : volatilityAmountsIn[1],
             msg.sender,
             true
         );
@@ -525,38 +525,38 @@ contract VolmexController is
         IERC20(_tokenIn).transferFrom(
             msg.sender,
             address(this),
-            isInverse ? maxAmountsIn[1] : maxAmountsIn[0]
+            isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0]
         );
 
         _approveAssets(
             IERC20Modified(_pool.getPrimaryDerivativeAddress()),
-            maxAmountsIn[0],
+            volatilityAmountsIn[0],
             address(this),
             address(this)
         );
 
         _approveAssets(
             IERC20Modified(_pool.getComplementDerivativeAddress()),
-            maxAmountsIn[1],
+            volatilityAmountsIn[1],
             address(this),
             address(this)
         );
 
-        tokenAmountIn += isInverse ? maxAmountsIn[1] : maxAmountsIn[0];
+        tokenAmountIn += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
 
         require(
             tokenAmountIn <= _maxAmountIn,
             'VolmexController: Insufficient expected volatility amount'
         );
 
-        _pool.joinPool(_poolAmountOut, maxAmountsIn, address(this));
+        _pool.joinPool(_poolAmountOut, volatilityAmountsIn, address(this));
 
         transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
 
         emit AddedSingleSideLiquidity(
             _tokenIn,
             _poolAmountOut,
-            maxAmountsIn
+            volatilityAmountsIn
         );
     }
 
@@ -770,14 +770,14 @@ contract VolmexController is
      *
      * returns token amount in
      */
-    function getAmountForSingleSide(
+    function getTokenToJoin(
         address _tokenIn,
         uint256 _poolAmountOut,
         uint256 _poolIndex
     ) external view returns (uint256 tokenAmount) {
         IVolmexPool _pool = pools[_poolIndex];
 
-        uint256[2] memory maxAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
+        uint256[2] memory volatilityAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
 
         bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
 
@@ -785,10 +785,10 @@ contract VolmexController is
             isInverse
                 ? _pool.getPrimaryDerivativeAddress()
                 : _pool.getComplementDerivativeAddress(),
-            isInverse ? maxAmountsIn[0] : maxAmountsIn[1]
+            isInverse ? volatilityAmountsIn[0] : volatilityAmountsIn[1]
         );
 
-        tokenAmount += isInverse ? maxAmountsIn[1] : maxAmountsIn[0];
+        tokenAmount += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
     }
 
     /**

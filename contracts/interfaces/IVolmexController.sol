@@ -113,7 +113,7 @@ interface IVolmexController is IERC165Upgradeable {
         uint256[3] calldata _indices
     ) external view returns (uint256, uint256[3] memory);
 
-    function getAmountForSingleSide(
+    function getTokenToJoin(
         address _tokenIn,
         uint256 _poolAmountOut,
         uint256 _poolIndex
