@@ -3,7 +3,6 @@
 pragma solidity =0.8.11;
 pragma abicoder v2;
 
-import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
@@ -11,7 +10,8 @@ import './interfaces/IERC20Modified.sol';
 import './interfaces/IVolmexPoolView.sol';
 
 /// @title Reading key data from specified derivative trading Pool
-contract VolmexPoolView is Initializable, ERC165StorageUpgradeable {
+contract VolmexPoolView is ERC165StorageUpgradeable {
+    // Interface ID of VolmexPoolView contract
     bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
     /// @notice Contains key information about a derivative token
     struct TokenRecord {

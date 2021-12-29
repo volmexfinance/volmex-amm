@@ -2,10 +2,9 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
+
 import '../interfaces/IVolmexOracle.sol';
 import '../interfaces/IVolmexRepricer.sol';
 import '../maths/NumExtra.sol';
@@ -14,27 +13,28 @@ import '../maths/NumExtra.sol';
  * @title Volmex Repricer contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra {
-    using ERC165CheckerUpgradeable for address;
+contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
+    // Interface ID of VolmexOracle contract
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
+    // Interface ID of VolmexRepricer contract
+    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
+
     // Instance of oracle contract
     IVolmexOracle public oracle;
-
-    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
-
-    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
 
     /**
      * @notice Initializes the contract, setting the required state variables
      * @param _oracle Address of the Volmex Oracle contract
      */
     function initialize(IVolmexOracle _oracle) external initializer {
-        __ERC165Storage_init();
-        _registerInterface(_IVOLMEX_REPRICER_ID);
         require(
             _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
             'VolmexController: Oracle does not supports interface'
         );
         oracle = _oracle;
+
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_REPRICER_ID);
     }
 
     /**

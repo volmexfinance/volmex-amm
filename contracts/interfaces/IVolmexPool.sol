@@ -19,6 +19,7 @@ import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeab
 import '../libs/tokens/Token.sol';
 import './IVolmexProtocol.sol';
 import './IVolmexRepricer.sol';
+import './IVolmexController.sol';
 
 interface IVolmexPool is IERC20, IERC165Upgradeable {
     function repricingBlock() external view returns (uint256);
@@ -45,9 +46,7 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
 
     function isFinalized() external view returns (bool);
 
-    function getNumTokens() external view returns (uint256);
-
-    function getTokens() external view returns (address[] memory tokens);
+    function getTokens() external view returns (address[2] memory);
 
     function getLeverage(address token) external view returns (uint256);
 
@@ -59,6 +58,8 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
 
     function getComplementDerivativeAddress() external view returns (address);
 
+    function paused() external view returns (bool);
+
     function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn, address receiver) external;
 
     function exitPool(uint256 poolAmountIn, uint256[2] calldata minAmountsOut, address receiver) external;
@@ -69,14 +70,10 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         address tokenOut,
         uint256 minAmountOut,
         address receiver,
-        bool _toController
-    ) external returns (uint256 tokenAmountOut, uint256 spotPriceAfter);
+        bool toController
+    ) external returns (uint256, uint256);
 
-    function paused() external view returns (bool);
-
-    function transferOwnership(address newOwner) external;
-
-    function setController(address controller) external;
+    function setController(IVolmexController controller) external;
 
     function flashLoan(
         address receiverAddress,
@@ -89,4 +86,94 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         address tokenIn,
         uint256 tokenAmountIn
     ) external view returns (uint256, uint256);
+
+    function getTokensToJoin(uint256 poolAmountOut) external view returns (uint256[2] memory);
+
+    function getTokensToExit(uint256 poolAmountIn) external view returns (uint256[2] memory);
+
+    function swapExactAmountOut(
+        address tokenIn,
+        uint256 maxAmountIn,
+        address tokenOut,
+        uint256 tokenAmountOut,
+        address receiver,
+        bool toController
+    ) external returns (uint256, uint256);
+
+    function getTokenAmountIn(
+        address tokenOut,
+        uint256 tokenAmountOut
+    ) external view returns (uint256, uint256);
+
+    function upperBoundary() external view returns (uint256);
+
+    function adminFee() external view returns (uint256);
+
+    function FLASHLOAN_PREMIUM_TOTAL() external view returns (uint256);
+
+    function updateFlashLoanPremium(uint256 _premium) external;
+
+    function finalize(
+        uint256 _primaryBalance,
+        uint256 _primaryLeverage,
+        uint256 _complementBalance,
+        uint256 _complementLeverage,
+        uint256 _exposureLimitPrimary,
+        uint256 _exposureLimitComplement,
+        uint256 _pMin,
+        uint256 _qMin
+    ) external;
+
+    function pause() external;
+
+    function unpause() external;
+
+    event LogSwap(
+        address indexed caller,
+        address indexed tokenIn,
+        address indexed tokenOut,
+        uint256 tokenAmountIn,
+        uint256 tokenAmountOut,
+        uint256 fee,
+        uint256 tokenBalanceIn,
+        uint256 tokenBalanceOut,
+        uint256 tokenLeverageIn,
+        uint256 tokenLeverageOut
+    );
+
+    event LogJoin(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
+
+    event LogExit(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
+
+    event LogReprice(
+        uint256 repricingBlock,
+        uint256 balancePrimary,
+        uint256 balanceComplement,
+        uint256 leveragePrimary,
+        uint256 leverageComplement,
+        uint256 newLeveragePrimary,
+        uint256 newLeverageComplement,
+        uint256 estPricePrimary,
+        uint256 estPriceComplement
+    );
+
+    event LogSetFeeParams(
+        uint256 baseFee,
+        uint256 maxFee,
+        uint256 feeAmpPrimary,
+        uint256 feeAmpComplement
+    );
+
+    event LogCall(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
+
+    event FlashLoan(
+        address indexed target,
+        address indexed asset,
+        uint256 amount,
+        uint256 premium
+    );
+
+    event SetController(address indexed controller);
+
+    event UpdatedFlashLoanPremium(uint256 premium);
 }

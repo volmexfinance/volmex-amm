@@ -4,7 +4,6 @@ pragma solidity =0.8.11;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 
 import './libs/tokens/EIP20NonStandardInterface.sol';
@@ -27,35 +26,40 @@ contract VolmexPool is
     ERC165StorageUpgradeable,
     Token,
     Math,
-    TokenMetadataGenerator
+    TokenMetadataGenerator,
+    IVolmexPool
 {
-    using ERC165CheckerUpgradeable for address;
     struct Record {
         uint256 leverage;
         uint256 balance;
     }
 
-    // Used to prevent the re-entry
-    bool private _mutex;
-
-    // Address of the pool controller
-    address private _controller; // has CONTROL role
-
-    // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
-    bool private _finalized;
+    // Interface ID of VolmexRepricer contract
+    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
+    // Interface ID of VolmexPool contract
+    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
+    // Interface ID of VolmexController contract
+    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
 
     // Number of tokens the pool can hold
     uint256 public constant BOUND_TOKENS = 2;
+
+    // Used to prevent the re-entry
+    bool private _mutex;
+    // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
+    bool private _finalized;
     // Address of the pool tokens
     address[BOUND_TOKENS] private _tokens;
+
     // This is mapped by token addresses
     mapping(address => Record) internal _records;
 
+    // Address of the pool controller
+    IVolmexController public controller;
     // Value of the current block number while repricing
     uint256 public repricingBlock;
     // Value of upper boundary, set in reference of volatility cap ratio { 250 * 10**18 }
     uint256 public upperBoundary;
-
     // fee of the pool, used to calculate the swap fee
     uint256 public baseFee;
     // fee on the primary token, used to calculate swap fee, when the swap in asset is primary
@@ -64,7 +68,6 @@ contract VolmexPool is
     uint256 public feeAmpComplement;
     // Max fee on the swap operation
     uint256 public maxFee;
-
     // Minimum amount of tokens in the pool
     uint256 public pMin;
     // Minimum amount of token required for swap
@@ -75,71 +78,16 @@ contract VolmexPool is
     uint256 public exposureLimitComplement;
     // The amount of collateral required to mint both the volatility tokens
     uint256 private _denomination;
-
     // Address of the volmex repricer contract
     IVolmexRepricer public repricer;
     // Address of the volmex protocol contract
     IVolmexProtocol public protocol;
-
     // Number value of the volatility token index at oracle { 0 - ETHV, 1 - BTCV }
     uint256 public volatilityIndex;
-
-    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
-
-    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
-
+    // Percentage of fee deducted for admin
     uint256 public adminFee;
-
+    // Percentage of fee deducted for flash loan
     uint256 public FLASHLOAN_PREMIUM_TOTAL;
-
-    event LogSwap(
-        address indexed caller,
-        address indexed tokenIn,
-        address indexed tokenOut,
-        uint256 tokenAmountIn,
-        uint256 tokenAmountOut,
-        uint256 fee,
-        uint256 tokenBalanceIn,
-        uint256 tokenBalanceOut,
-        uint256 tokenLeverageIn,
-        uint256 tokenLeverageOut
-    );
-
-    event LogJoin(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
-
-    event LogExit(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
-
-    event LogReprice(
-        uint256 repricingBlock,
-        uint256 balancePrimary,
-        uint256 balanceComplement,
-        uint256 leveragePrimary,
-        uint256 leverageComplement,
-        uint256 newLeveragePrimary,
-        uint256 newLeverageComplement,
-        uint256 estPricePrimary,
-        uint256 estPriceComplement
-    );
-
-    event LogSetFeeParams(
-        uint256 baseFee,
-        uint256 maxFee,
-        uint256 feeAmpPrimary,
-        uint256 feeAmpComplement
-    );
-
-    event LogCall(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
-
-    event FlashLoan(
-        address indexed target,
-        address indexed asset,
-        uint256 amount,
-        uint256 premium
-    );
-
-    event SetController(address indexed controller);
-
-    event UpdatedFlashLoanPremium(uint256 premium);
 
     /**
      * @notice Used to log the callee's sig, address and data
@@ -187,7 +135,7 @@ contract VolmexPool is
      * @notice Used to check the caller is controller
      */
     modifier onlyController() {
-        require(msg.sender == _controller, 'VolmexPool: Caller is not controller');
+        require(msg.sender == address(controller), 'VolmexPool: Caller is not controller');
         _;
     }
 
@@ -202,6 +150,12 @@ contract VolmexPool is
      * @param _repricer Address of the volmex repricer contract
      * @param _protocol Address of the volmex protocol contract
      * @param _volatilityIndex Index of the volatility price in oracle
+     * @param _baseFee Fee of the pool contract
+     * @param _maxFee Max fee of the pool while swap
+     * @param _feeAmpPrimary Fee on the primary token
+     * @param _feeAmpComplement Fee on the complement token
+     *
+     * NOTE: The baseFee is set 0.02 * 10^18 currently, and it can only be set once. Be cautious
      */
     function initialize(
         IVolmexRepricer _repricer,
@@ -216,11 +170,8 @@ contract VolmexPool is
             _repricer.supportsInterface(_IVOLMEX_REPRICER_ID),
             'VolmexPool: Repricer does not supports interface'
         );
-        require(address(_protocol) != address(0), "volmexPool: protocol address can't be zero");
-        __Ownable_init();
-        __Pausable_init();
-        __ERC165Storage_init();
-        _registerInterface(_IVOLMEX_POOL_ID);
+        require(address(_protocol) != address(0), "VolmexPool: protocol address can't be zero");
+
         repricer = _repricer;
 
         protocol = _protocol;
@@ -240,18 +191,26 @@ contract VolmexPool is
         );
 
         setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
+
+        __Ownable_init();
+        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_POOL_ID);
     }
 
     /**
      * @notice Set controller of the Pool
      *
-     * @param controller Address of the pool contract controller
+     * @param _controller Address of the pool contract controller
      */
-    function setController(address controller) external onlyOwner {
-        require(controller != address(0), 'VolmexPool: Deployer can not be zero address');
-        _controller = controller;
+    function setController(IVolmexController _controller) external onlyOwner {
+        require(
+            _controller.supportsInterface(_IVOLMEX_CONTROLLER_ID),
+            'VolmexPool: Not Controller'
+        );
+        controller = _controller;
 
-        emit SetController(_controller);
+        emit SetController(address(controller));
     }
 
     /**
@@ -379,6 +338,10 @@ contract VolmexPool is
      * @param tokenAmountIn Amount of asset the user supply
      * @param tokenOut Address of the pool asset which the user wants
      * @param minAmountOut Minimum amount of asset the user wants
+     * @param receiver Address of the contract/user from tokens are pulled
+     * @param toController Bool value, if `true` push to controller, else to `receiver`
+     *
+     * Note: This method is removed by Complifi, give extra attention
      */
     function swapExactAmountIn(
         address tokenIn,
@@ -462,15 +425,17 @@ contract VolmexPool is
      * @dev Perform swaps
      *
      * @param tokenIn Address of the pool asset which the user supply
-     * @param tokenAmountOut Amount of asset the user wants
+     * @param maxAmountIn Maximum expected amount of asset the user can supply
      * @param tokenOut Address of the pool asset which the user wants
-     * @param minAmountIn Minimum amount of asset the user can supply
+     * @param tokenAmountOut Amount of asset the user wants
+     * @param receiver Address of the contract/user from tokens are pulled
+     * @param toController Bool value, if `true` push to controller, else to `receiver`
      */
     function swapExactAmountOut(
         address tokenIn,
-        uint256 tokenAmountOut,
+        uint256 maxAmountIn,
         address tokenOut,
-        uint256 minAmountIn,
+        uint256 tokenAmountOut,
         address receiver,
         bool toController
     )
@@ -518,7 +483,7 @@ contract VolmexPool is
             tokenAmountOut,
             fee
         );
-        require(tokenAmountOut >= minAmountIn, 'VolmexPool: Amount out limit exploit');
+        require(tokenAmountIn <= maxAmountIn, 'VolmexPool: Amount out limit exploit');
 
         uint256 spotPriceBefore = calcSpotPrice(
             _getLeveragedBalance(inRecord),
@@ -755,6 +720,10 @@ contract VolmexPool is
         return _getComplementDerivativeAddress();
     }
 
+    function paused() public view override(IVolmexPool, PausableUpgradeable) returns (bool) {
+        return super.paused();
+    }
+
     /**
      * @notice Sets all type of fees
      *
@@ -924,7 +893,7 @@ contract VolmexPool is
         );
 
         _pullUnderlying(tokenIn, receiver, tokenAmountIn);
-        _pushUnderlying(tokenOut, toController ? _controller : receiver, tokenAmountOut);
+        _pushUnderlying(tokenOut, toController ? address(controller) : receiver, tokenAmountOut);
     }
 
     function _getLeveragedBalance(Record memory r) internal pure returns (uint256) {
@@ -1001,10 +970,7 @@ contract VolmexPool is
         uint256 amount
     ) internal returns (uint256) {
         uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
-
-        _controller == owner()
-            ? EIP20NonStandardInterface(erc20).transferFrom(from, address(this), amount)
-            : IVolmexController(_controller).transferAssetToPool(IERC20Modified(erc20), from, amount);
+        IVolmexController(controller).transferAssetToPool(IERC20Modified(erc20), from, amount);
 
         bool success;
         //solium-disable-next-line security/no-inline-assembly

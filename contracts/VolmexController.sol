@@ -5,7 +5,6 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -23,15 +22,24 @@ contract VolmexController is
     OwnableUpgradeable,
     PausableUpgradeable,
     ERC165StorageUpgradeable,
-    Const
+    Const,
+    IVolmexController
 {
-    using ERC165CheckerUpgradeable for address;
+    // Interface ID of VolmexController contract
+    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
+    // Interface ID of VolmexOracle contract
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
+    // Interface ID of VolmexPool contract
+    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
+
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
     // Used to set the index of pool
     uint256 public poolIndex;
     // Used to store the pools
     address[] public allPools;
+    // Address of the oracle
+    IVolmexOracle public oracle;
 
     /**
      * Indices for Pool, Stablecoin and Protocol mappings
@@ -46,60 +54,17 @@ contract VolmexController is
      *    1                 0                     2
      *    1                 1                     3
      */
-
-    // Store the addresses of pools
-    mapping(uint256 => IVolmexPool) public pools;
+    // Store the addresses of protocols { pool index => stableCoin index => protocol address }
+    mapping(uint256 => mapping(uint256 => IVolmexProtocol)) public protocols;
     /// @notice We have used IERC20Modified instead of IERC20, because the volatility tokens
     /// can't be typecasted to IERC20.
     /// Note: We have used the standard methods on IERC20 only.
     // Store the addresses of stableCoins
     mapping(uint256 => IERC20Modified) public stableCoins;
-    // Store the addresses of protocols { pool index => stableCoin index => protocol address }
-    mapping(uint256 => mapping(uint256 => IVolmexProtocol)) public protocols;
+    // Store the addresses of pools
+    mapping(uint256 => IVolmexPool) public pools;
     // Store the bool value of pools to confirm it is pool
     mapping(address => bool) public isPool;
-    // Address of the oracle
-    IVolmexOracle public oracle;
-
-    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
-
-    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
-
-    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
-
-    event AdminFeeUpdated(uint256 adminFee);
-
-    event AssetSwappedSamePool(
-        uint256 volatilityInAmount,
-        uint256 volatilityOutAmount,
-        address indexed tokenIn
-    );
-
-    event AssetSwaped(
-        uint256 volatilityInAmount,
-        uint256 collateralOutAmount,
-        uint256 protocolFee,
-        uint256 poolFee,
-        uint256 indexed stableCoinIndex,
-        address indexed token
-    );
-
-    event AssetSwappedBetweenPool(
-        uint256 volatilityInAmount,
-        uint256 volatilityOutAmount,
-        uint256 protocolFee,
-        uint256[2] poolFee,
-        uint256 indexed stableCoinIndex,
-        address[2] tokens
-    );
-
-    event AddedPool(uint256 indexed poolIndex, address indexed pool);
-
-    event StableCoinAdded(uint256 indexed stableCoinIndex, address indexed stableCoin);
-
-    event ProtocolAdded(uint256 poolIndex, uint256 stableCoinIndex, address indexed protocol);
-
-    event PoolTokensCollected(address indexed owner, uint256 amount);
 
     /**
      * @notice Initializes the contract
@@ -120,8 +85,7 @@ contract VolmexController is
             _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
             'VolmexController: Oracle does not supports interface'
         );
-        __ERC165Storage_init();
-        _registerInterface(_IVOLMEX_CONTROLLER_ID);
+
         uint256 protocolCount;
         // Note: Since loop size is very small so nested loop won't be a problem
         for (uint256 i; i < 2; i++) {
@@ -153,6 +117,11 @@ contract VolmexController is
             }
         }
         oracle = _oracle;
+
+        __Ownable_init();
+        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_CONTROLLER_ID);
     }
 
     /**
@@ -171,7 +140,7 @@ contract VolmexController is
         isPool[address(_pool)] = true;
         allPools.push(address(_pool));
 
-        emit AddedPool(poolIndex, address(_pool));
+        emit PoolAdded(poolIndex, address(_pool));
     }
 
     /**
@@ -218,14 +187,14 @@ contract VolmexController is
     /**
      * @notice Used to pause the pool
      */
-    function pausePool(IPausablePool _pool) public onlyOwner {
+    function pausePool(IPausablePool _pool) external onlyOwner {
         _pool.pause();
     }
 
     /**
      * @notice Used to un-pause the pool
      */
-    function unpausePool(IPausablePool _pool) public onlyOwner {
+    function unpausePool(IPausablePool _pool) external onlyOwner {
         _pool.unpause();
     }
 
@@ -306,7 +275,7 @@ contract VolmexController is
             msg.sender
         );
 
-        emit AssetSwaped(
+        emit LogCollateralSwap(
             _amounts[0],
             totalVolatilityAmount,
             fees[1],
@@ -378,7 +347,7 @@ contract VolmexController is
         IERC20Modified stableCoin = stableCoins[_indices[1]];
         transferAsset(stableCoin, collateralAmount, msg.sender);
 
-        emit AssetSwaped(
+        emit LogCollateralSwap(
             _amounts[0],
             collateralAmount,
             fees[1],
@@ -495,7 +464,7 @@ contract VolmexController is
             msg.sender
         );
 
-        emit AssetSwappedBetweenPool(
+        emit LogPoolSwap(
             _amounts[0],
             protocolAmounts[1] + tokenAmounts[1],
             fees[2] + fees[3],
@@ -525,18 +494,72 @@ contract VolmexController is
     /**
      * @notice Used to add liquidity in the pool
      *
+     * @param _tokenIn Address of the supplied token by user
+     * @param _maxAmountIn Maximum expected volatility amount in
      * @param _poolAmountOut Amount of pool token mint and transfer to LP
-     * @param _maxAmountsIn Max amount of pool assets an LP can supply
      * @param _poolIndex Index of the pool in which user wants to add liquidity
      */
-    function addLiquiditySingleSide(
+    function addSingleSideLiquidity(
+        address _tokenIn,
         uint256 _poolAmountOut,
-        uint256[2] calldata _maxAmountsIn,
+        uint256 _maxAmountIn,
         uint256 _poolIndex
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
-        _pool.joinPool(_poolAmountOut, _maxAmountsIn, msg.sender);
+        uint256[2] memory volatilityAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
+
+        bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
+
+        // TODO: Need to check tokenAmountIn and volatilityAmountIn of same are equal
+        (uint256 totalTokenAmountIn,) = _pool.swapExactAmountOut(
+            _tokenIn,
+            _maxAmountIn - (isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0]),
+            isInverse
+                ? _pool.getPrimaryDerivativeAddress()
+                : _pool.getComplementDerivativeAddress(),
+            isInverse ? volatilityAmountsIn[0] : volatilityAmountsIn[1],
+            msg.sender,
+            true
+        );
+
+        IERC20(_tokenIn).transferFrom(
+            msg.sender,
+            address(this),
+            isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0]
+        );
+
+        _approveAssets(
+            IERC20Modified(_pool.getPrimaryDerivativeAddress()),
+            volatilityAmountsIn[0],
+            address(this),
+            address(this)
+        );
+
+        _approveAssets(
+            IERC20Modified(_pool.getComplementDerivativeAddress()),
+            volatilityAmountsIn[1],
+            address(this),
+            address(this)
+        );
+
+        // Used same variable to save space/gas
+        totalTokenAmountIn += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
+
+        require(
+            totalTokenAmountIn <= _maxAmountIn,
+            'VolmexController: Insufficient expected volatility amount'
+        );
+
+        _pool.joinPool(_poolAmountOut, volatilityAmountsIn, address(this));
+
+        transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
+
+        emit SingleSideLiquidityAdded(
+            _tokenIn,
+            _poolAmountOut,
+            totalTokenAmountIn
+        );
     }
 
     /**
@@ -587,13 +610,7 @@ contract VolmexController is
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
-        (uint256 _tokenAmountOut,) = _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
-
-        emit AssetSwappedSamePool(
-            _amountIn,
-            _tokenAmountOut,
-            _tokenIn
-        );
+        _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
     }
 
     /**
@@ -746,12 +763,58 @@ contract VolmexController is
         amountOut = protocolAmount[1] + tokenAmountOut;
     }
 
+    /**
+     * @notice Used to get the token in amount for add liquidity single side
+     *
+     * @param _tokenIn Addresses of token in
+     * @param _poolAmountOut Amount of LP token user wants
+     * @param _poolIndex Index of pool to add liquidity in
+     *
+     * returns token amount in
+     */
+    function getTokenToJoin(
+        address _tokenIn,
+        uint256 _poolAmountOut,
+        uint256 _poolIndex
+    ) external view returns (uint256 tokenAmount) {
+        IVolmexPool _pool = pools[_poolIndex];
+
+        uint256[2] memory volatilityAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
+
+        bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
+
+        (tokenAmount,) = _pool.getTokenAmountIn(
+            isInverse
+                ? _pool.getPrimaryDerivativeAddress()
+                : _pool.getComplementDerivativeAddress(),
+            isInverse ? volatilityAmountsIn[0] : volatilityAmountsIn[1]
+        );
+
+        tokenAmount += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
+    }
+
+    /**
+     * @notice Used by VolmexPool contract to transfer the token amount to VolmexPool
+     *
+     * @param _token Address of the token contract
+     * @param _account Address of the user/contract from balance transfer
+     * @param _amount Amount of the token
+     */
+    function transferAssetToPool(
+        IERC20Modified _token,
+        address _account,
+        uint256 _amount
+    ) external {
+        require(isPool[msg.sender], 'VolmexController: Caller is not pool');
+        _token.transferFrom(_account, msg.sender, _amount);
+    }
+
     function calculateAssetQuantity(
         uint256 _amount,
         uint256 _feePercent,
         bool _isVolatility,
         uint256 _volatilityCapRatio
-    ) internal view returns (uint256 amount, uint256 protocolFee) {
+    ) internal pure returns (uint256 amount, uint256 protocolFee) {
         protocolFee = (_amount * _feePercent) / 10000;
         _amount = _amount - protocolFee;
 
@@ -777,15 +840,6 @@ contract VolmexController is
         if (_amount <= _allowance) return;
 
         _token.approve(_spender, _amount);
-    }
-
-    function transferAssetToPool(
-        IERC20Modified _token,
-        address _account,
-        uint256 _amount
-    ) external {
-        require(isPool[msg.sender], 'VolmexController: Caller is not pool');
-        _token.transferFrom(_account, msg.sender, _amount);
     }
 
     function _volatilityAmountToSwap(
