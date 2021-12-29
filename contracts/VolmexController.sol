@@ -539,6 +539,7 @@ contract VolmexController is
      */
     function addSingleSideLiquidity(
         address _tokenIn,
+        uint256 _maxAmountIn,
         uint256 _poolAmountOut,
         uint256 _poolIndex
     ) external whenNotPaused {
@@ -548,7 +549,7 @@ contract VolmexController is
 
         bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
 
-        _pool.swapExactAmountOut(
+        (uint256 tokenAmountIn,) = _pool.swapExactAmountOut(
             _tokenIn,
             isInverse ? maxAmountsIn[1] : maxAmountsIn[0],
             isInverse
@@ -577,6 +578,13 @@ contract VolmexController is
             maxAmountsIn[1],
             address(this),
             address(this)
+        );
+
+        tokenAmountIn += isInverse ? maxAmountsIn[1] : maxAmountsIn[0];
+
+        require(
+            tokenAmountIn <= _maxAmountIn,
+            'VolmexController: Insufficient expected volatility amount'
         );
 
         _pool.joinPool(_poolAmountOut, maxAmountsIn, address(this));
