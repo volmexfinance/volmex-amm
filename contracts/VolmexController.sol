@@ -25,12 +25,21 @@ contract VolmexController is
     Const,
     IVolmexController
 {
+    // Interface ID of VolmexController contract
+    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
+    // Interface ID of VolmexOracle contract
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
+    // Interface ID of VolmexPool contract
+    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
+
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
     // Used to set the index of pool
     uint256 public poolIndex;
     // Used to store the pools
     address[] public allPools;
+    // Address of the oracle
+    IVolmexOracle public oracle;
 
     /**
      * Indices for Pool, Stablecoin and Protocol mappings
@@ -45,27 +54,17 @@ contract VolmexController is
      *    1                 0                     2
      *    1                 1                     3
      */
-
-    // Store the addresses of pools
-    mapping(uint256 => IVolmexPool) public pools;
+    // Store the addresses of protocols { pool index => stableCoin index => protocol address }
+    mapping(uint256 => mapping(uint256 => IVolmexProtocol)) public protocols;
     /// @notice We have used IERC20Modified instead of IERC20, because the volatility tokens
     /// can't be typecasted to IERC20.
     /// Note: We have used the standard methods on IERC20 only.
     // Store the addresses of stableCoins
     mapping(uint256 => IERC20Modified) public stableCoins;
-    // Store the addresses of protocols { pool index => stableCoin index => protocol address }
-    mapping(uint256 => mapping(uint256 => IVolmexProtocol)) public protocols;
+    // Store the addresses of pools
+    mapping(uint256 => IVolmexPool) public pools;
     // Store the bool value of pools to confirm it is pool
     mapping(address => bool) public isPool;
-    // Address of the oracle
-    IVolmexOracle public oracle;
-
-    // Interface ID of VolmexController contract
-    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
-    // Interface ID of VolmexOracle contract
-    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
-    // Interface ID of VolmexPool contract
-    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
 
     /**
      * @notice Initializes the contract

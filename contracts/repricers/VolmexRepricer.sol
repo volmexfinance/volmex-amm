@@ -15,13 +15,13 @@ import '../maths/NumExtra.sol';
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
-    // Instance of oracle contract
-    IVolmexOracle public oracle;
-
     // Interface ID of VolmexOracle contract
     bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
     // Interface ID of VolmexRepricer contract
     bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
+
+    // Instance of oracle contract
+    IVolmexOracle public oracle;
 
     /**
      * @notice Initializes the contract, setting the required state variables

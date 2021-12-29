@@ -34,27 +34,32 @@ contract VolmexPool is
         uint256 balance;
     }
 
-    // Used to prevent the re-entry
-    bool private _mutex;
-
-    // Address of the pool controller
-    IVolmexController public controller; // has CONTROL role
-
-    // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
-    bool private _finalized;
+    // Interface ID of VolmexRepricer contract
+    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
+    // Interface ID of VolmexPool contract
+    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
+    // Interface ID of VolmexController contract
+    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
 
     // Number of tokens the pool can hold
     uint256 public constant BOUND_TOKENS = 2;
+
+    // Used to prevent the re-entry
+    bool private _mutex;
+    // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
+    bool private _finalized;
     // Address of the pool tokens
     address[BOUND_TOKENS] private _tokens;
+
     // This is mapped by token addresses
     mapping(address => Record) internal _records;
 
+    // Address of the pool controller
+    IVolmexController public controller;
     // Value of the current block number while repricing
     uint256 public repricingBlock;
     // Value of upper boundary, set in reference of volatility cap ratio { 250 * 10**18 }
     uint256 public upperBoundary;
-
     // fee of the pool, used to calculate the swap fee
     uint256 public baseFee;
     // fee on the primary token, used to calculate swap fee, when the swap in asset is primary
@@ -63,7 +68,6 @@ contract VolmexPool is
     uint256 public feeAmpComplement;
     // Max fee on the swap operation
     uint256 public maxFee;
-
     // Minimum amount of tokens in the pool
     uint256 public pMin;
     // Minimum amount of token required for swap
@@ -74,24 +78,15 @@ contract VolmexPool is
     uint256 public exposureLimitComplement;
     // The amount of collateral required to mint both the volatility tokens
     uint256 private _denomination;
-
     // Address of the volmex repricer contract
     IVolmexRepricer public repricer;
     // Address of the volmex protocol contract
     IVolmexProtocol public protocol;
-
     // Number value of the volatility token index at oracle { 0 - ETHV, 1 - BTCV }
     uint256 public volatilityIndex;
-
-    // Interface ID of VolmexRepricer contract
-    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
-    // Interface ID of VolmexPool contract
-    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
-    // Interface ID of VolmexController contract
-    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
-
+    // Percentage of fee deducted for admin
     uint256 public adminFee;
-
+    // Percentage of fee deducted for flash loan
     uint256 public FLASHLOAN_PREMIUM_TOTAL;
 
     /**
