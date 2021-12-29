@@ -210,7 +210,7 @@ contract VolmexPool is
      * @param _feeAmpPrimary Fee on the primary token
      * @param _feeAmpComplement Fee on the complement token
      *
-     * NOTE: The baseFee should be set considering a range not more than 0.02 * 10^18
+     * NOTE: The baseFee is set 0.02 * 10^18 currently, and it can only be set once. Be cautious
      */
     function initialize(
         IVolmexRepricer _repricer,
