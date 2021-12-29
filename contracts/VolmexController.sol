@@ -793,6 +793,36 @@ contract VolmexController is
         amountOut = protocolAmount[1] + tokenAmountOut;
     }
 
+    /**
+     * @notice Used to get the token in amount for add liquidity single side
+     *
+     * @param _tokenIn Addresses of token in
+     * @param _poolAmountOut Amount of LP token user wants
+     * @param _poolIndex Index of pool to add liquidity in
+     *
+     * returns token amount in
+     */
+    function getAmountForSingleSide(
+        address _tokenIn,
+        uint256 _poolAmountOut,
+        uint256 _poolIndex
+    ) external view returns (uint256 tokenAmount) {
+        IVolmexPool _pool = pools[_poolIndex];
+
+        uint256[2] memory maxAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
+
+        bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
+
+        (tokenAmount,) = _pool.getTokenAmountIn(
+            isInverse
+                ? _pool.getPrimaryDerivativeAddress()
+                : _pool.getComplementDerivativeAddress(),
+            isInverse ? maxAmountsIn[0] : maxAmountsIn[1]
+        );
+
+        tokenAmount += isInverse ? maxAmountsIn[1] : maxAmountsIn[0];
+    }
+
     function calculateAssetQuantity(
         uint256 _amount,
         uint256 _feePercent,
