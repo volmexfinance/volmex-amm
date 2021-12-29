@@ -171,10 +171,7 @@ contract VolmexPool is
             'VolmexPool: Repricer does not supports interface'
         );
         require(address(_protocol) != address(0), "VolmexPool: protocol address can't be zero");
-        __Ownable_init();
-        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
-        __ERC165Storage_init();
-        _registerInterface(_IVOLMEX_POOL_ID);
+
         repricer = _repricer;
 
         protocol = _protocol;
@@ -194,6 +191,11 @@ contract VolmexPool is
         );
 
         setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
+
+        __Ownable_init();
+        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_POOL_ID);
     }
 
     /**
