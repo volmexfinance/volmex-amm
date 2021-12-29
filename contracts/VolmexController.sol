@@ -96,6 +96,12 @@ contract VolmexController is
 
     event PoolTokensCollected(address indexed owner, uint256 amount);
 
+    event AddedSingleSideLiquidity(
+        address indexed tokenIn,
+        uint256 poolAmountOut,
+        uint256[2] maxAmountsIn
+    );
+
     /**
      * @notice Initializes the contract
      *
@@ -527,14 +533,13 @@ contract VolmexController is
     /**
      * @notice Used to add liquidity in the pool
      *
+     * @param _tokenIn Address of the supplied token by user
      * @param _poolAmountOut Amount of pool token mint and transfer to LP
-     * @param _maxAmountsIn Max amount of pool assets an LP can supply
      * @param _poolIndex Index of the pool in which user wants to add liquidity
      */
-    function addLiquiditySingleSide(
-        uint256 _poolAmountOut,
-        uint256[2] calldata _maxAmountsIn,
+    function addSingleSideLiquidity(
         address _tokenIn,
+        uint256 _poolAmountOut,
         uint256 _poolIndex
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
@@ -578,7 +583,11 @@ contract VolmexController is
 
         transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
 
-        // Add event for the call
+        emit AddedSingleSideLiquidity(
+            _tokenIn,
+            _poolAmountOut,
+            maxAmountsIn
+        );
     }
 
     /**
