@@ -798,7 +798,7 @@ contract VolmexController is
         uint256 _feePercent,
         bool _isVolatility,
         uint256 _volatilityCapRatio
-    ) internal view returns (uint256 amount, uint256 protocolFee) {
+    ) internal pure returns (uint256 amount, uint256 protocolFee) {
         protocolFee = (_amount * _feePercent) / 10000;
         _amount = _amount - protocolFee;
 
