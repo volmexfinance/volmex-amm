@@ -338,6 +338,8 @@ contract VolmexPool is
      * @param minAmountOut Minimum amount of asset the user wants
      * @param receiver Address of the contract/user from tokens are pulled
      * @param toController Bool value, if `true` push to controller, else to `receiver`
+     *
+     * Note: This method is removed by Complifi, give extra attention
      */
     function swapExactAmountIn(
         address tokenIn,
