@@ -140,7 +140,7 @@ contract VolmexController is
         isPool[address(_pool)] = true;
         allPools.push(address(_pool));
 
-        emit AddedPool(poolIndex, address(_pool));
+        emit PoolAdded(poolIndex, address(_pool));
     }
 
     /**
@@ -275,7 +275,7 @@ contract VolmexController is
             msg.sender
         );
 
-        emit AssetSwaped(
+        emit LogCollateralSwap(
             _amounts[0],
             totalVolatilityAmount,
             fees[1],
@@ -347,7 +347,7 @@ contract VolmexController is
         IERC20Modified stableCoin = stableCoins[_indices[1]];
         transferAsset(stableCoin, collateralAmount, msg.sender);
 
-        emit AssetSwaped(
+        emit LogCollateralSwap(
             _amounts[0],
             collateralAmount,
             fees[1],
@@ -464,7 +464,7 @@ contract VolmexController is
             msg.sender
         );
 
-        emit AssetSwappedBetweenPool(
+        emit LogPoolSwap(
             _amounts[0],
             protocolAmounts[1] + tokenAmounts[1],
             fees[2] + fees[3],

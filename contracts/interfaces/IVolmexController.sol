@@ -127,7 +127,7 @@ interface IVolmexController is IERC165Upgradeable {
 
     event AdminFeeUpdated(uint256 adminFee);
 
-    event AssetSwaped(
+    event LogCollateralSwap(
         uint256 volatilityInAmount,
         uint256 collateralOutAmount,
         uint256 protocolFee,
@@ -136,7 +136,7 @@ interface IVolmexController is IERC165Upgradeable {
         address indexed token
     );
 
-    event AssetSwappedBetweenPool(
+    event LogPoolSwap(
         uint256 volatilityInAmount,
         uint256 volatilityOutAmount,
         uint256 protocolFee,
@@ -145,7 +145,7 @@ interface IVolmexController is IERC165Upgradeable {
         address[2] tokens
     );
 
-    event AddedPool(uint256 indexed poolIndex, address indexed pool);
+    event PoolAdded(uint256 indexed poolIndex, address indexed pool);
 
     event StableCoinAdded(uint256 indexed stableCoinIndex, address indexed stableCoin);
 
