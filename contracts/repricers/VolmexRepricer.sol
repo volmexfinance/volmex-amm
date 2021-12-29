@@ -9,14 +9,12 @@ import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpg
 import '../interfaces/IVolmexOracle.sol';
 import '../interfaces/IVolmexRepricer.sol';
 import '../maths/NumExtra.sol';
-import '../introspection/ERC165Checker.sol';
 
 /**
  * @title Volmex Repricer contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra {
-    using ERC165Checker for address;
+contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
     // Instance of oracle contract
     IVolmexOracle public oracle;
 

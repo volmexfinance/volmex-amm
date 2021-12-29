@@ -3,6 +3,7 @@
 pragma solidity =0.8.11;
 
 import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
+import './IVolmexOracle.sol';
 
 interface IVolmexRepricer is IERC165Upgradeable {
 
@@ -15,7 +16,7 @@ interface IVolmexRepricer is IERC165Upgradeable {
             uint256 estPrice
         );
 
-    function oracle() external view returns (address);
+    function oracle() external view returns (IVolmexOracle);
 
     function sqrtWrapped(int256 value) external pure returns (int256);
 }
