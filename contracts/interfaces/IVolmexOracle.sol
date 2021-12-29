@@ -38,4 +38,19 @@ interface IVolmexOracle is IERC165Upgradeable {
     function volatilityIndexBySymbol(string calldata _tokenSymbol) external view returns (uint256);
 
     function indexCount() external view returns (uint256);
+
+    event BatchVolatilityTokenPriceUpdated(
+        uint256[] _volatilityIndexes,
+        uint256[] _volatilityTokenPrices,
+        bytes32[] _proofHashes
+    );
+
+    event VolatilityIndexAdded(
+        uint256 indexed volatilityTokenIndex,
+        uint256 volatilityCapRatio,
+        string volatilityTokenSymbol,
+        uint256 volatilityTokenPrice
+    );
+
+    event SymbolIndexUpdated(uint256 indexed _index);
 }

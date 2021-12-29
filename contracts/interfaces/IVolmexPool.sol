@@ -127,4 +127,53 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
     function pause() external;
 
     function unpause() external;
+
+    event LogSwap(
+        address indexed caller,
+        address indexed tokenIn,
+        address indexed tokenOut,
+        uint256 tokenAmountIn,
+        uint256 tokenAmountOut,
+        uint256 fee,
+        uint256 tokenBalanceIn,
+        uint256 tokenBalanceOut,
+        uint256 tokenLeverageIn,
+        uint256 tokenLeverageOut
+    );
+
+    event LogJoin(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
+
+    event LogExit(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
+
+    event LogReprice(
+        uint256 repricingBlock,
+        uint256 balancePrimary,
+        uint256 balanceComplement,
+        uint256 leveragePrimary,
+        uint256 leverageComplement,
+        uint256 newLeveragePrimary,
+        uint256 newLeverageComplement,
+        uint256 estPricePrimary,
+        uint256 estPriceComplement
+    );
+
+    event LogSetFeeParams(
+        uint256 baseFee,
+        uint256 maxFee,
+        uint256 feeAmpPrimary,
+        uint256 feeAmpComplement
+    );
+
+    event LogCall(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
+
+    event FlashLoan(
+        address indexed target,
+        address indexed asset,
+        uint256 amount,
+        uint256 premium
+    );
+
+    event SetController(address indexed controller);
+
+    event UpdatedFlashLoanPremium(uint256 premium);
 }

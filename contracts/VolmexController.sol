@@ -67,40 +67,6 @@ contract VolmexController is
     // Interface ID of VolmexPool contract
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
 
-    event AdminFeeUpdated(uint256 adminFee);
-
-    event AssetSwaped(
-        uint256 volatilityInAmount,
-        uint256 collateralOutAmount,
-        uint256 protocolFee,
-        uint256 poolFee,
-        uint256 indexed stableCoinIndex,
-        address indexed token
-    );
-
-    event AssetSwappedBetweenPool(
-        uint256 volatilityInAmount,
-        uint256 volatilityOutAmount,
-        uint256 protocolFee,
-        uint256[2] poolFee,
-        uint256 indexed stableCoinIndex,
-        address[2] tokens
-    );
-
-    event AddedPool(uint256 indexed poolIndex, address indexed pool);
-
-    event StableCoinAdded(uint256 indexed stableCoinIndex, address indexed stableCoin);
-
-    event ProtocolAdded(uint256 poolIndex, uint256 stableCoinIndex, address indexed protocol);
-
-    event PoolTokensCollected(address indexed owner, uint256 amount);
-
-    event AddedSingleSideLiquidity(
-        address indexed tokenIn,
-        uint256 poolAmountOut,
-        uint256[2] maxAmountsIn
-    );
-
     /**
      * @notice Initializes the contract
      *

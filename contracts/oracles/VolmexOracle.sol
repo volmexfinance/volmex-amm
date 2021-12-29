@@ -28,21 +28,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
     // Interface ID of VolmexOracle contract
     bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
 
-    event BatchVolatilityTokenPriceUpdated(
-        uint256[] _volatilityIndexes,
-        uint256[] _volatilityTokenPrices,
-        bytes32[] _proofHashes
-    );
-
-    event VolatilityIndexAdded(
-        uint256 indexed volatilityTokenIndex,
-        uint256 volatilityCapRatio,
-        string volatilityTokenSymbol,
-        uint256 volatilityTokenPrice
-    );
-
-    event SymbolIndexUpdated(uint256 indexed _index);
-
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
      */

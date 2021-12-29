@@ -7,13 +7,13 @@ import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeab
 import './IERC20Modified.sol';
 import './IVolmexPool.sol';
 import './IPausablePool.sol';
+import './IVolmexProtocol.sol';
+import './IVolmexOracle.sol';
 
 interface IVolmexController is IERC165Upgradeable {
     function stableCoinIndex() external view returns (uint256);
 
     function poolIndex() external view returns (uint256);
-
-    function allPools() external view returns (address[] memory);
 
     function pools(uint256 _index) external view returns (IVolmexPool);
 
@@ -124,4 +124,38 @@ interface IVolmexController is IERC165Upgradeable {
         address _account,
         uint256 _amount
     ) external;
+
+    event AdminFeeUpdated(uint256 adminFee);
+
+    event AssetSwaped(
+        uint256 volatilityInAmount,
+        uint256 collateralOutAmount,
+        uint256 protocolFee,
+        uint256 poolFee,
+        uint256 indexed stableCoinIndex,
+        address indexed token
+    );
+
+    event AssetSwappedBetweenPool(
+        uint256 volatilityInAmount,
+        uint256 volatilityOutAmount,
+        uint256 protocolFee,
+        uint256[2] poolFee,
+        uint256 indexed stableCoinIndex,
+        address[2] tokens
+    );
+
+    event AddedPool(uint256 indexed poolIndex, address indexed pool);
+
+    event StableCoinAdded(uint256 indexed stableCoinIndex, address indexed stableCoin);
+
+    event ProtocolAdded(uint256 poolIndex, uint256 stableCoinIndex, address indexed protocol);
+
+    event PoolTokensCollected(address indexed owner, uint256 amount);
+
+    event AddedSingleSideLiquidity(
+        address indexed tokenIn,
+        uint256 poolAmountOut,
+        uint256[2] maxAmountsIn
+    );
 }
