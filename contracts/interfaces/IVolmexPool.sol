@@ -19,6 +19,7 @@ import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeab
 import '../libs/tokens/Token.sol';
 import './IVolmexProtocol.sol';
 import './IVolmexRepricer.sol';
+import './IVolmexController.sol';
 
 interface IVolmexPool is IERC20, IERC165Upgradeable {
     function repricingBlock() external view returns (uint256);
@@ -45,9 +46,7 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
 
     function isFinalized() external view returns (bool);
 
-    function getNumTokens() external view returns (uint256);
-
-    function getTokens() external view returns (address[] memory tokens);
+    function getTokens() external view returns (address[2] memory tokens);
 
     function getLeverage(address token) external view returns (uint256);
 
@@ -59,6 +58,8 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
 
     function getComplementDerivativeAddress() external view returns (address);
 
+    function paused() external view returns (bool);
+
     function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn, address receiver) external;
 
     function exitPool(uint256 poolAmountIn, uint256[2] calldata minAmountsOut, address receiver) external;
@@ -69,14 +70,10 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         address tokenOut,
         uint256 minAmountOut,
         address receiver,
-        bool _toController
+        bool toController
     ) external returns (uint256 tokenAmountOut, uint256 spotPriceAfter);
 
-    function paused() external view returns (bool);
-
-    function transferOwnership(address newOwner) external;
-
-    function setController(address controller) external;
+    function setController(IVolmexController controller) external;
 
     function flashLoan(
         address receiverAddress,
@@ -87,8 +84,7 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
 
     function getTokenAmountOut(
         address tokenIn,
-        uint256 tokenAmountIn,
-        address tokenOut
+        uint256 tokenAmountIn
     ) external view returns (uint256, uint256);
 
     function getTokensToJoin(uint256 poolAmountOut) external view returns (uint256[2] memory maxAmountsIn);
@@ -99,7 +95,7 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         address tokenOut,
         uint256 tokenAmountOut,
         address receiver,
-        bool _toController
+        bool toController
     ) external returns (uint256 tokenAmountIn, uint256 spotPriceAfter);
 
     function getTokenAmountIn(

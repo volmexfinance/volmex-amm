@@ -15,7 +15,6 @@ import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IFlashLoanReceiver.sol';
 import './interfaces/IVolmexController.sol';
-import './introspection/ERC165Checker.sol';
 
 /**
  * @title Volmex Pool Contract
@@ -27,9 +26,9 @@ contract VolmexPool is
     ERC165StorageUpgradeable,
     Token,
     Math,
-    TokenMetadataGenerator
+    TokenMetadataGenerator,
+    IVolmexPool
 {
-    using ERC165Checker for address;
     struct Record {
         uint256 leverage;
         uint256 balance;
@@ -39,7 +38,7 @@ contract VolmexPool is
     bool private _mutex;
 
     // Address of the pool controller
-    address private _controller; // has CONTROL role
+    IVolmexController public controller; // has CONTROL role
 
     // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
     bool private _finalized;
@@ -190,7 +189,7 @@ contract VolmexPool is
      * @notice Used to check the caller is controller
      */
     modifier onlyController() {
-        require(msg.sender == _controller, 'VolmexPool: Caller is not controller');
+        require(msg.sender == address(controller), 'VolmexPool: Caller is not controller');
         _;
     }
 
@@ -254,16 +253,16 @@ contract VolmexPool is
     /**
      * @notice Set controller of the Pool
      *
-     * @param __controller Address of the pool contract controller
+     * @param _controller Address of the pool contract controller
      */
-    function setController(address __controller) external onlyOwner {
+    function setController(IVolmexController _controller) external onlyOwner {
         require(
-            __controller.supportsInterface(_IVOLMEX_CONTROLLER_ID),
+            _controller.supportsInterface(_IVOLMEX_CONTROLLER_ID),
             'VolmexPool: Not Controller'
         );
-        _controller = __controller;
+        controller = _controller;
 
-        emit SetController(_controller);
+        emit SetController(address(controller));
     }
 
     /**
@@ -771,6 +770,10 @@ contract VolmexPool is
         return _getComplementDerivativeAddress();
     }
 
+    function paused() public view override(IVolmexPool, PausableUpgradeable) returns (bool) {
+        return super.paused();
+    }
+
     /**
      * @notice Sets all type of fees
      *
@@ -940,7 +943,7 @@ contract VolmexPool is
         );
 
         _pullUnderlying(tokenIn, receiver, tokenAmountIn);
-        _pushUnderlying(tokenOut, toController ? _controller : receiver, tokenAmountOut);
+        _pushUnderlying(tokenOut, toController ? address(controller) : receiver, tokenAmountOut);
     }
 
     function _getLeveragedBalance(Record memory r) internal pure returns (uint256) {
@@ -1017,7 +1020,7 @@ contract VolmexPool is
         uint256 amount
     ) internal returns (uint256) {
         uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
-        IVolmexController(_controller).transferAssetToPool(IERC20Modified(erc20), from, amount);
+        IVolmexController(controller).transferAssetToPool(IERC20Modified(erc20), from, amount);
 
         bool success;
         //solium-disable-next-line security/no-inline-assembly
