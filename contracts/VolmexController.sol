@@ -5,7 +5,6 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165CheckerUpgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -14,6 +13,7 @@ import './interfaces/IVolmexOracle.sol';
 import './interfaces/IPausablePool.sol';
 import './interfaces/IVolmexController.sol';
 import './maths/Const.sol';
+import './introspection/ERC165Checker.sol';
 
 /**
  * @title Volmex Controller contract
@@ -25,7 +25,7 @@ contract VolmexController is
     ERC165StorageUpgradeable,
     Const
 {
-    using ERC165CheckerUpgradeable for address;
+    using ERC165Checker for address;
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
     // Used to set the index of pool
