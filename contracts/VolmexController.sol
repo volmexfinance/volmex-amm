@@ -223,14 +223,14 @@ contract VolmexController is
     /**
      * @notice Used to pause the pool
      */
-    function pausePool(IPausablePool _pool) public onlyOwner {
+    function pausePool(IPausablePool _pool) external onlyOwner {
         _pool.pause();
     }
 
     /**
      * @notice Used to un-pause the pool
      */
-    function unpausePool(IPausablePool _pool) public onlyOwner {
+    function unpausePool(IPausablePool _pool) external onlyOwner {
         _pool.unpause();
     }
 
@@ -827,6 +827,22 @@ contract VolmexController is
         tokenAmount += isInverse ? maxAmountsIn[1] : maxAmountsIn[0];
     }
 
+    /**
+     * @notice Used by VolmexPool contract to transfer the token amount to VolmexPool
+     *
+     * @param _token Address of the token contract
+     * @param _account Address of the user/contract from balance transfer
+     * @param _amount Amount of the token
+     */
+    function transferAssetToPool(
+        IERC20Modified _token,
+        address _account,
+        uint256 _amount
+    ) external {
+        require(isPool[msg.sender], 'VolmexController: Caller is not pool');
+        _token.transferFrom(_account, msg.sender, _amount);
+    }
+
     function calculateAssetQuantity(
         uint256 _amount,
         uint256 _feePercent,
@@ -858,15 +874,6 @@ contract VolmexController is
         if (_amount <= _allowance) return;
 
         _token.approve(_spender, _amount);
-    }
-
-    function transferAssetToPool(
-        IERC20Modified _token,
-        address _account,
-        uint256 _amount
-    ) external {
-        require(isPool[msg.sender], 'VolmexController: Caller is not pool');
-        _token.transferFrom(_account, msg.sender, _amount);
     }
 
     function _volatilityAmountToSwap(
