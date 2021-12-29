@@ -11,8 +11,7 @@ import '../interfaces/IVolmexOracle.sol';
  * @title Volmex Oracle contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable {
-
+contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOracle {
     // Store the price of volatility by indexes { 0 - ETHV, 1 = BTCV }
     mapping(uint256 => uint256) private _volatilityTokenPriceByIndex;
     // Store the volatilitycapratio by index
