@@ -101,4 +101,9 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         address receiver,
         bool _toController
     ) external returns (uint256 tokenAmountIn, uint256 spotPriceAfter);
+
+    function getTokenAmountIn(
+        address tokenOut,
+        uint256 tokenAmountOut
+    ) external view returns (uint256, uint256);
 }
