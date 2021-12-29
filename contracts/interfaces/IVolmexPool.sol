@@ -46,7 +46,7 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
 
     function isFinalized() external view returns (bool);
 
-    function getTokens() external view returns (address[2] memory tokens);
+    function getTokens() external view returns (address[2] memory);
 
     function getLeverage(address token) external view returns (uint256);
 
@@ -71,7 +71,7 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         uint256 minAmountOut,
         address receiver,
         bool toController
-    ) external returns (uint256 tokenAmountOut, uint256 spotPriceAfter);
+    ) external returns (uint256, uint256);
 
     function setController(IVolmexController controller) external;
 
@@ -87,7 +87,9 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         uint256 tokenAmountIn
     ) external view returns (uint256, uint256);
 
-    function getTokensToJoin(uint256 poolAmountOut) external view returns (uint256[2] memory maxAmountsIn);
+    function getTokensToJoin(uint256 poolAmountOut) external view returns (uint256[2] memory);
+
+    function getTokensToExit(uint256 poolAmountIn) external view returns (uint256[2] memory);
 
     function swapExactAmountOut(
         address tokenIn,
@@ -96,10 +98,33 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         uint256 tokenAmountOut,
         address receiver,
         bool toController
-    ) external returns (uint256 tokenAmountIn, uint256 spotPriceAfter);
+    ) external returns (uint256, uint256);
 
     function getTokenAmountIn(
         address tokenOut,
         uint256 tokenAmountOut
     ) external view returns (uint256, uint256);
+
+    function upperBoundary() external view returns (uint256);
+
+    function adminFee() external view returns (uint256);
+
+    function FLASHLOAN_PREMIUM_TOTAL() external view returns (uint256);
+
+    function updateFlashLoanPremium(uint256 _premium) external;
+
+    function finalize(
+        uint256 _primaryBalance,
+        uint256 _primaryLeverage,
+        uint256 _complementBalance,
+        uint256 _complementLeverage,
+        uint256 _exposureLimitPrimary,
+        uint256 _exposureLimitComplement,
+        uint256 _pMin,
+        uint256 _qMin
+    ) external;
+
+    function pause() external;
+
+    function unpause() external;
 }
