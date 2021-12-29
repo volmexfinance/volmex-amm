@@ -511,9 +511,10 @@ contract VolmexController is
 
         bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
 
+        // TODO: Need to check tokenAmountIn and volatilityAmountIn of same are equal
         (uint256 tokenAmountIn,) = _pool.swapExactAmountOut(
             _tokenIn,
-            isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0],
+            _maxAmountIn - (isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0]),
             isInverse
                 ? _pool.getPrimaryDerivativeAddress()
                 : _pool.getComplementDerivativeAddress(),
