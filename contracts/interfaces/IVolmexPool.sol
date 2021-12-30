@@ -26,7 +26,6 @@ interface IVolmexPool is IERC20 {
     }
 
     event Swapped(
-        address indexed caller,
         address indexed tokenIn,
         address indexed tokenOut,
         uint256 tokenAmountIn,

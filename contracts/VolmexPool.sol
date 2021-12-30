@@ -857,7 +857,6 @@ contract VolmexPool is
         );
 
         emit Swapped(
-            msg.sender,
             tokenIn,
             tokenOut,
             tokenAmountIn,
