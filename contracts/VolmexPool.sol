@@ -219,6 +219,68 @@ contract VolmexPool is
     }
 
     /**
+     * @notice Used to finalise the pool with the required attributes and operations
+     *
+     * @dev Checks, pool is finalised, caller is owner, supplied token balance
+     * should be equal
+     * @dev Binds the token, and its leverage and balance
+     * @dev Calculates the initial pool supply, mints and transfer to the controller
+     *
+     * @param _primaryBalance Balance amount of primary token
+     * @param _primaryLeverage Leverage value of primary token
+     * @param _complementBalance  Balance amount of complement token
+     * @param _complementLeverage  Leverage value of complement token
+     * @param _exposureLimitPrimary Primary to complement swap difference limit
+     * @param _exposureLimitComplement Complement to primary swap difference limit
+     * @param _pMin Minimum amount of tokens in the pool
+     * @param _qMin Minimum amount of token required for swap
+     */
+    function finalize(
+        uint256 _primaryBalance,
+        uint256 _primaryLeverage,
+        uint256 _complementBalance,
+        uint256 _complementLeverage,
+        uint256 _exposureLimitPrimary,
+        uint256 _exposureLimitComplement,
+        uint256 _pMin,
+        uint256 _qMin
+    ) external logs lock onlyNotSettled onlyOwner {
+        require(!finalized, 'VolmexPool: Pool is finalized');
+
+        require(
+            _primaryBalance == _complementBalance,
+            'VolmexPool: Assets balance should be same'
+        );
+
+        require(baseFee > 0, 'VolmexPool: baseFee should be larger than 0');
+
+        pMin = _pMin;
+        qMin = _qMin;
+        exposureLimitPrimary = _exposureLimitPrimary;
+        exposureLimitComplement = _exposureLimitComplement;
+
+        finalized = true;
+
+        _bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
+        _bind(
+            1,
+            address(protocol.inverseVolatilityToken()),
+            _complementBalance,
+            _complementLeverage
+        );
+
+        uint256 initPoolSupply = _getDerivativeDenomination() * _primaryBalance;
+
+        uint256 collateralDecimals = uint256(protocol.collateral().decimals());
+        if (collateralDecimals < 18) {
+            initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
+        }
+
+        _mintPoolShare(initPoolSupply);
+        _pushPoolShare(msg.sender, initPoolSupply);
+    }
+
+    /**
      * @notice Used to get flash loan
      *
      * @dev Decrease the token amount from the record before transfer
@@ -496,68 +558,6 @@ contract VolmexPool is
             receiver,
             toController
         );
-    }
-
-    /**
-     * @notice Used to finalise the pool with the required attributes and operations
-     *
-     * @dev Checks, pool is finalised, caller is owner, supplied token balance
-     * should be equal
-     * @dev Binds the token, and its leverage and balance
-     * @dev Calculates the initial pool supply, mints and transfer to the controller
-     *
-     * @param _primaryBalance Balance amount of primary token
-     * @param _primaryLeverage Leverage value of primary token
-     * @param _complementBalance  Balance amount of complement token
-     * @param _complementLeverage  Leverage value of complement token
-     * @param _exposureLimitPrimary Primary to complement swap difference limit
-     * @param _exposureLimitComplement Complement to primary swap difference limit
-     * @param _pMin Minimum amount of tokens in the pool
-     * @param _qMin Minimum amount of token required for swap
-     */
-    function finalize(
-        uint256 _primaryBalance,
-        uint256 _primaryLeverage,
-        uint256 _complementBalance,
-        uint256 _complementLeverage,
-        uint256 _exposureLimitPrimary,
-        uint256 _exposureLimitComplement,
-        uint256 _pMin,
-        uint256 _qMin
-    ) external logs lock onlyNotSettled onlyOwner {
-        require(!finalized, 'VolmexPool: Pool is finalized');
-
-        require(
-            _primaryBalance == _complementBalance,
-            'VolmexPool: Assets balance should be same'
-        );
-
-        require(baseFee > 0, 'VolmexPool: baseFee should be larger than 0');
-
-        pMin = _pMin;
-        qMin = _qMin;
-        exposureLimitPrimary = _exposureLimitPrimary;
-        exposureLimitComplement = _exposureLimitComplement;
-
-        finalized = true;
-
-        _bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
-        _bind(
-            1,
-            address(protocol.inverseVolatilityToken()),
-            _complementBalance,
-            _complementLeverage
-        );
-
-        uint256 initPoolSupply = _getDerivativeDenomination() * _primaryBalance;
-
-        uint256 collateralDecimals = uint256(protocol.collateral().decimals());
-        if (collateralDecimals < 18) {
-            initPoolSupply = initPoolSupply * (10**(18 - collateralDecimals));
-        }
-
-        _mintPoolShare(initPoolSupply);
-        _pushPoolShare(msg.sender, initPoolSupply);
     }
 
     /**

@@ -200,6 +200,18 @@ contract VolmexController is
     }
 
     /**
+     * @notice Used to collect the pool token
+     *
+     * @param _pool Address of the pool
+     */
+    function collect(IVolmexPool _pool) external onlyOwner {
+        uint256 collected = IERC20(_pool).balanceOf(address(this));
+        bool xfer = _pool.transfer(owner(), collected);
+        require(xfer, 'ERC20_FAILED');
+        emit PoolTokensCollected(owner(), collected);
+    }
+
+    /**
      * @notice Used to swap collateral token to a type of volatility token
      *
      * @param _amounts Amount of collateral token and minimum expected volatility token
@@ -612,18 +624,6 @@ contract VolmexController is
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
-    }
-
-    /**
-     * @notice Used to collect the pool token
-     *
-     * @param _pool Address of the pool
-     */
-    function collect(IVolmexPool _pool) external onlyOwner {
-        uint256 collected = IERC20(_pool).balanceOf(address(this));
-        bool xfer = _pool.transfer(owner(), collected);
-        require(xfer, 'ERC20_FAILED');
-        emit PoolTokensCollected(owner(), collected);
     }
 
     /**
