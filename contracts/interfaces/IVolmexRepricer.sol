@@ -8,6 +8,7 @@ import './IVolmexOracle.sol';
 interface IVolmexRepricer is IERC165Upgradeable {
     // Getter method
     function oracle() external view returns (IVolmexOracle);
+
     // Setter methods
     function sqrtWrapped(int256 value) external pure returns (int256);
     function reprice(uint256 _volatilityIndex)

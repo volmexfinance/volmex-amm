@@ -94,6 +94,7 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         address tokenOut,
         uint256 tokenAmountOut
     ) external view returns (uint256, uint256);
+
     // Setter methods
     function setController(IVolmexController controller) external;
     function updateFlashLoanPremium(uint256 _premium) external;

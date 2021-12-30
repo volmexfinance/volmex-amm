@@ -49,6 +49,7 @@ interface IVolmexController is IERC165Upgradeable {
         uint256 _poolIndex,
         uint256 _stableCoinIndex
     ) external view returns (IVolmexProtocol);
+
     // Setter methods
     function addPool(IVolmexPool _pool) external;
     function addStableCoin(IERC20Modified _stableCoin) external;
