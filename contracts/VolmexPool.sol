@@ -72,7 +72,7 @@ contract VolmexPool is
     // Difference in the complement token amount while swapping with the primary token
     uint256 public exposureLimitComplement;
     // The amount of collateral required to mint both the volatility tokens
-    uint256 private _denomination;
+    uint256 public denomination;
     // Address of the volmex repricer contract
     IVolmexRepricer public repricer;
     // Address of the volmex protocol contract
@@ -175,7 +175,7 @@ contract VolmexPool is
 
         volatilityIndex = _volatilityIndex;
 
-        _denomination = protocol.volatilityCapRatio();
+        denomination = protocol.volatilityCapRatio();
 
         adminFee = 30;
         flashLoanPremium = 9;
@@ -269,7 +269,7 @@ contract VolmexPool is
             _complementLeverage
         );
 
-        uint256 initPoolSupply = _getDerivativeDenomination() * _primaryBalance;
+        uint256 initPoolSupply = denomination * _primaryBalance;
 
         uint256 collateralDecimals = uint256(protocol.collateral().decimals());
         if (collateralDecimals < 18) {
@@ -1061,15 +1061,15 @@ contract VolmexPool is
         int256 _feeAmp,
         int256 _expEnd
     ) private pure returns (int256) {
-        int256 inBalanceLeveraged = _getLeveragedBalanceOfFee(_inRecord[0], _inRecord[1]);
+        int256 inBalanceLeveraged = _inRecord[0] * _inRecord[1];
         int256 tokenAmountIn1 = (inBalanceLeveraged * (_outRecord[0] - _inRecord[0])) /
-            (inBalanceLeveraged + _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]));
+            (inBalanceLeveraged + (_outRecord[0] * _outRecord[1]));
 
         int256 inBalanceLeveragedChanged = inBalanceLeveraged + _inRecord[2] * iBONE;
         int256 tokenAmountIn2 = (inBalanceLeveragedChanged *
             (_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2])) /
             (inBalanceLeveragedChanged +
-                _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]) -
+                (_outRecord[0] * _outRecord[1]) -
                 _outRecord[2] *
                 iBONE);
 
@@ -1079,14 +1079,6 @@ contract VolmexPool is
                 tokenAmountIn2 *
                 (_baseFee + (_feeAmp * ((_expEnd * _expEnd) / iBONE)) / 3)) /
             (tokenAmountIn1 + tokenAmountIn2);
-    }
-
-    function _getLeveragedBalanceOfFee(int256 _balance, int256 _leverage)
-        private
-        pure
-        returns (int256)
-    {
-        return _balance * _leverage;
     }
 
     function _calc(
@@ -1158,9 +1150,5 @@ contract VolmexPool is
             uint256 feeAmount = div(mul(tokenAmount, adminFee), 10000);
             amountOut = amountOut - feeAmount;
         }
-    }
-
-    function _getDerivativeDenomination() private view returns (uint256) {
-        return _denomination;
     }
 }
