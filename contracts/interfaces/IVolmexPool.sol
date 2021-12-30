@@ -14,14 +14,12 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
-
 import '../libs/tokens/Token.sol';
 import './IVolmexProtocol.sol';
 import './IVolmexRepricer.sol';
 import './IVolmexController.sol';
 
-interface IVolmexPool is IERC20, IERC165Upgradeable {
+interface IVolmexPool is IERC20 {
     event LogSwap(
         address indexed caller,
         address indexed tokenIn,

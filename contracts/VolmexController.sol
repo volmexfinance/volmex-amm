@@ -5,6 +5,7 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -82,7 +83,7 @@ contract VolmexController is
         IVolmexOracle _oracle
     ) external initializer {
         require(
-            _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
+            IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
             'VolmexController: Oracle does not supports interface'
         );
 
@@ -90,7 +91,7 @@ contract VolmexController is
         // Note: Since loop size is very small so nested loop won't be a problem
         for (uint256 i; i < 2; i++) {
             require(
-                _pools[i].supportsInterface(_IVOLMEX_POOL_ID),
+                IERC165Upgradeable(address(_pools[i])).supportsInterface(_IVOLMEX_POOL_ID),
                 'VolmexController: Pool does not supports interface'
             );
             require(
@@ -131,7 +132,7 @@ contract VolmexController is
      */
     function addPool(IVolmexPool _pool) external onlyOwner {
         require(
-            _pool.supportsInterface(_IVOLMEX_POOL_ID),
+            IERC165Upgradeable(address(_pool)).supportsInterface(_IVOLMEX_POOL_ID),
             'VolmexController: Pool does not supports interface'
         );
         poolIndex++;

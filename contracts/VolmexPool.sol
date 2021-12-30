@@ -5,6 +5,7 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 
 import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
@@ -167,7 +168,7 @@ contract VolmexPool is
         uint256 _feeAmpComplement
     ) external initializer {
         require(
-            _repricer.supportsInterface(_IVOLMEX_REPRICER_ID),
+            IERC165Upgradeable(address(_repricer)).supportsInterface(_IVOLMEX_REPRICER_ID),
             'VolmexPool: Repricer does not supports interface'
         );
         require(address(_protocol) != address(0), "VolmexPool: protocol address can't be zero");
@@ -205,7 +206,7 @@ contract VolmexPool is
      */
     function setController(IVolmexController _controller) external onlyOwner {
         require(
-            _controller.supportsInterface(_IVOLMEX_CONTROLLER_ID),
+            IERC165Upgradeable(address(_controller)).supportsInterface(_IVOLMEX_CONTROLLER_ID),
             'VolmexPool: Not Controller'
         );
         controller = _controller;

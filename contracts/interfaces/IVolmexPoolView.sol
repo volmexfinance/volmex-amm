@@ -4,7 +4,7 @@ pragma solidity =0.8.11;
 
 import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 
-interface IVolmexPoolView is IERC165Upgradeable {
+interface IVolmexPoolView {
     struct TokenRecord {
         address self;
         uint256 balance;
