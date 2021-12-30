@@ -720,10 +720,6 @@ contract VolmexPool is
         return _getComplementDerivativeAddress();
     }
 
-    function paused() public view override(IVolmexPool, PausableUpgradeable) returns (bool) {
-        return super.paused();
-    }
-
     /**
      * @notice Sets all type of fees
      *
