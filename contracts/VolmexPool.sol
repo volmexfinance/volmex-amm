@@ -36,9 +36,8 @@ contract VolmexPool is
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
     // Interface ID of VolmexController contract
     bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
-
     // Number of tokens the pool can hold
-    uint256 public constant BOUND_TOKENS = 2;
+    uint256 private constant BOUND_TOKENS = 2;
 
     // Used to prevent the re-entry
     bool private _mutex;
