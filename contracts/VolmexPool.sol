@@ -87,7 +87,7 @@ contract VolmexPool is
     // Percentage of fee deducted for admin
     uint256 public adminFee;
     // Percentage of fee deducted for flash loan
-    uint256 public FLASHLOAN_PREMIUM_TOTAL;
+    uint256 public flashLoanPremium;
 
     /**
      * @notice Used to log the callee's sig, address and data
@@ -183,7 +183,7 @@ contract VolmexPool is
         _denomination = protocol.volatilityCapRatio();
 
         adminFee = 30;
-        FLASHLOAN_PREMIUM_TOTAL = 9;
+        flashLoanPremium = 9;
 
         setName(makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
         setSymbol(
@@ -218,9 +218,9 @@ contract VolmexPool is
      */
     function updateFlashLoanPremium(uint256 _premium) external onlyOwner {
         require(_premium > 0 && _premium <= 10000, 'VolmexPool: _premium value not in range');
-        FLASHLOAN_PREMIUM_TOTAL = _premium;
+        flashLoanPremium = _premium;
 
-        emit UpdatedFlashLoanPremium(FLASHLOAN_PREMIUM_TOTAL);
+        emit UpdatedFlashLoanPremium(flashLoanPremium);
     }
 
     /**
@@ -241,7 +241,7 @@ contract VolmexPool is
         IERC20Modified(assetToken).transfer(receiverAddress, amount);
 
         IFlashLoanReceiver receiver = IFlashLoanReceiver(receiverAddress);
-        uint256 premium = div(mul(amount, FLASHLOAN_PREMIUM_TOTAL), 10000);
+        uint256 premium = div(mul(amount, flashLoanPremium), 10000);
 
         require(
             receiver.executeOperation(assetToken, amount, premium, receiverAddress, params),
