@@ -8,6 +8,7 @@ import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpg
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IERC20Modified.sol';
 import './interfaces/IVolmexPoolView.sol';
+import './interfaces/IPausablePool.sol';
 
 /// @title Reading key data from specified derivative trading Pool
 contract VolmexPoolView is ERC165StorageUpgradeable {
@@ -98,7 +99,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable {
         config = Config(
             address(pool.protocol()),
             address(pool.repricer()),
-            pool.paused(),
+            IPausablePool(address(pool)).paused(),
             IERC20Modified(_primaryAddress).decimals(),
             IERC20Modified(_pool).decimals(),
             pool.exposureLimitPrimary(),
