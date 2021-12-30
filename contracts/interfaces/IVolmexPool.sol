@@ -57,7 +57,7 @@ interface IVolmexPool is IERC20 {
         uint256 feeAmpComplement
     );
     event LogCall(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
-    event FlashLoan(
+    event Loaned(
         address indexed target,
         address indexed asset,
         uint256 amount,

@@ -249,7 +249,7 @@ contract VolmexPool is
 
         records[assetToken].balance = records[assetToken].balance + amountWithPremium;
 
-        emit FlashLoan(receiverAddress, assetToken, amount, premium);
+        emit Loaned(receiverAddress, assetToken, amount, premium);
     }
 
     /**
