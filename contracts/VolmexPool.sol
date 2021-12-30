@@ -30,11 +30,6 @@ contract VolmexPool is
     TokenMetadataGenerator,
     IVolmexPool
 {
-    struct Record {
-        uint256 leverage;
-        uint256 balance;
-    }
-
     // Interface ID of VolmexRepricer contract
     bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
     // Interface ID of VolmexPool contract
@@ -53,7 +48,7 @@ contract VolmexPool is
     address[BOUND_TOKENS] public tokens;
 
     // This is mapped by token addresses
-    mapping(address => Record) internal _records;
+    mapping(address => Record) public records;
 
     // Address of the pool controller
     IVolmexController public controller;
@@ -191,7 +186,7 @@ contract VolmexPool is
             makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol())
         );
 
-        setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
+        _setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
 
         __Ownable_init();
         __Pausable_init_unchained(); // Used this, because ownable init is calling context init
@@ -238,7 +233,7 @@ contract VolmexPool is
         uint256 amount,
         bytes calldata params
     ) external lock whenNotPaused onlyController {
-        _records[assetToken].balance = _records[assetToken].balance - amount;
+        records[assetToken].balance = records[assetToken].balance - amount;
         IERC20Modified(assetToken).transfer(receiverAddress, amount);
 
         IFlashLoanReceiver receiver = IFlashLoanReceiver(receiverAddress);
@@ -253,7 +248,7 @@ contract VolmexPool is
 
         IERC20Modified(assetToken).transferFrom(receiverAddress, address(this), amountWithPremium);
 
-        _records[assetToken].balance = _records[assetToken].balance + amountWithPremium;
+        records[assetToken].balance = records[assetToken].balance + amountWithPremium;
 
         emit FlashLoan(receiverAddress, assetToken, amount, premium);
     }
@@ -277,14 +272,14 @@ contract VolmexPool is
 
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             address token = tokens[i];
-            uint256 bal = _records[token].balance;
+            uint256 bal = records[token].balance;
             // This can't be tested, as the div method will fail, due to zero supply of lp token
             // The supply of lp token is greater than zero, means token reserve is greater than zero
             // Also, in the case of swap, there's some amount of tokens available pool more than qMin
             require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
             uint256 tokenAmountIn = mul(ratio, bal);
             require(tokenAmountIn <= maxAmountsIn[i], 'VolmexPool: Amount in limit exploit');
-            _records[token].balance = _records[token].balance + tokenAmountIn;
+            records[token].balance = records[token].balance + tokenAmountIn;
             emit LogJoin(receiver, token, tokenAmountIn);
             _pullUnderlying(token, receiver, tokenAmountIn);
         }
@@ -313,11 +308,11 @@ contract VolmexPool is
 
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
             address token = tokens[i];
-            uint256 bal = _records[token].balance;
+            uint256 bal = records[token].balance;
             require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
             uint256 tokenAmountOut = _calculateAmountOut(poolAmountIn, ratio, bal);
             require(tokenAmountOut >= minAmountsOut[i], 'VolmexPool: Amount out limit exploit');
-            _records[token].balance = _records[token].balance - tokenAmountOut;
+            records[token].balance = records[token].balance - tokenAmountOut;
             emit LogExit(receiver, token, tokenAmountOut);
             _pushUnderlying(token, receiver, tokenAmountOut);
         }
@@ -364,8 +359,8 @@ contract VolmexPool is
 
         _reprice();
 
-        Record memory inRecord = _records[tokenIn];
-        Record memory outRecord = _records[tokenOut];
+        Record memory inRecord = records[tokenIn];
+        Record memory outRecord = records[tokenOut];
 
         require(
             tokenAmountIn <=
@@ -385,7 +380,7 @@ contract VolmexPool is
             tokenAmountIn,
             outRecord,
             tokenAmountOut,
-            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+            getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
         tokenAmountOut = calcOutGivenIn(
@@ -454,8 +449,8 @@ contract VolmexPool is
 
         _reprice();
 
-        Record memory inRecord = _records[tokenIn];
-        Record memory outRecord = _records[tokenOut];
+        Record memory inRecord = records[tokenIn];
+        Record memory outRecord = records[tokenOut];
 
         require(
             tokenAmountOut <=
@@ -475,7 +470,7 @@ contract VolmexPool is
             tokenAmountIn,
             outRecord,
             tokenAmountOut,
-            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+            getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
         tokenAmountIn = calcInGivenOut(
@@ -606,7 +601,7 @@ contract VolmexPool is
             _tokenAmountIn,
             outRecord,
             tokenAmountOut,
-            _getPrimaryDerivativeAddress() == _tokenIn ? feeAmpPrimary : feeAmpComplement
+            getPrimaryDerivativeAddress() == _tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
         tokenAmountOut = calcOutGivenIn(
@@ -642,7 +637,7 @@ contract VolmexPool is
             _tokenAmountOut,
             outRecord,
             tokenAmountIn,
-            _getPrimaryDerivativeAddress() == _tokenOut ? feeAmpPrimary : feeAmpComplement
+            getPrimaryDerivativeAddress() == _tokenOut ? feeAmpPrimary : feeAmpComplement
         );
 
         tokenAmountIn = calcInGivenOut(
@@ -662,7 +657,7 @@ contract VolmexPool is
         uint256 ratio = div(poolAmountOut, poolTotal);
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
-            uint256 bal = _records[tokens[i]].balance;
+            uint256 bal = records[tokens[i]].balance;
             maxAmountsIn[i] = mul(ratio, bal);
         }
     }
@@ -676,7 +671,7 @@ contract VolmexPool is
         uint256 ratio = div(poolAmountIn, poolTotal);
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
-            uint256 bal = _records[tokens[i]].balance;
+            uint256 bal = records[tokens[i]].balance;
             minAmountsOut[i] = _calculateAmountOut(poolAmountIn, ratio, bal);
         }
     }
@@ -687,7 +682,7 @@ contract VolmexPool is
      * @param token Address of the token, either primary or complement
      */
     function getLeverage(address token) external view viewlock returns (uint256) {
-        return _records[token].leverage;
+        return records[token].leverage;
     }
 
     /**
@@ -696,15 +691,15 @@ contract VolmexPool is
      * @param token Address of the token. either primary or complement
      */
     function getBalance(address token) external view viewlock returns (uint256) {
-        return _records[token].balance;
+        return records[token].balance;
     }
 
-    function getPrimaryDerivativeAddress() external view returns (address) {
-        return _getPrimaryDerivativeAddress();
+    function getPrimaryDerivativeAddress() public view returns (address) {
+        return tokens[0];
     }
 
-    function getComplementDerivativeAddress() external view returns (address) {
-        return _getComplementDerivativeAddress();
+    function getComplementDerivativeAddress() public view returns (address) {
+        return tokens[1];
     }
 
     /**
@@ -717,7 +712,7 @@ contract VolmexPool is
      * @param _feeAmpPrimary Fee on the primary token
      * @param _feeAmpComplement Fee on the complement token
      */
-    function setFeeParams(
+    function _setFeeParams(
         uint256 _baseFee,
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
@@ -736,8 +731,8 @@ contract VolmexPool is
         view
         returns (Record memory inRecord, Record memory outRecord)
     {
-        Record memory primaryRecord = _records[_getPrimaryDerivativeAddress()];
-        Record memory complementRecord = _records[_getComplementDerivativeAddress()];
+        Record memory primaryRecord = records[getPrimaryDerivativeAddress()];
+        Record memory complementRecord = records[getComplementDerivativeAddress()];
 
         (, , uint256 estPrice) = repricer.reprice(volatilityIndex);
 
@@ -761,8 +756,8 @@ contract VolmexPool is
         );
         complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
 
-        inRecord = _getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord;
-        outRecord = _getComplementDerivativeAddress() == tokenIn
+        inRecord = getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord;
+        outRecord = getComplementDerivativeAddress() == tokenIn
             ? primaryRecord
             : complementRecord;
     }
@@ -778,8 +773,8 @@ contract VolmexPool is
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
-        Record storage primaryRecord = _records[_getPrimaryDerivativeAddress()];
-        Record storage complementRecord = _records[_getComplementDerivativeAddress()];
+        Record storage primaryRecord = records[getPrimaryDerivativeAddress()];
+        Record storage complementRecord = records[getComplementDerivativeAddress()];
 
         uint256 estPricePrimary;
         uint256 estPriceComplement;
@@ -828,15 +823,15 @@ contract VolmexPool is
         address receiver,
         bool toController
     ) private returns (uint256 spotPriceAfter) {
-        Record storage inRecord = _records[tokenIn];
-        Record storage outRecord = _records[tokenOut];
+        Record storage inRecord = records[tokenIn];
+        Record storage outRecord = records[tokenOut];
 
         _requireBoundaryConditions(
             inRecord,
             tokenAmountIn,
             outRecord,
             tokenAmountOut,
-            _getPrimaryDerivativeAddress() == tokenIn
+            getPrimaryDerivativeAddress() == tokenIn
                 ? exposureLimitPrimary
                 : exposureLimitComplement
         );
@@ -1029,7 +1024,7 @@ contract VolmexPool is
         require(balance >= qMin, 'VolmexPool: Unsatisfied min balance supplied');
         require(leverage > 0, 'VolmexPool: Token leverage should be greater than 0');
 
-        _records[token] = Record({ leverage: leverage, balance: balance });
+        records[token] = Record({ leverage: leverage, balance: balance });
 
         tokens[index] = token;
 
@@ -1168,13 +1163,5 @@ contract VolmexPool is
 
     function _getDerivativeDenomination() private view returns (uint256) {
         return _denomination;
-    }
-
-    function _getPrimaryDerivativeAddress() private view returns (address) {
-        return tokens[0];
-    }
-
-    function _getComplementDerivativeAddress() private view returns (address) {
-        return tokens[1];
     }
 }

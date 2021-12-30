@@ -20,6 +20,11 @@ import './IVolmexRepricer.sol';
 import './IVolmexController.sol';
 
 interface IVolmexPool is IERC20 {
+    struct Record {
+        uint256 leverage;
+        uint256 balance;
+    }
+
     event LogSwap(
         address indexed caller,
         address indexed tokenIn,
