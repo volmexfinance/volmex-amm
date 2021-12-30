@@ -554,7 +554,7 @@ contract VolmexPool is
             _complementLeverage
         );
 
-        uint256 initPoolSupply = getDerivativeDenomination() * _primaryBalance;
+        uint256 initPoolSupply = _getDerivativeDenomination() * _primaryBalance;
 
         uint256 collateralDecimals = uint256(protocol.collateral().decimals());
         if (collateralDecimals < 18) {
@@ -735,7 +735,7 @@ contract VolmexPool is
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
-    ) internal logs lock onlyNotSettled {
+    ) private logs lock onlyNotSettled {
         baseFee = _baseFee;
         maxFee = _maxFee;
         feeAmpPrimary = _feeAmpPrimary;
@@ -745,7 +745,7 @@ contract VolmexPool is
     }
 
     function _getRepriced(address tokenIn)
-        internal
+        private
         view
         returns (Record memory inRecord, Record memory outRecord)
     {
@@ -787,7 +787,7 @@ contract VolmexPool is
      * @dev Fetches the est price of primary, complement and averaged
      * @dev Calculates the primary and complement leverage
      */
-    function _reprice() internal virtual {
+    function _reprice() private {
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
@@ -840,7 +840,7 @@ contract VolmexPool is
         uint256 fee,
         address receiver,
         bool toController
-    ) internal returns (uint256 spotPriceAfter) {
+    ) private returns (uint256 spotPriceAfter) {
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
 
@@ -892,7 +892,7 @@ contract VolmexPool is
         _pushUnderlying(tokenOut, toController ? address(controller) : receiver, tokenAmountOut);
     }
 
-    function _getLeveragedBalance(Record memory r) internal pure returns (uint256) {
+    function _getLeveragedBalance(Record memory r) private pure returns (uint256) {
         return mul(r.balance, r.leverage);
     }
 
@@ -902,7 +902,7 @@ contract VolmexPool is
         Record storage outToken,
         uint256 tokenAmountOut,
         uint256 exposureLimit
-    ) internal view {
+    ) private view {
         require(
             _getLeveragedBalance(outToken) - tokenAmountOut > qMin,
             'VolmexPool: Leverage boundary exploit'
@@ -940,7 +940,7 @@ contract VolmexPool is
         uint256 tokenAmountIn,
         Record storage outToken,
         uint256 tokenAmountOut
-    ) internal {
+    ) private {
         outToken.leverage = div(
             _getLeveragedBalance(outToken) - tokenAmountOut,
             outToken.balance - tokenAmountOut
@@ -964,7 +964,7 @@ contract VolmexPool is
         address erc20,
         address from,
         uint256 amount
-    ) internal returns (uint256) {
+    ) private returns (uint256) {
         uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
         IVolmexController(controller).transferAssetToPool(IERC20Modified(erc20), from, amount);
 
@@ -1004,7 +1004,7 @@ contract VolmexPool is
         address erc20,
         address to,
         uint256 amount
-    ) internal {
+    ) private {
         EIP20NonStandardInterface(erc20).transfer(to, amount);
 
         bool success;
@@ -1038,7 +1038,7 @@ contract VolmexPool is
         address token,
         uint256 balance,
         uint256 leverage
-    ) internal {
+    ) private {
         require(balance >= qMin, 'VolmexPool: Unsatisfied min balance supplied');
         require(leverage > 0, 'VolmexPool: Token leverage should be greater than 0');
 
@@ -1049,7 +1049,27 @@ contract VolmexPool is
         _pullUnderlying(token, msg.sender, balance);
     }
 
-    function _spow3(int256 _value) internal pure returns (int256) {
+        // ==
+    // 'Underlying' token-manipulation functions make external calls but are NOT locked
+    // You must `lock` or otherwise ensure reentry-safety
+
+    function _pullPoolShare(address from, uint256 amount) private {
+        _pull(from, amount);
+    }
+
+    function _pushPoolShare(address to, uint256 amount) private {
+        _push(to, amount);
+    }
+
+    function _mintPoolShare(uint256 amount) private {
+        _mint(amount);
+    }
+
+    function _burnPoolShare(uint256 amount) private {
+        _burn(amount);
+    }
+
+    function _spow3(int256 _value) private pure returns (int256) {
         return (((_value * _value) / iBONE) * _value) / iBONE;
     }
 
@@ -1059,7 +1079,7 @@ contract VolmexPool is
         int256 _baseFee,
         int256 _feeAmp,
         int256 _expEnd
-    ) internal pure returns (int256) {
+    ) private pure returns (int256) {
         int256 inBalanceLeveraged = _getLeveragedBalanceOfFee(_inRecord[0], _inRecord[1]);
         int256 tokenAmountIn1 = (inBalanceLeveraged * (_outRecord[0] - _inRecord[0])) /
             (inBalanceLeveraged + _getLeveragedBalanceOfFee(_outRecord[0], _outRecord[1]));
@@ -1081,7 +1101,7 @@ contract VolmexPool is
     }
 
     function _getLeveragedBalanceOfFee(int256 _balance, int256 _leverage)
-        internal
+        private
         pure
         returns (int256)
     {
@@ -1094,7 +1114,7 @@ contract VolmexPool is
         int256 _baseFee,
         int256 _feeAmp,
         int256 _maxFee
-    ) internal pure returns (int256 fee, int256 expStart) {
+    ) private pure returns (int256 fee, int256 expStart) {
         expStart = _calcExpStart(_inRecord[0], _outRecord[0]);
 
         int256 _expEnd = ((_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) * iBONE) /
@@ -1126,7 +1146,7 @@ contract VolmexPool is
         Record memory outRecord,
         uint256 tokenAmountOut,
         uint256 feeAmp
-    ) internal view returns (uint256 fee) {
+    ) private view returns (uint256 fee) {
         int256 ifee;
         (ifee, ) = _calc(
             [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
@@ -1139,7 +1159,7 @@ contract VolmexPool is
         fee = uint256(ifee);
     }
 
-    function _calcExpStart(int256 _inBalance, int256 _outBalance) internal pure returns (int256) {
+    function _calcExpStart(int256 _inBalance, int256 _outBalance) private pure returns (int256) {
         return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
     }
 
@@ -1150,7 +1170,7 @@ contract VolmexPool is
         uint256 _poolAmountIn,
         uint256 _ratio,
         uint256 _tokenReserve
-    ) internal view returns (uint256 amountOut) {
+    ) private view returns (uint256 amountOut) {
         uint256 tokenAmount = mul(div(_poolAmountIn, upperBoundary), BONE);
         amountOut = mul(_ratio, _tokenReserve);
         if (amountOut > tokenAmount) {
@@ -1159,35 +1179,15 @@ contract VolmexPool is
         }
     }
 
-    function getDerivativeDenomination() internal view returns (uint256) {
+    function _getDerivativeDenomination() private view returns (uint256) {
         return _denomination;
     }
 
-    function _getPrimaryDerivativeAddress() internal view returns (address) {
+    function _getPrimaryDerivativeAddress() private view returns (address) {
         return _tokens[0];
     }
 
-    function _getComplementDerivativeAddress() internal view returns (address) {
+    function _getComplementDerivativeAddress() private view returns (address) {
         return _tokens[1];
-    }
-
-    // ==
-    // 'Underlying' token-manipulation functions make external calls but are NOT locked
-    // You must `lock` or otherwise ensure reentry-safety
-
-    function _pullPoolShare(address from, uint256 amount) internal {
-        _pull(from, amount);
-    }
-
-    function _pushPoolShare(address to, uint256 amount) internal {
-        _push(to, amount);
-    }
-
-    function _mintPoolShare(uint256 amount) internal {
-        _mint(amount);
-    }
-
-    function _burnPoolShare(uint256 amount) internal {
-        _burn(amount);
     }
 }
