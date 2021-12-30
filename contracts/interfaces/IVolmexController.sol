@@ -2,17 +2,15 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
-
 import './IERC20Modified.sol';
 import './IVolmexPool.sol';
 import './IPausablePool.sol';
 import './IVolmexProtocol.sol';
 import './IVolmexOracle.sol';
 
-interface IVolmexController is IERC165Upgradeable {
+interface IVolmexController {
     event AdminFeeUpdated(uint256 adminFee);
-    event LogCollateralSwap(
+    event CollateralSwapped(
         uint256 volatilityInAmount,
         uint256 collateralOutAmount,
         uint256 protocolFee,
@@ -20,7 +18,7 @@ interface IVolmexController is IERC165Upgradeable {
         uint256 indexed stableCoinIndex,
         address indexed token
     );
-    event LogPoolSwap(
+    event PoolSwapped(
         uint256 volatilityInAmount,
         uint256 volatilityOutAmount,
         uint256 protocolFee,
@@ -32,7 +30,7 @@ interface IVolmexController is IERC165Upgradeable {
     event StableCoinAdded(uint256 indexed stableCoinIndex, address indexed stableCoin);
     event ProtocolAdded(uint256 poolIndex, uint256 stableCoinIndex, address indexed protocol);
     event PoolTokensCollected(address indexed owner, uint256 amount);
-    event LogJoinSingleSide(
+    event SingleSideJoined(
         address indexed tokenIn,
         uint256 poolAmountOut,
         uint256 totalTokenAmountIn
@@ -49,6 +47,7 @@ interface IVolmexController is IERC165Upgradeable {
         uint256 _poolIndex,
         uint256 _stableCoinIndex
     ) external view returns (IVolmexProtocol);
+
     // Setter methods
     function addPool(IVolmexPool _pool) external;
     function addStableCoin(IERC20Modified _stableCoin) external;

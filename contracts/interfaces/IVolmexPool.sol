@@ -14,16 +14,18 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
-
 import '../libs/tokens/Token.sol';
 import './IVolmexProtocol.sol';
 import './IVolmexRepricer.sol';
 import './IVolmexController.sol';
 
-interface IVolmexPool is IERC20, IERC165Upgradeable {
-    event LogSwap(
-        address indexed caller,
+interface IVolmexPool is IERC20 {
+    struct Record {
+        uint256 leverage;
+        uint256 balance;
+    }
+
+    event Swapped(
         address indexed tokenIn,
         address indexed tokenOut,
         uint256 tokenAmountIn,
@@ -34,9 +36,9 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         uint256 tokenLeverageIn,
         uint256 tokenLeverageOut
     );
-    event LogJoin(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
-    event LogExit(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
-    event LogReprice(
+    event Joined(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
+    event Exited(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
+    event Repriced(
         uint256 repricingBlock,
         uint256 balancePrimary,
         uint256 balanceComplement,
@@ -47,21 +49,21 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         uint256 estPricePrimary,
         uint256 estPriceComplement
     );
-    event LogSetFeeParams(
-        uint256 baseFee,
-        uint256 maxFee,
-        uint256 feeAmpPrimary,
-        uint256 feeAmpComplement
-    );
-    event LogCall(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
-    event FlashLoan(
+    event Called(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
+    event Loaned(
         address indexed target,
         address indexed asset,
         uint256 amount,
         uint256 premium
     );
+    event FlashLoanPremiumUpdated(uint256 premium);
     event SetController(address indexed controller);
-    event UpdatedFlashLoanPremium(uint256 premium);
+    event SetFeeParams(
+        uint256 baseFee,
+        uint256 maxFee,
+        uint256 feeAmpPrimary,
+        uint256 feeAmpComplement
+    );
 
     // Getter methods
     function repricingBlock() external view returns (uint256);
@@ -94,6 +96,7 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
         address tokenOut,
         uint256 tokenAmountOut
     ) external view returns (uint256, uint256);
+
     // Setter methods
     function setController(IVolmexController controller) external;
     function updateFlashLoanPremium(uint256 _premium) external;

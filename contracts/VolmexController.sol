@@ -5,6 +5,7 @@ pragma solidity =0.8.11;
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IVolmexProtocol.sol';
@@ -82,7 +83,7 @@ contract VolmexController is
         IVolmexOracle _oracle
     ) external initializer {
         require(
-            _oracle.supportsInterface(_IVOLMEX_ORACLE_ID),
+            IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
             'VolmexController: Oracle does not supports interface'
         );
 
@@ -90,7 +91,7 @@ contract VolmexController is
         // Note: Since loop size is very small so nested loop won't be a problem
         for (uint256 i; i < 2; i++) {
             require(
-                _pools[i].supportsInterface(_IVOLMEX_POOL_ID),
+                IERC165Upgradeable(address(_pools[i])).supportsInterface(_IVOLMEX_POOL_ID),
                 'VolmexController: Pool does not supports interface'
             );
             require(
@@ -131,7 +132,7 @@ contract VolmexController is
      */
     function addPool(IVolmexPool _pool) external onlyOwner {
         require(
-            _pool.supportsInterface(_IVOLMEX_POOL_ID),
+            IERC165Upgradeable(address(_pool)).supportsInterface(_IVOLMEX_POOL_ID),
             'VolmexController: Pool does not supports interface'
         );
         poolIndex++;
@@ -196,6 +197,18 @@ contract VolmexController is
      */
     function unpausePool(IPausablePool _pool) external onlyOwner {
         _pool.unpause();
+    }
+
+    /**
+     * @notice Used to collect the pool token
+     *
+     * @param _pool Address of the pool
+     */
+    function collect(IVolmexPool _pool) external onlyOwner {
+        uint256 collected = IERC20(_pool).balanceOf(address(this));
+        bool xfer = _pool.transfer(owner(), collected);
+        require(xfer, 'ERC20_FAILED');
+        emit PoolTokensCollected(owner(), collected);
     }
 
     /**
@@ -275,7 +288,7 @@ contract VolmexController is
             msg.sender
         );
 
-        emit LogCollateralSwap(
+        emit CollateralSwapped(
             _amounts[0],
             totalVolatilityAmount,
             fees[1],
@@ -347,7 +360,7 @@ contract VolmexController is
         IERC20Modified stableCoin = stableCoins[_indices[1]];
         _transferAsset(stableCoin, collateralAmount, msg.sender);
 
-        emit LogCollateralSwap(
+        emit CollateralSwapped(
             _amounts[0],
             collateralAmount,
             fees[1],
@@ -464,7 +477,7 @@ contract VolmexController is
             msg.sender
         );
 
-        emit LogPoolSwap(
+        emit PoolSwapped(
             _amounts[0],
             protocolAmounts[1] + tokenAmounts[1],
             fees[2] + fees[3],
@@ -555,7 +568,7 @@ contract VolmexController is
 
         _transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
 
-        emit LogJoinSingleSide(
+        emit SingleSideJoined(
             _tokenIn,
             _poolAmountOut,
             totalTokenAmountIn
@@ -611,18 +624,6 @@ contract VolmexController is
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
-    }
-
-    /**
-     * @notice Used to collect the pool token
-     *
-     * @param _pool Address of the pool
-     */
-    function collect(IVolmexPool _pool) external onlyOwner {
-        uint256 collected = IERC20(_pool).balanceOf(address(this));
-        bool xfer = _pool.transfer(owner(), collected);
-        require(xfer, 'ERC20_FAILED');
-        emit PoolTokensCollected(owner(), collected);
     }
 
     /**

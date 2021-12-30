@@ -171,4 +171,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
         volatilityTokenPrice = _volatilityTokenPriceByIndex[_index];
         iVolatilityTokenPrice = volatilityCapRatioByIndex[_index] - volatilityTokenPrice;
     }
+
+    uint256[10] private __gap;
 }

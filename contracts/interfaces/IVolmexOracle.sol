@@ -2,10 +2,9 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 import './IVolmexProtocol.sol';
 
-interface IVolmexOracle is IERC165Upgradeable {
+interface IVolmexOracle {
     event BatchVolatilityTokenPriceUpdated(
         uint256[] _volatilityIndexes,
         uint256[] _volatilityTokenPrices,
@@ -26,6 +25,7 @@ interface IVolmexOracle is IERC165Upgradeable {
     function volatilityTokenPriceProofHash(uint256 _index) external view returns (bytes32);
     function volatilityIndexBySymbol(string calldata _tokenSymbol) external view returns (uint256);
     function indexCount() external view returns (uint256);
+
     // Setter methods
     function updateIndexBySymbol(string calldata _tokenSymbol, uint256 _index) external;
     function getVolatilityTokenPriceByIndex(uint256 _index)
