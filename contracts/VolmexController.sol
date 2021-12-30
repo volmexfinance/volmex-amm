@@ -221,7 +221,7 @@ contract VolmexController is
         uint256[3] memory fees;
         uint256 volatilityAmount;
         fees[2] = _protocol.volatilityCapRatio();
-        (volatilityAmount, fees[1]) = calculateAssetQuantity(
+        (volatilityAmount, fees[1]) = _calculateAssetQuantity(
             _amounts[0],
             _protocol.issuanceFees(),
             true,
@@ -269,7 +269,7 @@ contract VolmexController is
             'VolmexController: Insufficient expected volatility amount'
         );
 
-        transferAsset(
+        _transferAsset(
             isInverse ? inverseVolatilityToken : volatilityToken,
             totalVolatilityAmount,
             msg.sender
@@ -329,7 +329,7 @@ contract VolmexController is
 
         uint256 collateralAmount;
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (collateralAmount, fees[1]) = calculateAssetQuantity(
+        (collateralAmount, fees[1]) = _calculateAssetQuantity(
             tokenAmountOut * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
@@ -345,7 +345,7 @@ contract VolmexController is
         _protocol.redeem(tokenAmountOut);
 
         IERC20Modified stableCoin = stableCoins[_indices[1]];
-        transferAsset(stableCoin, collateralAmount, msg.sender);
+        _transferAsset(stableCoin, collateralAmount, msg.sender);
 
         emit LogCollateralSwap(
             _amounts[0],
@@ -408,7 +408,7 @@ contract VolmexController is
         // Array of collateralAmount {0} and volatilityAmount {1}
         uint256[3] memory protocolAmounts;
         protocolAmounts[2] = _protocol.volatilityCapRatio();
-        (protocolAmounts[0], fees[2]) = calculateAssetQuantity(
+        (protocolAmounts[0], fees[2]) = _calculateAssetQuantity(
             tokenAmounts[1] * protocolAmounts[2],
             _protocol.redeemFees(),
             false,
@@ -425,7 +425,7 @@ contract VolmexController is
         _protocol.collateralize(protocolAmounts[0]);
 
         protocolAmounts[2] = _protocol.volatilityCapRatio();
-        (protocolAmounts[1], fees[3]) = calculateAssetQuantity(
+        (protocolAmounts[1], fees[3]) = _calculateAssetQuantity(
             protocolAmounts[0],
             _protocol.issuanceFees(),
             true,
@@ -458,7 +458,7 @@ contract VolmexController is
             'VolmexController: Insufficient expected volatility amount'
         );
 
-        transferAsset(
+        _transferAsset(
             IERC20Modified(_tokens[1]),
             protocolAmounts[1] + tokenAmounts[1],
             msg.sender
@@ -553,7 +553,7 @@ contract VolmexController is
 
         _pool.joinPool(_poolAmountOut, volatilityAmountsIn, address(this));
 
-        transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
+        _transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
 
         emit LogJoinSingleSide(
             _tokenIn,
@@ -657,7 +657,7 @@ contract VolmexController is
         IVolmexPool _pool = pools[_indices[0]];
 
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (volatilityAmount, fees[1]) = calculateAssetQuantity(
+        (volatilityAmount, fees[1]) = _calculateAssetQuantity(
             _collateralAmount,
             _protocol.issuanceFees(),
             true,
@@ -708,7 +708,7 @@ contract VolmexController is
             _isInverse
         );
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (collateralAmount, protocolFee) = calculateAssetQuantity(
+        (collateralAmount, protocolFee) = _calculateAssetQuantity(
             tokenAmountOut * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
@@ -747,7 +747,7 @@ contract VolmexController is
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[2]];
         uint256[3] memory protocolAmount;
         protocolAmount[2] = _protocol.volatilityCapRatio();
-        (protocolAmount[0], fee) = calculateAssetQuantity(
+        (protocolAmount[0], fee) = _calculateAssetQuantity(
             tokenAmountOut * protocolAmount[2],
             _protocol.redeemFees(),
             false,
@@ -758,7 +758,7 @@ contract VolmexController is
         _protocol = protocols[_indices[1]][_indices[2]];
         protocolAmount[2] = _protocol.volatilityCapRatio();
 
-        (protocolAmount[1], fee) = calculateAssetQuantity(
+        (protocolAmount[1], fee) = _calculateAssetQuantity(
             protocolAmount[0],
             _protocol.issuanceFees(),
             true,
@@ -809,23 +809,23 @@ contract VolmexController is
         tokenAmount += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
     }
 
-    function calculateAssetQuantity(
+    function _calculateAssetQuantity(
         uint256 _amount,
         uint256 _feePercent,
         bool _isVolatility,
         uint256 _volatilityCapRatio
-    ) internal pure returns (uint256 amount, uint256 protocolFee) {
+    ) private pure returns (uint256 amount, uint256 protocolFee) {
         protocolFee = (_amount * _feePercent) / 10000;
         _amount = _amount - protocolFee;
 
         amount = _isVolatility ? _amount / _volatilityCapRatio : _amount;
     }
 
-    function transferAsset(
+    function _transferAsset(
         IERC20Modified _token,
         uint256 _amount,
         address receiver
-    ) internal {
+    ) private {
         _token.transfer(receiver, _amount);
     }
 
@@ -834,7 +834,7 @@ contract VolmexController is
         uint256 _amount,
         address _owner,
         address _spender
-    ) internal {
+    ) private {
         uint256 _allowance = _token.allowance(_owner, _spender);
 
         if (_amount <= _allowance) return;
@@ -847,7 +847,7 @@ contract VolmexController is
         IVolmexPool _pool,
         bool _isInverse,
         uint256 _fee
-    ) internal view returns (uint256 volatilityAmount) {
+    ) private view returns (uint256 volatilityAmount) {
         (uint256 price, uint256 iPrice) = oracle.getVolatilityTokenPriceByIndex(
             _pool.volatilityIndex()
         );
@@ -868,7 +868,7 @@ contract VolmexController is
         IVolmexPool _pool,
         bool _isInverse
     )
-        internal
+        private
         view
         returns (
             uint256 swapAmount,
