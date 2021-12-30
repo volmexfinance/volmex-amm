@@ -10,7 +10,7 @@ import './IVolmexOracle.sol';
 
 interface IVolmexController {
     event AdminFeeUpdated(uint256 adminFee);
-    event LogCollateralSwap(
+    event CollateralSwapped(
         uint256 volatilityInAmount,
         uint256 collateralOutAmount,
         uint256 protocolFee,
@@ -18,7 +18,7 @@ interface IVolmexController {
         uint256 indexed stableCoinIndex,
         address indexed token
     );
-    event LogPoolSwap(
+    event PoolSwapped(
         uint256 volatilityInAmount,
         uint256 volatilityOutAmount,
         uint256 protocolFee,
@@ -30,7 +30,7 @@ interface IVolmexController {
     event StableCoinAdded(uint256 indexed stableCoinIndex, address indexed stableCoin);
     event ProtocolAdded(uint256 poolIndex, uint256 stableCoinIndex, address indexed protocol);
     event PoolTokensCollected(address indexed owner, uint256 amount);
-    event LogJoinSingleSide(
+    event SingleSideJoined(
         address indexed tokenIn,
         uint256 poolAmountOut,
         uint256 totalTokenAmountIn

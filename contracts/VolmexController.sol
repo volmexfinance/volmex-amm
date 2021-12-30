@@ -276,7 +276,7 @@ contract VolmexController is
             msg.sender
         );
 
-        emit LogCollateralSwap(
+        emit CollateralSwapped(
             _amounts[0],
             totalVolatilityAmount,
             fees[1],
@@ -348,7 +348,7 @@ contract VolmexController is
         IERC20Modified stableCoin = stableCoins[_indices[1]];
         _transferAsset(stableCoin, collateralAmount, msg.sender);
 
-        emit LogCollateralSwap(
+        emit CollateralSwapped(
             _amounts[0],
             collateralAmount,
             fees[1],
@@ -465,7 +465,7 @@ contract VolmexController is
             msg.sender
         );
 
-        emit LogPoolSwap(
+        emit PoolSwapped(
             _amounts[0],
             protocolAmounts[1] + tokenAmounts[1],
             fees[2] + fees[3],
@@ -556,7 +556,7 @@ contract VolmexController is
 
         _transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
 
-        emit LogJoinSingleSide(
+        emit SingleSideJoined(
             _tokenIn,
             _poolAmountOut,
             totalTokenAmountIn
