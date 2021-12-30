@@ -25,7 +25,7 @@ interface IVolmexPool is IERC20 {
         uint256 balance;
     }
 
-    event LogSwap(
+    event Swapped(
         address indexed caller,
         address indexed tokenIn,
         address indexed tokenOut,
@@ -37,9 +37,9 @@ interface IVolmexPool is IERC20 {
         uint256 tokenLeverageIn,
         uint256 tokenLeverageOut
     );
-    event LogJoin(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
-    event LogExit(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
-    event LogReprice(
+    event Joined(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
+    event Exited(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
+    event Repriced(
         uint256 repricingBlock,
         uint256 balancePrimary,
         uint256 balanceComplement,
@@ -50,21 +50,21 @@ interface IVolmexPool is IERC20 {
         uint256 estPricePrimary,
         uint256 estPriceComplement
     );
-    event LogSetFeeParams(
-        uint256 baseFee,
-        uint256 maxFee,
-        uint256 feeAmpPrimary,
-        uint256 feeAmpComplement
-    );
-    event LogCall(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
+    event Called(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
     event Loaned(
         address indexed target,
         address indexed asset,
         uint256 amount,
         uint256 premium
     );
+    event FlashLoanPremiumUpdated(uint256 premium);
     event SetController(address indexed controller);
-    event UpdatedFlashLoanPremium(uint256 premium);
+    event SetFeeParams(
+        uint256 baseFee,
+        uint256 maxFee,
+        uint256 feeAmpPrimary,
+        uint256 feeAmpComplement
+    );
 
     // Getter methods
     function repricingBlock() external view returns (uint256);

@@ -88,7 +88,7 @@ contract VolmexPool is
      * @notice Used to log the callee's sig, address and data
      */
     modifier logs() {
-        emit LogCall(msg.sig, msg.sender, msg.data);
+        emit Called(msg.sig, msg.sender, msg.data);
         _;
     }
 
@@ -215,7 +215,7 @@ contract VolmexPool is
         require(_premium > 0 && _premium <= 10000, 'VolmexPool: _premium value not in range');
         flashLoanPremium = _premium;
 
-        emit UpdatedFlashLoanPremium(flashLoanPremium);
+        emit FlashLoanPremiumUpdated(flashLoanPremium);
     }
 
     /**
@@ -279,7 +279,7 @@ contract VolmexPool is
             uint256 tokenAmountIn = mul(ratio, bal);
             require(tokenAmountIn <= maxAmountsIn[i], 'VolmexPool: Amount in limit exploit');
             records[token].balance = records[token].balance + tokenAmountIn;
-            emit LogJoin(receiver, token, tokenAmountIn);
+            emit Joined(receiver, token, tokenAmountIn);
             _pullUnderlying(token, receiver, tokenAmountIn);
         }
 
@@ -312,7 +312,7 @@ contract VolmexPool is
             uint256 tokenAmountOut = _calculateAmountOut(poolAmountIn, ratio, bal);
             require(tokenAmountOut >= minAmountsOut[i], 'VolmexPool: Amount out limit exploit');
             records[token].balance = records[token].balance - tokenAmountOut;
-            emit LogExit(receiver, token, tokenAmountOut);
+            emit Exited(receiver, token, tokenAmountOut);
             _pushUnderlying(token, receiver, tokenAmountOut);
         }
 
@@ -722,7 +722,7 @@ contract VolmexPool is
         feeAmpPrimary = _feeAmpPrimary;
         feeAmpComplement = _feeAmpComplement;
 
-        emit LogSetFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
+        emit SetFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
     function _getRepriced(address tokenIn)
@@ -799,7 +799,7 @@ contract VolmexPool is
             )
         );
         complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
-        emit LogReprice(
+        emit Repriced(
             repricingBlock,
             primaryRecord.balance,
             complementRecord.balance,
@@ -856,7 +856,7 @@ contract VolmexPool is
             'VolmexPool: Amount in max in ratio exploit other'
         );
 
-        emit LogSwap(
+        emit Swapped(
             msg.sender,
             tokenIn,
             tokenOut,
