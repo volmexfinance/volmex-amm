@@ -187,4 +187,6 @@ contract VolmexPoolView is ERC165StorageUpgradeable {
         feeAmpComplement = pool.feeAmpComplement();
         maxFee = pool.maxFee();
     }
+
+    uint256[10] private __gap;
 }

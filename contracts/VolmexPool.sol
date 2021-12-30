@@ -1150,4 +1150,6 @@ contract VolmexPool is
             amountOut = amountOut - feeAmount;
         }
     }
+
+    uint256[10] private __gap;
 }

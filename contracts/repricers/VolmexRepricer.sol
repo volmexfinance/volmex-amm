@@ -68,4 +68,6 @@ contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
     function sqrtWrapped(int256 x) external pure returns (int256) {
         return sqrt(x);
     }
+
+    uint256[10] private __gap;
 }
