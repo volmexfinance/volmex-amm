@@ -76,10 +76,9 @@ interface IVolmexPool is IERC20, IERC165Upgradeable {
     function protocol() external view returns (IVolmexProtocol);
     function repricer() external view returns (IVolmexRepricer);
     function volatilityIndex() external view returns (uint256);
-    function isFinalized() external view returns (bool);
+    function finalized() external view returns (bool);
     function upperBoundary() external view returns (uint256);
     function adminFee() external view returns (uint256);
-    function getTokens() external view returns (address[2] memory);
     function getLeverage(address token) external view returns (uint256);
     function getBalance(address token) external view returns (uint256);
     function getPrimaryDerivativeAddress() external view returns (address);

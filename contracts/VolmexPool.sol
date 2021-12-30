@@ -47,9 +47,9 @@ contract VolmexPool is
     // Used to prevent the re-entry
     bool private _mutex;
     // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
-    bool private _finalized;
+    bool public finalized;
     // Address of the pool tokens
-    address[BOUND_TOKENS] private _tokens;
+    address[BOUND_TOKENS] public tokens;
 
     // This is mapped by token addresses
     mapping(address => Record) internal _records;
@@ -119,7 +119,7 @@ contract VolmexPool is
      * @notice Used to check the pool is finalised
      */
     modifier onlyFinalized() {
-        require(_finalized, 'VolmexPool: Pool is not finalized');
+        require(finalized, 'VolmexPool: Pool is not finalized');
         _;
     }
 
@@ -275,7 +275,7 @@ contract VolmexPool is
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
 
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
-            address token = _tokens[i];
+            address token = tokens[i];
             uint256 bal = _records[token].balance;
             // This can't be tested, as the div method will fail, due to zero supply of lp token
             // The supply of lp token is greater than zero, means token reserve is greater than zero
@@ -311,7 +311,7 @@ contract VolmexPool is
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
 
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
-            address token = _tokens[i];
+            address token = tokens[i];
             uint256 bal = _records[token].balance;
             require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
             uint256 tokenAmountOut = _calculateAmountOut(poolAmountIn, ratio, bal);
@@ -530,7 +530,7 @@ contract VolmexPool is
         uint256 _pMin,
         uint256 _qMin
     ) external logs lock onlyNotSettled onlyOwner {
-        require(!_finalized, 'VolmexPool: Pool is finalized');
+        require(!finalized, 'VolmexPool: Pool is finalized');
 
         require(
             _primaryBalance == _complementBalance,
@@ -544,7 +544,7 @@ contract VolmexPool is
         exposureLimitPrimary = _exposureLimitPrimary;
         exposureLimitComplement = _exposureLimitComplement;
 
-        _finalized = true;
+        finalized = true;
 
         _bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
         _bind(
@@ -661,7 +661,7 @@ contract VolmexPool is
         uint256 ratio = div(poolAmountOut, poolTotal);
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
-            uint256 bal = _records[_tokens[i]].balance;
+            uint256 bal = _records[tokens[i]].balance;
             maxAmountsIn[i] = mul(ratio, bal);
         }
     }
@@ -675,23 +675,9 @@ contract VolmexPool is
         uint256 ratio = div(poolAmountIn, poolTotal);
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
         for (uint256 i = 0; i < BOUND_TOKENS; i++) {
-            uint256 bal = _records[_tokens[i]].balance;
+            uint256 bal = _records[tokens[i]].balance;
             minAmountsOut[i] = _calculateAmountOut(poolAmountIn, ratio, bal);
         }
-    }
-
-    /**
-     * @notice Used to check the pool is finalized
-     */
-    function isFinalized() external view returns (bool) {
-        return _finalized;
-    }
-
-    /**
-     * @notice Used to get the token addresses
-     */
-    function getTokens() external view viewlock returns (address[BOUND_TOKENS] memory tokens) {
-        return _tokens;
     }
 
     /**
@@ -1044,7 +1030,7 @@ contract VolmexPool is
 
         _records[token] = Record({ leverage: leverage, balance: balance });
 
-        _tokens[index] = token;
+        tokens[index] = token;
 
         _pullUnderlying(token, msg.sender, balance);
     }
@@ -1184,10 +1170,10 @@ contract VolmexPool is
     }
 
     function _getPrimaryDerivativeAddress() private view returns (address) {
-        return _tokens[0];
+        return tokens[0];
     }
 
     function _getComplementDerivativeAddress() private view returns (address) {
-        return _tokens[1];
+        return tokens[1];
     }
 }
