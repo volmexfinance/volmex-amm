@@ -626,6 +626,22 @@ contract VolmexController is
     }
 
     /**
+     * @notice Used by VolmexPool contract to transfer the token amount to VolmexPool
+     *
+     * @param _token Address of the token contract
+     * @param _account Address of the user/contract from balance transfer
+     * @param _amount Amount of the token
+     */
+    function transferAssetToPool(
+        IERC20Modified _token,
+        address _account,
+        uint256 _amount
+    ) external {
+        require(isPool[msg.sender], 'VolmexController: Caller is not pool');
+        _token.transferFrom(_account, msg.sender, _amount);
+    }
+
+    /**
      * @notice Used to get the volatility amount out
      *
      * @param _collateralAmount Amount of minimum expected collateral
@@ -791,22 +807,6 @@ contract VolmexController is
         );
 
         tokenAmount += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
-    }
-
-    /**
-     * @notice Used by VolmexPool contract to transfer the token amount to VolmexPool
-     *
-     * @param _token Address of the token contract
-     * @param _account Address of the user/contract from balance transfer
-     * @param _amount Amount of the token
-     */
-    function transferAssetToPool(
-        IERC20Modified _token,
-        address _account,
-        uint256 _amount
-    ) external {
-        require(isPool[msg.sender], 'VolmexController: Caller is not pool');
-        _token.transferFrom(_account, msg.sender, _amount);
     }
 
     function calculateAssetQuantity(

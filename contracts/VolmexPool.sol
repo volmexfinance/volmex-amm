@@ -566,6 +566,20 @@ contract VolmexPool is
     }
 
     /**
+     * @notice Used to pause the contract
+     */
+    function pause() external onlyController {
+        _pause();
+    }
+
+    /**
+     * @notice Used to unpause the contract, if paused
+     */
+    function unpause() external onlyController {
+        _unpause();
+    }
+
+    /**
      * @notice getter, used to fetch the token amount out and fee
      *
      * @param _tokenIn Address of the token in
@@ -664,20 +678,6 @@ contract VolmexPool is
             uint256 bal = _records[_tokens[i]].balance;
             minAmountsOut[i] = _calculateAmountOut(poolAmountIn, ratio, bal);
         }
-    }
-
-    /**
-     * @notice Used to pause the contract
-     */
-    function pause() external onlyController {
-        _pause();
-    }
-
-    /**
-     * @notice Used to unpause the contract, if paused
-     */
-    function unpause() external onlyController {
-        _unpause();
     }
 
     /**
