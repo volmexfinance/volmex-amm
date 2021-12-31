@@ -270,7 +270,7 @@ describe('VolmexController', function () {
     expect(controllerReceipt.confirmations).not.equal(0);
   });
 
-  xit('Should swap volatility tokens', async () => {
+  it('Should swap volatility tokens', async () => {
     await (
       await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
     ).wait();
@@ -318,7 +318,7 @@ describe('VolmexController', function () {
     expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
   });
 
-  xit('Should swap collateral to volatility', async () => {
+  it('Should swap collateral to volatility', async () => {
     await (
       await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
     ).wait();
@@ -362,7 +362,7 @@ describe('VolmexController', function () {
     expect(Number(changedAmount.toString())).to.equal(Number(logData[1].toString()));
   });
 
-  xit('Should swap volatility to collateral', async () => {
+  it('Should swap volatility to collateral', async () => {
     await (
       await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
     ).wait();
@@ -408,7 +408,7 @@ describe('VolmexController', function () {
     expect(Number(changedBalance.toString())).to.equal(Number(logData[1].toString()));
   });
 
-  xit('Should swap between multiple pools', async () => {
+  it('Should swap between multiple pools', async () => {
     await (
       await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
     ).wait();
@@ -466,7 +466,7 @@ describe('VolmexController', function () {
     expect(Number(changedBalance.toString())).to.equal(Number(logData[1].toString()));
   });
 
-  xit('Should add liquidity', async () => {
+  it('Should add liquidity', async () => {
     const poolAmountOut = '250000000000000000000000000';
     const amountsIn = await pools['ETH'].getTokensToJoin(poolAmountOut);
 
