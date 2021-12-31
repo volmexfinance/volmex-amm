@@ -205,7 +205,7 @@ contract VolmexPool is
         );
         controller = _controller;
 
-        emit SetController(address(controller));
+        emit ControllerSet(address(controller));
     }
 
     /**
@@ -722,7 +722,7 @@ contract VolmexPool is
         feeAmpPrimary = _feeAmpPrimary;
         feeAmpComplement = _feeAmpComplement;
 
-        emit SetFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
+        emit FeeParamsSet(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
     function _getRepriced(address tokenIn)
