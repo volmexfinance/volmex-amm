@@ -57,8 +57,8 @@ interface IVolmexPool is IERC20 {
         uint256 premium
     );
     event FlashLoanPremiumUpdated(uint256 premium);
-    event SetController(address indexed controller);
-    event SetFeeParams(
+    event ControllerSet(address indexed controller);
+    event FeeParamsSet(
         uint256 baseFee,
         uint256 maxFee,
         uint256 feeAmpPrimary,
