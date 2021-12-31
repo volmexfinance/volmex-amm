@@ -160,7 +160,7 @@ contract VolmexPool is
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
-    ) external initializer {
+    ) public initializer {
         require(
             IERC165Upgradeable(address(_repricer)).supportsInterface(_IVOLMEX_REPRICER_ID),
             'VolmexPool: Repricer does not supports interface'
@@ -944,9 +944,9 @@ contract VolmexPool is
         address erc20,
         address from,
         uint256 amount
-    ) private returns (uint256) {
+    ) internal virtual returns (uint256) {
         uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
-        IVolmexController(controller).transferAssetToPool(IERC20Modified(erc20), from, amount);
+        controller.transferAssetToPool(IERC20Modified(erc20), from, amount);
 
         bool success;
         //solium-disable-next-line security/no-inline-assembly
