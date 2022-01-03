@@ -160,7 +160,7 @@ contract VolmexPool is
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
-    ) public initializer {
+    ) external initializer {
         require(
             IERC165Upgradeable(address(_repricer)).supportsInterface(_IVOLMEX_REPRICER_ID),
             'VolmexPool: Repricer does not supports interface'
