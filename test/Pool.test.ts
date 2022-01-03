@@ -101,6 +101,7 @@ describe('VolmexPool', function () {
       feeAmpComplement
     ]);
     await pool.deployed();
+    await (await pool.setControllerWithoutCheck(owner)).wait();
 
     const qMin = (1 * Math.pow(10, 6)).toString();
     const pMin = (0.01 * Math.pow(10, 18)).toString();
@@ -122,8 +123,8 @@ describe('VolmexPool', function () {
     // ]);
     // await controller.deployed();
 
-    const setController = await pool.setController(owner);
-    await setController.wait();
+    // const setController = await pool.setController(owner);
+    // await setController.wait();
 
     await (await volatility.approve(pool.address, "1000000000000000000")).wait();
     await (await inverseVolatility.approve(pool.address, "1000000000000000000")).wait();
