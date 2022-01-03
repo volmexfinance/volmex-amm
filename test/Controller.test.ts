@@ -207,7 +207,7 @@ describe('VolmexController', function () {
       await (await collateral['DAI'].mint(owner, MAX)).wait();
       await (await collateral['DAI'].approve(protocols[type].address, MAX)).wait();
       await (await protocols[type].collateralize(MAX)).wait();
-      console.log(6);
+
       // await (await pools[vol].setController(owner)).wait();
       // console.log('controller set to owner')
 
@@ -220,7 +220,6 @@ describe('VolmexController', function () {
       await (
         await inverseVolatilities[vol].approve(pools[vol].address, '1000000000000000000')
       ).wait();
-      console.log(7);
 
       await (
         await pools[vol].finalize(
@@ -234,7 +233,6 @@ describe('VolmexController', function () {
           qMin
         )
       ).wait();
-      console.log(8);
     }
 
     let controllerParam = {
@@ -251,7 +249,7 @@ describe('VolmexController', function () {
     Object.values(protocols).forEach((protocol) => {
       controllerParam.protocols.push(protocol.address);
     });
-    console.log(9);
+
     controller = await upgrades.deployProxy(controllerFactory, [
       controllerParam.collaterals,
       controllerParam.pools,
@@ -260,7 +258,7 @@ describe('VolmexController', function () {
     ]
     );
     await controller.deployed();
-    console.log(10);
+
     await (await pools['ETH'].setController(controller.address)).wait();
     await (await pools['BTC'].setController(controller.address)).wait();
   });
@@ -302,15 +300,7 @@ describe('VolmexController', function () {
       inverseVolatilities['ETH'].address,
       amountOut[0].toString()
     );
-    const {events} = await swap.wait();
-
-    // const event = expectEvent(await swap.wait(), 'Swapped', {
-    //   tokenIn: volatilities['ETH'].address,
-    //   tokenOut: inverseVolatilities['ETH'].address
-    // });
-    // console.log(event)
-    const logData = getEventLog(events, 'Swapped', ['uint256', 'uint256']);
-    console.log('swapIn', logData);
+    await swap.wait();
 
     const balanceAfter = await inverseVolatilities['ETH'].balanceOf(owner);
 
@@ -334,33 +324,29 @@ describe('VolmexController', function () {
     );
     await add.wait();
 
-    const amountOut = await pools['ETH'].getTokenAmountIn(
+    const amountIn = await pools['ETH'].getTokenAmountIn(
       inverseVolatilities['ETH'].address,
       '19599615847913244554'
     );
 
     await (
-      await volatilities['ETH'].approve(controller.address, amountOut[0].toString())
+      await volatilities['ETH'].approve(controller.address, amountIn[0].toString())
     ).wait();
 
-    const balanceBefore = await inverseVolatilities['ETH'].balanceOf(owner);
+    const balanceBefore = await volatilities['ETH'].balanceOf(owner);
     const swap = await controller.swapOut(
       0,
       volatilities['ETH'].address,
-      amountOut[0].toString(),
+      amountIn[0].toString(),
       inverseVolatilities['ETH'].address,
       '19599615847913244554'
     );
-    const {events} = await swap.wait();
+    await swap.wait();
 
-    const logData = getEventLog(events, 'Swapped', ['uint256', 'uint256']);
-    console.log('swapOut', logData);
+    const balanceAfter = await volatilities['ETH'].balanceOf(owner);
 
-    const balanceAfter = await inverseVolatilities['ETH'].balanceOf(owner);
-
-    const changedBalance = balanceAfter.sub(balanceBefore);
-
-    // expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
+    const changedBalance = balanceBefore.sub(balanceAfter);
+    expect(Number(changedBalance.toString())).be.closeTo(Number(amountIn[0].toString()), 21);
   });
 
   it('Should swap collateral to volatility', async () => {
