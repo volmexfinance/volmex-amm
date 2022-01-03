@@ -111,6 +111,7 @@ interface IVolmexPool is IERC20 {
     function exitPool(uint256 _poolAmountIn, uint256[2] calldata _minAmountsOut, address _receiver) external;
     function pause() external;
     function unpause() external;
+    function reprice() external;
     function swapExactAmountIn(
         address _tokenIn,
         uint256 _tokenAmountIn,
