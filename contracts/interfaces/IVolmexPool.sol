@@ -83,8 +83,7 @@ interface IVolmexPool is IERC20 {
     function adminFee() external view returns (uint256);
     function getLeverage(address token) external view returns (uint256);
     function getBalance(address token) external view returns (uint256);
-    function getPrimaryDerivativeAddress() external view returns (address);
-    function getComplementDerivativeAddress() external view returns (address);
+    function tokens(uint256 index) external view returns (address);
     function getTokensToJoin(uint256 poolAmountOut) external view returns (uint256[2] memory);
     function getTokensToExit(uint256 poolAmountIn) external view returns (uint256[2] memory);
     function flashLoanPremium() external view returns (uint256);

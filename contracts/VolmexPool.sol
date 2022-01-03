@@ -441,7 +441,7 @@ contract VolmexPool is
             tokenAmountIn,
             outRecord,
             tokenAmountOut,
-            getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+            tokens[0] == tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
         tokenAmountOut = calcOutGivenIn(
@@ -531,7 +531,7 @@ contract VolmexPool is
             tokenAmountIn,
             outRecord,
             tokenAmountOut,
-            getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
+            tokens[0] == tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
         tokenAmountIn = calcInGivenOut(
@@ -600,7 +600,7 @@ contract VolmexPool is
             _tokenAmountIn,
             outRecord,
             tokenAmountOut,
-            getPrimaryDerivativeAddress() == _tokenIn ? feeAmpPrimary : feeAmpComplement
+            tokens[0] == _tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
         tokenAmountOut = calcOutGivenIn(
@@ -636,7 +636,7 @@ contract VolmexPool is
             _tokenAmountOut,
             outRecord,
             tokenAmountIn,
-            getPrimaryDerivativeAddress() == _tokenOut ? feeAmpPrimary : feeAmpComplement
+            tokens[0] == _tokenOut ? feeAmpPrimary : feeAmpComplement
         );
 
         tokenAmountIn = calcInGivenOut(
@@ -696,14 +696,6 @@ contract VolmexPool is
         return records[token].balance;
     }
 
-    function getPrimaryDerivativeAddress() public view returns (address) {
-        return tokens[0];
-    }
-
-    function getComplementDerivativeAddress() public view returns (address) {
-        return tokens[1];
-    }
-
     /**
      * @notice Sets all type of fees
      *
@@ -733,8 +725,8 @@ contract VolmexPool is
         view
         returns (Record memory inRecord, Record memory outRecord)
     {
-        Record memory primaryRecord = records[getPrimaryDerivativeAddress()];
-        Record memory complementRecord = records[getComplementDerivativeAddress()];
+        Record memory primaryRecord = records[tokens[0]];
+        Record memory complementRecord = records[tokens[1]];
 
         (, , uint256 estPrice) = repricer.reprice(volatilityIndex);
 
@@ -758,8 +750,8 @@ contract VolmexPool is
         );
         complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
 
-        inRecord = getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord;
-        outRecord = getComplementDerivativeAddress() == tokenIn
+        inRecord = tokens[0] == tokenIn ? primaryRecord : complementRecord;
+        outRecord = tokens[1] == tokenIn
             ? primaryRecord
             : complementRecord;
     }
@@ -775,8 +767,8 @@ contract VolmexPool is
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
-        Record storage primaryRecord = records[getPrimaryDerivativeAddress()];
-        Record storage complementRecord = records[getComplementDerivativeAddress()];
+        Record storage primaryRecord = records[tokens[0]];
+        Record storage complementRecord = records[tokens[1]];
 
         uint256 estPricePrimary;
         uint256 estPriceComplement;
@@ -833,7 +825,7 @@ contract VolmexPool is
             tokenAmountIn,
             outRecord,
             tokenAmountOut,
-            getPrimaryDerivativeAddress() == tokenIn
+            tokens[0] == tokenIn
                 ? exposureLimitPrimary
                 : exposureLimitComplement
         );
