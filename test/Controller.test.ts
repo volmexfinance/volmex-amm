@@ -94,7 +94,9 @@ describe('VolmexController', function () {
     };
 
     for (let col of collaterals) {
-      collateral[col] = await collateralFactory.deploy(col);
+      const initSupply = col == 'DAI' ? '100000000000000000000000000000000' : '100000000000000000000';
+      const decimals = col == 'DAI' ? 18 : 6;
+      collateral[col] = await collateralFactory.deploy(col, initSupply, decimals);
       await collateral[col].deployed();
     }
 
