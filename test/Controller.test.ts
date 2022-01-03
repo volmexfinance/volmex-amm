@@ -567,7 +567,97 @@ describe('VolmexController', function () {
   });
 
   describe('Add Pools, Stablecoins and Protocols', function () {
-    it('Should add pool', async () => {});
+    it('Should add pool', async () => {
+      const baseFee = (0.02 * Math.pow(10, 18)).toString();
+      const maxFee = (0.4 * Math.pow(10, 18)).toString();
+      const feeAmpPrimary = 10;
+      const feeAmpComplement = 10;
+      const pool = await upgrades.deployProxy(
+        poolFactory,
+        [
+          repricer.address,
+          protocols['ETHVDAI'].address,
+          3,
+          baseFee,
+          maxFee,
+          feeAmpPrimary,
+          feeAmpComplement,
+        ],
+        {
+          initializer: 'mock_Initialize',
+        }
+      );
+      let receipt = await pool.deployed();
+      expect(receipt.confirmations).not.equal(0);
+
+      const addPool = await controller.addPool(pool.address);
+      const {events} = await addPool.wait();
+
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'PoolAdded') {
+          data = log['topics'];
+        }
+      });
+
+      const poolIndex = ethers.utils.defaultAbiCoder.decode(['uint256'], data[1]);
+      const poolAddress = ethers.utils.defaultAbiCoder.decode(['address'], data[2]);
+
+      expect(Number(poolIndex.toString())).to.equal(2);
+      expect(poolAddress[0]).to.equal(pool.address);
+    });
+
+    it('Should add stablecoin', async () => {
+      const collateralInner = await collateralFactory.deploy('VUSDT');
+      await collateralInner.deployed();
+
+      const addStableCoin = await controller.addStableCoin(collateralInner.address);
+      const {events} = await addStableCoin.wait();
+
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'StableCoinAdded') {
+          data = log['topics'];
+        }
+      });
+
+      const stableCoinIndex = ethers.utils.defaultAbiCoder.decode(['uint256'], data[1]);
+      const stableCoinAddress = ethers.utils.defaultAbiCoder.decode(['address'], data[2]);
+
+      expect(Number(stableCoinIndex.toString())).to.equal(2);
+      expect(stableCoinAddress[0]).to.equal(collateralInner.address);
+    });
+
+    it('Should add protocol', async () => {
+      const protocolInner = await upgrades.deployProxy(protocolFactory, [
+        `${collateral[collaterals[0]].address}`,
+        `${volatilities['ETH'].address}`,
+        `${inverseVolatilities['ETH'].address}`,
+        '25000000000000000000',
+        '250',
+      ]);
+      await protocolInner.deployed();
+
+      const addProtocol = await controller.addProtocol(
+        0, 0,
+        protocolInner.address
+      );
+      const {events} = await addProtocol.wait();
+
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'ProtocolAdded') {
+          data = log['topics'];
+        }
+      });
+
+      const protocolAddress = ethers.utils.defaultAbiCoder.decode(['address'], data[1]);
+      const logData = getEventLog(events, 'ProtocolAdded', ['uint256', 'uint256']);
+
+      expect(Number(logData[0].toString())).to.equal(0);
+      expect(Number(logData[1].toString())).to.equal(0);
+      expect(protocolAddress[0]).to.equal(protocolInner.address);
+    });
   });
 });
 
