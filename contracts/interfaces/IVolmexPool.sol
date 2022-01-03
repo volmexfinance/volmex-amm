@@ -87,6 +87,11 @@ interface IVolmexPool is IERC20 {
     function getTokensToJoin(uint256 poolAmountOut) external view returns (uint256[2] memory);
     function getTokensToExit(uint256 poolAmountIn) external view returns (uint256[2] memory);
     function flashLoanPremium() external view returns (uint256);
+    function getLeveragedBalance(Record memory r) external pure returns (uint256);
+    function getRepriced(address tokenIn)
+        external
+        view
+        returns (Record memory, Record memory);
     function getTokenAmountOut(
         address tokenIn,
         uint256 tokenAmountIn
@@ -95,6 +100,13 @@ interface IVolmexPool is IERC20 {
         address tokenOut,
         uint256 tokenAmountOut
     ) external view returns (uint256, uint256);
+    function calcFee(
+        Record memory inRecord,
+        uint256 tokenAmountIn,
+        Record memory outRecord,
+        uint256 tokenAmountOut,
+        uint256 feeAmp
+    ) external view returns (uint256 fee);
 
     // Setter methods
     function setController(IVolmexController controller) external;
