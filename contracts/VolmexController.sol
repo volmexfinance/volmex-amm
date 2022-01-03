@@ -568,27 +568,6 @@ contract VolmexController is
     }
 
     /**
-     * @notice Used to swap the exact amount out
-     *
-     * @param _poolIndex Index of the pool to which interact
-     * @param _tokenIn Address of the token in
-     * @param _amountIn Minimum expected value of token amount in to swap
-     * @param _tokenOut Address of the token out
-     * @param _amountOut Value of token amount out
-     */
-    function swapOut(
-        uint256 _poolIndex,
-        address _tokenIn,
-        uint256 _amountIn,
-        address _tokenOut,
-        uint256 _amountOut
-    ) external whenNotPaused {
-        IVolmexPool _pool = pools[_poolIndex];
-
-        _pool.swapExactAmountOut(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
-    }
-
-    /**
      * @notice Used by VolmexPool contract to transfer the token amount to VolmexPool
      *
      * @param _token Address of the token contract
