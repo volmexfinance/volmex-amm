@@ -115,7 +115,6 @@ describe('VolmexPool', function () {
     //   pool.address,
     //   protocol.address,
     //   volmexOracle.address
-
     // ]);
     // await controller.deployed();
 
@@ -160,7 +159,7 @@ describe('VolmexPool', function () {
 
     let data;
     events.forEach((log: any) => {
-      if (log['event'] == 'LogJoin') {
+      if (log['event'] == 'Joined') {
         data = log['data'];
       }
     })
@@ -196,7 +195,7 @@ describe('VolmexPool', function () {
 
     let data;
     events.forEach((log: any) => {
-      if (log['event'] == 'LogExit') {
+      if (log['event'] == 'Exited') {
         data = log['data'];
       }
     })
@@ -241,7 +240,7 @@ describe('VolmexPool', function () {
 
     let data;
     events.forEach((log: any) => {
-      if (log['event'] == 'LogSwap') {
+      if (log['event'] == 'Swapped') {
         data = log['data'];
       }
     })
