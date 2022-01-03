@@ -30,11 +30,6 @@ interface IVolmexController {
     event StableCoinAdded(uint256 indexed stableCoinIndex, address indexed stableCoin);
     event ProtocolAdded(uint256 poolIndex, uint256 stableCoinIndex, address indexed protocol);
     event PoolTokensCollected(address indexed owner, uint256 amount);
-    event SingleSideJoined(
-        address indexed tokenIn,
-        uint256 poolAmountOut,
-        uint256 totalTokenAmountIn
-    );
 
     // Getter methods
     function stableCoinIndex() external view returns (uint256);
@@ -79,12 +74,6 @@ interface IVolmexController {
         uint256[2] calldata _maxAmountsIn,
         uint256 _poolIndex
     ) external;
-    function addSingleSideLiquidity(
-        address _tokenIn,
-        uint256 _maxAmountIn,
-        uint256 _poolAmountOut,
-        uint256 _poolIndex
-    ) external;
     function removeLiquidity(
         uint256 _poolAmountIn,
         uint256[2] calldata _minAmountsOut,
@@ -96,7 +85,7 @@ interface IVolmexController {
         bytes calldata _params,
         uint256 _poolIndex
     ) external;
-    function swap(
+    function swapIn(
         uint256 _poolIndex,
         address _tokenIn,
         uint256 _amountIn,
@@ -120,11 +109,6 @@ interface IVolmexController {
         uint256 _amountIn,
         uint256[3] calldata _indices
     ) external view returns (uint256, uint256[3] memory);
-    function getTokenToJoin(
-        address _tokenIn,
-        uint256 _poolAmountOut,
-        uint256 _poolIndex
-    ) external view returns (uint256);
     function transferAssetToPool(
         IERC20Modified _token,
         address _account,
