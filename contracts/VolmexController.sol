@@ -505,77 +505,6 @@ contract VolmexController is
     }
 
     /**
-     * @notice Used to add liquidity in the pool
-     *
-     * @param _tokenIn Address of the supplied token by user
-     * @param _maxAmountIn Maximum expected volatility amount in
-     * @param _poolAmountOut Amount of pool token mint and transfer to LP
-     * @param _poolIndex Index of the pool in which user wants to add liquidity
-     */
-    function addSingleSideLiquidity(
-        address _tokenIn,
-        uint256 _poolAmountOut,
-        uint256 _maxAmountIn,
-        uint256 _poolIndex
-    ) external whenNotPaused {
-        IVolmexPool _pool = pools[_poolIndex];
-
-        uint256[2] memory volatilityAmountsIn = _pool.getTokensToJoin(_poolAmountOut);
-
-        bool isInverse = _pool.getComplementDerivativeAddress() == _tokenIn;
-
-        // TODO: Need to check tokenAmountIn and volatilityAmountIn of same are equal
-        (uint256 totalTokenAmountIn,) = _pool.swapExactAmountOut(
-            _tokenIn,
-            _maxAmountIn - (isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0]),
-            isInverse
-                ? _pool.getPrimaryDerivativeAddress()
-                : _pool.getComplementDerivativeAddress(),
-            isInverse ? volatilityAmountsIn[0] : volatilityAmountsIn[1],
-            msg.sender,
-            true
-        );
-
-        IERC20(_tokenIn).transferFrom(
-            msg.sender,
-            address(this),
-            isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0]
-        );
-
-        _approveAssets(
-            IERC20Modified(_pool.getPrimaryDerivativeAddress()),
-            volatilityAmountsIn[0],
-            address(this),
-            address(this)
-        );
-
-        _approveAssets(
-            IERC20Modified(_pool.getComplementDerivativeAddress()),
-            volatilityAmountsIn[1],
-            address(this),
-            address(this)
-        );
-
-        // Used same variable to save space/gas
-        totalTokenAmountIn += isInverse ? volatilityAmountsIn[1] : volatilityAmountsIn[0];
-
-        require(
-            totalTokenAmountIn <= _maxAmountIn,
-            'VolmexController: Insufficient expected volatility amount'
-        );
-
-        _pool.joinPool(_poolAmountOut, volatilityAmountsIn, address(this));
-
-        _transferAsset(IERC20Modified(address(_pool)), _poolAmountOut, msg.sender);
-
-        emit SingleSideJoined(
-            _tokenIn,
-            _poolAmountOut,
-            totalTokenAmountIn
-        );
-    }
-
-    /**
      * @notice Used to remove liquidity from the pool
      *
      * @param _poolAmountIn Amount of pool token transfer to the pool
@@ -614,7 +543,7 @@ contract VolmexController is
         _pool.flashLoan(msg.sender, _assetToken, _amount, _params);
     }
 
-    function swap(
+    function swapIn(
         uint256 _poolIndex,
         address _tokenIn,
         uint256 _amountIn,
