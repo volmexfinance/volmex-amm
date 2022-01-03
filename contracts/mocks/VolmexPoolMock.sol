@@ -10,30 +10,22 @@ import 'hardhat/console.sol';
  * @author volmex.finance [security@volmexlabs.com]
  */
 contract VolmexPoolMock is VolmexPool {
-    function mock_Initialize(
-        IVolmexRepricer _repricer,
-        IVolmexProtocol _protocol,
-        uint256 _volatilityIndex,
-        uint256 _baseFee,
-        uint256 _maxFee,
-        uint256 _feeAmpPrimary,
-        uint256 _feeAmpComplement
-    ) external initializer {
-        initialize(_repricer, _protocol, _volatilityIndex, _baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
+    function setControllerWithoutCheck(address _controller) external onlyOwner {
+        controller = IVolmexController(_controller);
 
-        controller = IVolmexController(owner());
+        emit ControllerSet(address(controller));
     }
 
     function _pullUnderlying(
-        address erc20,
-        address from,
-        uint256 amount
+        address _erc20,
+        address _from,
+        uint256 _amount
     ) internal override returns (uint256) {
-        uint256 balanceBefore = IERC20(erc20).balanceOf(address(this));
+        uint256 balanceBefore = IERC20(_erc20).balanceOf(address(this));
 
         address(controller) == owner()
-            ? EIP20NonStandardInterface(erc20).transferFrom(from, address(this), amount)
-            : controller.transferAssetToPool(IERC20Modified(erc20), from, amount);
+            ? EIP20NonStandardInterface(_erc20).transferFrom(_from, address(this), _amount)
+            : controller.transferAssetToPool(IERC20Modified(_erc20), _from, _amount);
 
         bool success;
         //solium-disable-next-line security/no-inline-assembly
@@ -56,7 +48,7 @@ contract VolmexPoolMock is VolmexPool {
         require(success, 'VolmexPool: Token transfer failed');
 
         // Calculate the amount that was *actually* transferred
-        uint256 balanceAfter = IERC20(erc20).balanceOf(address(this));
+        uint256 balanceAfter = IERC20(_erc20).balanceOf(address(this));
         require(balanceAfter >= balanceBefore, 'VolmexPool: Token transfer overflow met');
         return balanceAfter - balanceBefore; // underflow already checked above, just subtract
     }
