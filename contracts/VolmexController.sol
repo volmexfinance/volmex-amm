@@ -543,7 +543,7 @@ contract VolmexController is
         _pool.flashLoan(msg.sender, _assetToken, _amount, _params);
     }
 
-    function swapIn(
+    function swap(
         uint256 _poolIndex,
         address _tokenIn,
         uint256 _amountIn,
