@@ -199,10 +199,10 @@ contract VolmexPool is
      * @param _controller Address of the pool contract controller
      */
     function setController(IVolmexController _controller) external onlyOwner {
-        // require(
-        //     IERC165Upgradeable(address(_controller)).supportsInterface(_IVOLMEX_CONTROLLER_ID),
-        //     'VolmexPool: Not Controller'
-        // );
+        require(
+            IERC165Upgradeable(address(_controller)).supportsInterface(_IVOLMEX_CONTROLLER_ID),
+            'VolmexPool: Not Controller'
+        );
         controller = _controller;
 
         emit ControllerSet(address(controller));
