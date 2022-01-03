@@ -679,18 +679,12 @@ contract VolmexPool is
      * @notice Used to get the leverage of provided token address
      *
      * @param token Address of the token, either primary or complement
+     *
+     * Can't remove this method, because struct of this contract can't be fetched in controller contract.
+     * We will need to unpack the struct.
      */
     function getLeverage(address token) external view viewlock returns (uint256) {
         return records[token].leverage;
-    }
-
-    /**
-     * @notice Used to get the balance of provided token address
-     *
-     * @param token Address of the token. either primary or complement
-     */
-    function getBalance(address token) external view viewlock returns (uint256) {
-        return records[token].balance;
     }
 
     function getPrimaryDerivativeAddress() public view returns (address) {
