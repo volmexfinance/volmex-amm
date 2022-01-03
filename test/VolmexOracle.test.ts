@@ -33,7 +33,11 @@ describe('Volmex Oracle', function () {
   });
 
   this.beforeEach(async function () {
-    collateral = await collateralFactory.deploy("VUSD");
+    collateral = await collateralFactory.deploy(
+      "VUSD",
+      "100000000000000000000000000000000",
+      18
+    );
     await collateral.deployed();
 
     volatility = await volatilityFactory.deploy();
