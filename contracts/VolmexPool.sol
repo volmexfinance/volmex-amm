@@ -160,7 +160,7 @@ contract VolmexPool is
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
         uint256 _feeAmpComplement
-    ) public initializer {
+    ) external initializer {
         require(
             IERC165Upgradeable(address(_repricer)).supportsInterface(_IVOLMEX_REPRICER_ID),
             'VolmexPool: Repricer does not supports interface'
@@ -422,7 +422,7 @@ contract VolmexPool is
         require(_tokenIn != _tokenOut, 'VolmexPool: Passed same token addresses');
         require(_tokenAmountIn >= qMin, 'VolmexPool: Amount in quantity should be larger');
 
-        _reprice();
+        reprice();
 
         Record memory inRecord = records[_tokenIn];
         Record memory outRecord = records[_tokenOut];
@@ -440,7 +440,7 @@ contract VolmexPool is
             0
         );
 
-        uint256 fee = calcFee(
+        uint256 fee = _calcFee(
             inRecord,
             _tokenAmountIn,
             outRecord,
@@ -508,7 +508,7 @@ contract VolmexPool is
             0
         );
 
-        fee = calcFee(
+        fee = _calcFee(
             inRecord,
             _tokenAmountIn,
             outRecord,
@@ -544,7 +544,7 @@ contract VolmexPool is
             0
         );
 
-        fee = calcFee(
+        fee = _calcFee(
             inRecord,
             _tokenAmountOut,
             outRecord,
@@ -662,34 +662,6 @@ contract VolmexPool is
         fee = uint256(ifee);
     }
 
-    function getLeveragedBalance(Record memory r) public pure returns (uint256) {
-        return mul(r.balance, r.leverage);
-    }
-
-    /**
-     * @notice Sets all type of fees
-     *
-     * @dev Checks the contract is finalised and caller is controller of the pool
-     *
-     * @param _baseFee Fee of the pool contract
-     * @param _maxFee Max fee of the pool while swap
-     * @param _feeAmpPrimary Fee on the primary token
-     * @param _feeAmpComplement Fee on the complement token
-     */
-    function _setFeeParams(
-        uint256 _baseFee,
-        uint256 _maxFee,
-        uint256 _feeAmpPrimary,
-        uint256 _feeAmpComplement
-    ) private logs lock onlyNotSettled {
-        baseFee = _baseFee;
-        maxFee = _maxFee;
-        feeAmpPrimary = _feeAmpPrimary;
-        feeAmpComplement = _feeAmpComplement;
-
-        emit FeeParamsSet(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
-    }
-
     /**
      * @notice Used to calculate the leverage of primary and complement token
      *
@@ -697,7 +669,7 @@ contract VolmexPool is
      * @dev Fetches the est price of primary, complement and averaged
      * @dev Calculates the primary and complement leverage
      */
-    function _reprice() private {
+    function reprice() public {
         if (repricingBlock == block.number) return;
         repricingBlock = block.number;
 
@@ -739,6 +711,53 @@ contract VolmexPool is
             estPricePrimary,
             estPriceComplement
         );
+    }
+
+    function _calcFee(
+        Record memory inRecord,
+        uint256 tokenAmountIn,
+        Record memory outRecord,
+        uint256 tokenAmountOut,
+        uint256 feeAmp
+    ) private view returns (uint256 fee) {
+        int256 ifee;
+        (ifee, ) = _calc(
+            [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
+            [int256(outRecord.balance), int256(outRecord.leverage), int256(tokenAmountOut)],
+            int256(baseFee),
+            int256(feeAmp),
+            int256(maxFee)
+        );
+        require(ifee > 0, 'VolmexPool: Fee should be greater than 0');
+        fee = uint256(ifee);
+    }
+
+    function getLeveragedBalance(Record memory r) public pure returns (uint256) {
+        return mul(r.balance, r.leverage);
+    }
+
+    /**
+     * @notice Sets all type of fees
+     *
+     * @dev Checks the contract is finalised and caller is controller of the pool
+     *
+     * @param _baseFee Fee of the pool contract
+     * @param _maxFee Max fee of the pool while swap
+     * @param _feeAmpPrimary Fee on the primary token
+     * @param _feeAmpComplement Fee on the complement token
+     */
+    function _setFeeParams(
+        uint256 _baseFee,
+        uint256 _maxFee,
+        uint256 _feeAmpPrimary,
+        uint256 _feeAmpComplement
+    ) private logs lock onlyNotSettled {
+        baseFee = _baseFee;
+        maxFee = _maxFee;
+        feeAmpPrimary = _feeAmpPrimary;
+        feeAmpComplement = _feeAmpComplement;
+
+        emit FeeParamsSet(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
     function _performSwap(

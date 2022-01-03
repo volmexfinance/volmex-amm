@@ -317,6 +317,7 @@ contract VolmexController is
 
         bool isInverse = _pool.tokens(1) == address(_tokenIn);
 
+        _pool.repricer();
         (uint256 swapAmount, uint256 tokenAmountOut, ) = _getSwappedAssetAmount(
             address(_tokenIn),
             _amounts[0],
@@ -389,6 +390,7 @@ contract VolmexController is
 
         bool isInverse = _pool.tokens(1) == _tokens[0];
 
+        _pool.repricer();
         // Array of swapAmount {0} and tokenAmountOut {1}
         uint256[2] memory tokenAmounts;
         (tokenAmounts[0], tokenAmounts[1], ) = _getSwappedAssetAmount(
@@ -454,6 +456,7 @@ contract VolmexController is
             ? _pool.tokens(0)
             : _pool.tokens(1);
 
+        _pool.repricer();
         (tokenAmounts[1], ) = _pool.getTokenAmountOut(
             poolOutTokenIn,
             protocolAmounts[1]
