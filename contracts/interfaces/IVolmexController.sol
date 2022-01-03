@@ -92,6 +92,13 @@ interface IVolmexController {
         address _tokenOut,
         uint256 _amountOut
     ) external;
+    function swapOut(
+        uint256 _poolIndex,
+        address _tokenIn,
+        uint256 _amountIn,
+        address _tokenOut,
+        uint256 _amountOut
+    ) external;
     function getCollateralToVolatility(
         uint256 _collateralAmount,
         address _tokenOut,
