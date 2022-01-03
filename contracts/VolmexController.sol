@@ -118,6 +118,8 @@ contract VolmexController is
             }
         }
         oracle = _oracle;
+        poolIndex++;
+        stableCoinIndex++;
 
         __Ownable_init();
         __Pausable_init_unchained(); // Used this, because ownable init is calling context init
