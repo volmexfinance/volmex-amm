@@ -82,12 +82,12 @@ contract Token is TokenBase, IERC20 {
     string private _symbol;
     uint8 private constant _decimals = 18;
 
-    function setName(string memory name) internal {
-        _name = name;
+    function setName(string memory poolName) internal {
+        _name = poolName;
     }
 
-    function setSymbol(string memory symbol) internal {
-        _symbol = symbol;
+    function setSymbol(string memory poolSymbol) internal {
+        _symbol = poolSymbol;
     }
 
     function name() public view returns (string memory) {
@@ -98,7 +98,7 @@ contract Token is TokenBase, IERC20 {
         return _symbol;
     }
 
-    function decimals() public view returns (uint8) {
+    function decimals() public pure returns (uint8) {
         return _decimals;
     }
 
