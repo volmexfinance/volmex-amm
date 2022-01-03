@@ -101,7 +101,7 @@ describe('Repricer', function () {
 
     await expectRevert(
       upgrades.deployProxy(repricerFactory, [await other.getAddress()]),
-      'Repricer: Not an oracle contract'
+      'Address: low-level delegate call failed'
     );
   });
 

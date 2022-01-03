@@ -96,10 +96,6 @@ interface IVolmexPool is IERC20 {
         address tokenIn,
         uint256 tokenAmountIn
     ) external view returns (uint256, uint256);
-    function getTokenAmountIn(
-        address tokenOut,
-        uint256 tokenAmountOut
-    ) external view returns (uint256, uint256);
     function calcFee(
         Record memory inRecord,
         uint256 tokenAmountIn,
@@ -120,14 +116,6 @@ interface IVolmexPool is IERC20 {
         uint256 tokenAmountIn,
         address tokenOut,
         uint256 minAmountOut,
-        address receiver,
-        bool toController
-    ) external returns (uint256, uint256);
-    function swapExactAmountOut(
-        address tokenIn,
-        uint256 maxAmountIn,
-        address tokenOut,
-        uint256 tokenAmountOut,
         address receiver,
         bool toController
     ) external returns (uint256, uint256);

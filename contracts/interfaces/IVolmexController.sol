@@ -85,7 +85,7 @@ interface IVolmexController {
         bytes calldata _params,
         uint256 _poolIndex
     ) external;
-    function swapIn(
+    function swap(
         uint256 _poolIndex,
         address _tokenIn,
         uint256 _amountIn,

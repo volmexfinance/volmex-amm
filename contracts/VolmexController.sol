@@ -545,6 +545,7 @@ contract VolmexController is
         _pool.flashLoan(msg.sender, _assetToken, _amount, _params);
     }
 
+    
     /**
      * @notice Used to swap the exact amount in
      *
@@ -554,7 +555,7 @@ contract VolmexController is
      * @param _tokenOut Address of the token out
      * @param _amountOut Minimum expected value of token amount out
      */
-    function swapIn(
+    function swap(
         uint256 _poolIndex,
         address _tokenIn,
         uint256 _amountIn,
