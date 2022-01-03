@@ -11,42 +11,9 @@ import './interfaces/IVolmexPoolView.sol';
 import './interfaces/IPausablePool.sol';
 
 /// @title Reading key data from specified derivative trading Pool
-contract VolmexPoolView is ERC165StorageUpgradeable {
+contract VolmexPoolView is ERC165StorageUpgradeable, IVolmexPoolView {
     // Interface ID of VolmexPoolView contract
     bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
-    /// @notice Contains key information about a derivative token
-    struct TokenRecord {
-        address self;
-        uint256 balance;
-        uint256 leverage;
-        uint8 decimals;
-        uint256 userBalance;
-    }
-
-    /// @notice Contains key information about arbitrary ERC20 token
-    struct Token {
-        address self;
-        uint256 totalSupply;
-        uint8 decimals;
-        uint256 userBalance;
-    }
-
-    /// @notice Contains key information about a Pool's configuration
-    struct Config {
-        address protocol;
-        address repricer;
-        bool isPaused;
-        uint8 qMinDecimals;
-        uint8 decimals;
-        uint256 exposureLimitPrimary;
-        uint256 exposureLimitComplement;
-        uint256 pMin;
-        uint256 qMin;
-        uint256 baseFee;
-        uint256 maxFee;
-        uint256 feeAmpPrimary;
-        uint256 feeAmpComplement;
-    }
 
     function initialize() external initializer {
         __ERC165Storage_init();
@@ -65,7 +32,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable {
         returns (
             TokenRecord memory primary,
             TokenRecord memory complement,
-            Token memory poolToken,
+            TokenData memory poolToken,
             Config memory config
         )
     {
@@ -89,7 +56,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable {
             _sender == address(0) ? 0 : IERC20(_complementAddress).balanceOf(_sender)
         );
 
-        poolToken = Token(
+        poolToken = TokenData(
             _pool,
             pool.totalSupply(),
             IERC20Modified(_pool).decimals(),

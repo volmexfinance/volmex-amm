@@ -13,7 +13,7 @@ interface IVolmexPoolView {
         uint256 userBalance;
     }
 
-    struct Token {
+    struct TokenData {
         address self;
         uint256 totalSupply;
         uint8 decimals;
@@ -42,7 +42,7 @@ interface IVolmexPoolView {
         returns (
             TokenRecord memory primary,
             TokenRecord memory complement,
-            Token memory poolToken,
+            TokenData memory poolToken,
             Config memory config
         );
 
