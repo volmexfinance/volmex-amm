@@ -329,7 +329,7 @@ contract VolmexPool is
     function joinPool(
         uint256 _poolAmountOut,
         uint256[2] calldata _maxAmountsIn,
-        address receiver
+        address _receiver
     ) external logs lock onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = div(_poolAmountOut, poolTotal);
@@ -345,8 +345,8 @@ contract VolmexPool is
             uint256 tokenAmountIn = mul(ratio, bal);
             require(tokenAmountIn <= _maxAmountsIn[i], 'VolmexPool: Amount in limit exploit');
             records[token].balance = records[token].balance + tokenAmountIn;
-            emit Joined(receiver, token, tokenAmountIn);
-            _pullUnderlying(token, receiver, tokenAmountIn);
+            emit Joined(_receiver, token, tokenAmountIn);
+            _pullUnderlying(token, _receiver, tokenAmountIn);
         }
 
         _mintPoolShare(_poolAmountOut);
