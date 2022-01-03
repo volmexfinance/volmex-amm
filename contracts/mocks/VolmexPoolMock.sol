@@ -3,7 +3,6 @@
 pragma solidity =0.8.11;
 
 import '../VolmexPool.sol';
-import 'hardhat/console.sol';
 
 /**
  * @title Volmex Pool Mock Contract
