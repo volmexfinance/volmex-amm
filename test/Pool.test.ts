@@ -73,7 +73,7 @@ describe('VolmexPool', function () {
     volreceipt = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volreceipt.wait();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [protocol.address]);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [

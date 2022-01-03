@@ -2,17 +2,24 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
+
 import '../interfaces/IVolmexOracle.sol';
+import '../interfaces/IVolmexRepricer.sol';
 import '../maths/NumExtra.sol';
 
 /**
  * @title Volmex Repricer contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexRepricer is ERC165Upgradeable, NumExtra {
+contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
+    // Interface ID of VolmexOracle contract
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
+    // Interface ID of VolmexRepricer contract
+    bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
+
     // Instance of oracle contract
     IVolmexOracle public oracle;
 
@@ -21,10 +28,14 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
      * @param _oracle Address of the Volmex Oracle contract
      */
     function initialize(IVolmexOracle _oracle) external initializer {
-        require(AddressUpgradeable.isContract(address(_oracle)), 'Repricer: Not an oracle contract');
+        require(
+            IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
+            'VolmexController: Oracle does not supports interface'
+        );
         oracle = _oracle;
 
-        __ERC165_init();
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_REPRICER_ID);
     }
 
     /**
@@ -42,8 +53,10 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
             uint256 estComplementPrice,
             uint256 estPrice
         )
-    {   
-        (estPrimaryPrice, estComplementPrice) = oracle.getVolatilityTokenPriceByIndex(_volatilityIndex);
+    {
+        (estPrimaryPrice, estComplementPrice) = oracle.getVolatilityTokenPriceByIndex(
+            _volatilityIndex
+        );
         estPrice = (estComplementPrice * BONE) / estPrimaryPrice;
     }
 
@@ -55,4 +68,6 @@ contract VolmexRepricer is ERC165Upgradeable, NumExtra {
     function sqrtWrapped(int256 x) external pure returns (int256) {
         return sqrt(x);
     }
+
+    uint256[10] private __gap;
 }

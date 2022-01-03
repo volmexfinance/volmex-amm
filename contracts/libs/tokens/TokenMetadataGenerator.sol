@@ -7,7 +7,7 @@ import "../BokkyPooBahsDateTimeLibrary/BokkyPooBahsDateTimeLibrary.sol";
 contract TokenMetadataGenerator {
     function formatDate(uint256 _posixDate)
         internal
-        view
+        pure
         returns (string memory)
     {
         uint256 year;

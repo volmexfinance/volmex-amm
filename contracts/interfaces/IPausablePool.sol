@@ -15,7 +15,10 @@
 pragma solidity =0.8.11;
 
 interface IPausablePool {
-    function pause() external;
+    // Getter method
+    function paused() external view returns (bool);
 
+    // Setter methods
+    function pause() external;
     function unpause() external;
 }

@@ -3,49 +3,22 @@
 pragma solidity =0.8.11;
 pragma abicoder v2;
 
-import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IERC20Modified.sol';
+import './interfaces/IVolmexPoolView.sol';
+import './interfaces/IPausablePool.sol';
 
 /// @title Reading key data from specified derivative trading Pool
-contract VolmexPoolView is Initializable {
+contract VolmexPoolView is ERC165StorageUpgradeable, IVolmexPoolView {
+    // Interface ID of VolmexPoolView contract
+    bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
 
-    /// @notice Contains key information about a derivative token
-    struct TokenRecord {
-        address self;
-        uint256 balance;
-        uint256 leverage;
-        uint8 decimals;
-        uint256 userBalance;
+    function initialize() external initializer {
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_POOLVIEW_ID);
     }
-
-    /// @notice Contains key information about arbitrary ERC20 token
-    struct Token {
-        address self;
-        uint256 totalSupply;
-        uint8 decimals;
-        uint256 userBalance;
-    }
-
-    /// @notice Contains key information about a Pool's configuration
-    struct Config {
-        address protocol;
-        address repricer;
-        bool isPaused;
-        uint8 qMinDecimals;
-        uint8 decimals;
-        uint256 exposureLimitPrimary;
-        uint256 exposureLimitComplement;
-        uint256 pMin;
-        uint256 qMin;
-        uint256 baseFee;
-        uint256 maxFee;
-        uint256 feeAmpPrimary;
-        uint256 feeAmpComplement;
-    }
-
-    function initialize() external initializer {}
 
     /// @notice Getting information about Pool configuration, it's derivative and pool(LP) tokens
     /// @param _pool the vault address
@@ -59,7 +32,7 @@ contract VolmexPoolView is Initializable {
         returns (
             TokenRecord memory primary,
             TokenRecord memory complement,
-            Token memory poolToken,
+            TokenData memory poolToken,
             Config memory config
         )
     {
@@ -83,7 +56,7 @@ contract VolmexPoolView is Initializable {
             _sender == address(0) ? 0 : IERC20(_complementAddress).balanceOf(_sender)
         );
 
-        poolToken = Token(
+        poolToken = TokenData(
             _pool,
             pool.totalSupply(),
             IERC20Modified(_pool).decimals(),
@@ -93,7 +66,7 @@ contract VolmexPoolView is Initializable {
         config = Config(
             address(pool.protocol()),
             address(pool.repricer()),
-            pool.paused(),
+            IPausablePool(address(pool)).paused(),
             IERC20Modified(_primaryAddress).decimals(),
             IERC20Modified(_pool).decimals(),
             pool.exposureLimitPrimary(),
@@ -158,12 +131,9 @@ contract VolmexPoolView is Initializable {
         view
         returns (
             address protocol,
-            // address dynamicFee,
             address repricer,
             uint256 exposureLimitPrimary,
             uint256 exposureLimitComplement,
-            // uint256 repricerParam1,
-            // uint256 repricerParam2,
             uint256 pMin,
             uint256 qMin,
             uint256 baseFee,
@@ -174,7 +144,6 @@ contract VolmexPoolView is Initializable {
     {
         IVolmexPool pool = IVolmexPool(_pool);
         protocol = address(pool.protocol());
-        // dynamicFee = address(pool.dynamicFee());
         repricer = address(pool.repricer());
         pMin = pool.pMin();
         qMin = pool.qMin();
@@ -184,7 +153,7 @@ contract VolmexPoolView is Initializable {
         feeAmpPrimary = pool.feeAmpPrimary();
         feeAmpComplement = pool.feeAmpComplement();
         maxFee = pool.maxFee();
-        // repricerParam1 = pool.repricerParam1();
-        // repricerParam2 = pool.repricerParam2();
     }
+
+    uint256[10] private __gap;
 }

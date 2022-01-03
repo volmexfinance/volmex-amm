@@ -179,7 +179,7 @@ describe('Volmex Oracle', function () {
         'ETHV4x',
         '0x6c00000000000000000000000000000000000000000000000000000000000000'
       ),
-      "volmexOracle: protocol address can't be zero"
+      "VolmexOracle: protocol address can't be zero"
     );
   });
 

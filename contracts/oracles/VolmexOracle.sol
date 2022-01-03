@@ -3,15 +3,23 @@
 pragma solidity =0.8.11;
 
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 import '../interfaces/IVolmexProtocol.sol';
+import '../interfaces/IVolmexOracle.sol';
 
 /**
  * @title Volmex Oracle contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexOracle is OwnableUpgradeable {
+contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOracle {
+    // price precision constant upto 6 decimal places
+    uint256 private constant VOLATILITY_PRICE_PRECISION = 1000000;
+    // Interface ID of VolmexOracle contract
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
+
     // Store the price of volatility by indexes { 0 - ETHV, 1 = BTCV }
     mapping(uint256 => uint256) private _volatilityTokenPriceByIndex;
+
     // Store the volatilitycapratio by index
     mapping(uint256 => uint256) public volatilityCapRatioByIndex;
     // Store the proof of hash of the current volatility token price
@@ -20,29 +28,11 @@ contract VolmexOracle is OwnableUpgradeable {
     mapping(string => uint256) public volatilityIndexBySymbol;
     // Store the number of indexes
     uint256 public indexCount;
-    // price precision constant upto 6 decimal places
-    uint256 private constant VOLATILITY_PRICE_PRECISION = 1000000;
-
-    event BatchVolatilityTokenPriceUpdated(
-        uint256[] _volatilityIndexes,
-        uint256[] _volatilityTokenPrices,
-        bytes32[] _proofHashes
-    );
-
-    event VolatilityIndexAdded(
-        uint256 indexed volatilityTokenIndex,
-        uint256 volatilityCapRatio,
-        string volatilityTokenSymbol,
-        uint256 volatilityTokenPrice
-    );
-
-    event SymbolIndexUpdated(uint256 indexed _index);
 
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
      */
     function initialize() external initializer {
-        __Ownable_init();
         _volatilityTokenPriceByIndex[indexCount] = 125000000;
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['ETHV'] = indexCount;
@@ -54,6 +44,10 @@ contract VolmexOracle is OwnableUpgradeable {
         volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
         volatilityIndexBySymbol['BTCV'] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
+
+        __Ownable_init();
+        __ERC165Storage_init();
+        _registerInterface(_IVOLMEX_ORACLE_ID);
     }
 
     /**
@@ -121,7 +115,7 @@ contract VolmexOracle is OwnableUpgradeable {
         string calldata _volatilityTokenSymbol,
         bytes32 _proofHash
     ) external onlyOwner {
-        require(address(_protocol) != address(0), "volmexOracle: protocol address can't be zero");
+        require(address(_protocol) != address(0), "VolmexOracle: protocol address can't be zero");
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
         require(
             _volatilityCapRatio >= 1000000,
@@ -177,4 +171,6 @@ contract VolmexOracle is OwnableUpgradeable {
         volatilityTokenPrice = _volatilityTokenPriceByIndex[_index];
         iVolatilityTokenPrice = volatilityCapRatioByIndex[_index] - volatilityTokenPrice;
     }
+
+    uint256[10] private __gap;
 }
