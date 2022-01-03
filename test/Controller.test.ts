@@ -202,10 +202,12 @@ describe('VolmexController', function () {
           feeAmpComplement,
         ],
         {
-          initializer: 'mock_Initialize',
+          initializer: 'initialize',
         }
       );
       await pools[vol].deployed();
+
+      await (await pools[vol].setControllerWithoutCheck(owner)).wait();
 
       await (await collateral['DAI'].mint(owner, MAX)).wait();
       await (await collateral['DAI'].approve(protocols[type].address, MAX)).wait();
@@ -549,11 +551,12 @@ describe('VolmexController', function () {
           feeAmpComplement,
         ],
         {
-          initializer: 'mock_Initialize',
+          initializer: 'initialize',
         }
       );
       let receipt = await pool.deployed();
       expect(receipt.confirmations).not.equal(0);
+      await (await pool.setControllerWithoutCheck(owner)).wait();
 
       const addPool = await controller.addPool(pool.address);
       const {events} = await addPool.wait();
