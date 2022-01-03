@@ -578,7 +578,11 @@ describe('VolmexController', function () {
     });
 
     it('Should add stablecoin', async () => {
-      const collateralInner = await collateralFactory.deploy('VUSDT');
+      const collateralInner = await collateralFactory.deploy(
+        'VUSDT',
+        '100000000000000000000000000000000',
+        18
+      );
       await collateralInner.deployed();
 
       const addStableCoin = await controller.addStableCoin(collateralInner.address);
