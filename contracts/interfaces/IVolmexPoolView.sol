@@ -2,8 +2,6 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
-
 interface IVolmexPoolView {
     struct TokenRecord {
         address self;
@@ -45,7 +43,6 @@ interface IVolmexPoolView {
             TokenData memory poolToken,
             Config memory config
         );
-
     function getPoolTokenData(address _pool)
         external
         view
@@ -61,7 +58,6 @@ interface IVolmexPoolView {
             uint256 lpTotalSupply,
             uint8 lpDecimals
         );
-
     function getPoolConfig(address _pool)
         external
         view
