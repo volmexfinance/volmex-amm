@@ -687,6 +687,15 @@ contract VolmexPool is
         return records[token].leverage;
     }
 
+    /**
+     * @notice Used to get the balance of provided token address
+     *
+     * @param token Address of the token. either primary or complement
+     */
+    function getBalance(address token) external view viewlock returns (uint256) {
+        return records[token].balance;
+    }
+
     function getPrimaryDerivativeAddress() public view returns (address) {
         return tokens[0];
     }
