@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
 import { Signer } from 'ethers';
+const assert = require('assert');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 
 describe('Repricer', function () {
@@ -66,40 +67,46 @@ describe('Repricer', function () {
     volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
     await volmexOracle.deployed();
 
-    repricer = await upgrades.deployProxy(repricerFactory, [
-      volmexOracle.address,
-      protocol.address,
-    ]);
+    repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);
   });
 
   it('Should deploy repricer', async () => {
     const receipt = await repricer.deployed();
     expect(receipt.confirmations).not.equal(0);
+    assert.equal(await receipt.oracle(), volmexOracle.address);
   });
 
   it('Should call the reprice method', async () => {
-    let reciept = await volmexOracle.updateVolatilityTokenPrice(
-      '0',
-      '125',
-      '0x6c00000000000000000000000000000000000000000000000000000000000000'
+    const reciept1 = await repricer.reprice('0');
+    const reciept2 = await repricer.reprice('1');
+    assert.equal(reciept1[0].toString(), '125000000');
+    assert.equal(reciept1[1].toString(), '125000000');
+    assert.equal(reciept1[2].toString(), '1000000000000000000');
+    assert.equal(reciept2[0].toString(), '125000000');
+    assert.equal(reciept2[1].toString(), '125000000');
+    assert.equal(reciept2[2].toString(), '1000000000000000000');
+    let reciept = await volmexOracle.updateBatchVolatilityTokenPrice(
+      ['1'],
+      ['105000000'],
+      ['0x6c00000000000000000000000000000000000000000000000000000000000000']
     );
     await reciept.wait();
-
-    reciept = await repricer.reprice('0');
-    expect(await reciept).not.equal(null);
+    reciept = await repricer.reprice('1');
+    assert.equal(reciept[0].toString(), '105000000');
+    assert.equal(reciept[1].toString(), '145000000');
   });
 
   it('Should revert on not contract', async () => {
     const [other] = accounts;
 
     await expectRevert(
-      upgrades.deployProxy(repricerFactory, [await other.getAddress(), protocol.address]),
+      upgrades.deployProxy(repricerFactory, [await other.getAddress()]),
       'Repricer: Not an oracle contract'
     );
+  });
 
-    await expectRevert(
-      upgrades.deployProxy(repricerFactory, [volmexOracle.address, await other.getAddress()]),
-      'Repricer: Not a protocol contract'
-    );
+  it('should calculate the correct square root', async () => {
+    let output = await repricer.sqrtWrapped(4);
+    assert.equal(output.toString(), '1999999999');
   });
 });

@@ -27,55 +27,6 @@ contract VolmexPool is
     Math,
     TokenMetadataGenerator
 {
-    event LOG_SWAP(
-        address indexed caller,
-        address indexed tokenIn,
-        address indexed tokenOut,
-        uint256 tokenAmountIn,
-        uint256 tokenAmountOut,
-        uint256 fee,
-        uint256 tokenBalanceIn,
-        uint256 tokenBalanceOut,
-        uint256 tokenLeverageIn,
-        uint256 tokenLeverageOut
-    );
-
-    event LOG_JOIN(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
-
-    event LOG_EXIT(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
-
-    event LOG_REPRICE(
-        uint256 repricingBlock,
-        uint256 balancePrimary,
-        uint256 balanceComplement,
-        uint256 leveragePrimary,
-        uint256 leverageComplement,
-        uint256 newLeveragePrimary,
-        uint256 newLeverageComplement,
-        uint256 estPricePrimary,
-        uint256 estPriceComplement
-    );
-
-    event LOG_SET_FEE_PARAMS(
-        uint256 baseFee,
-        uint256 maxFee,
-        uint256 feeAmpPrimary,
-        uint256 feeAmpComplement
-    ); // TODO: Understand what is Amp here.
-
-    event LOG_CALL(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
-
-    event FlashLoan(
-        address indexed target,
-        address indexed asset,
-        uint256 amount,
-        uint256 premium
-    );
-
-    event SetController(address indexed controller);
-
-    event UpdatedFlashLoanPremium(uint256 premium);
-
     struct Record {
         uint256 leverage;
         uint256 balance;
@@ -111,20 +62,16 @@ contract VolmexPool is
     // Max fee on the swap operation
     uint256 public maxFee;
 
-    // TODO: Understand the pMin
+    // Minimum amount of tokens in the pool
     uint256 public pMin;
+    // Minimum amount of token required for swap
     uint256 public qMin;
-    // TODO: Need to understand exposureLimitPrimary
+    // Difference in the primary token amount while swapping with the complement token
     uint256 public exposureLimitPrimary;
-    // TODO: Need to understand exposureLimitComplement
+    // Difference in the complement token amount while swapping with the primary token
     uint256 public exposureLimitComplement;
     // The amount of collateral required to mint both the volatility tokens
     uint256 private _denomination;
-
-    // Currently not is use. Required in x5Repricer and callOption
-    // TODO: Need to understand the use of these args in repricer
-    // uint256 public repricerParam1;
-    // uint256 public repricerParam2;
 
     // Address of the volmex repricer contract
     IVolmexRepricer public repricer;
@@ -140,11 +87,60 @@ contract VolmexPool is
 
     uint256 public FLASHLOAN_PREMIUM_TOTAL;
 
+    event LogSwap(
+        address indexed caller,
+        address indexed tokenIn,
+        address indexed tokenOut,
+        uint256 tokenAmountIn,
+        uint256 tokenAmountOut,
+        uint256 fee,
+        uint256 tokenBalanceIn,
+        uint256 tokenBalanceOut,
+        uint256 tokenLeverageIn,
+        uint256 tokenLeverageOut
+    );
+
+    event LogJoin(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
+
+    event LogExit(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
+
+    event LogReprice(
+        uint256 repricingBlock,
+        uint256 balancePrimary,
+        uint256 balanceComplement,
+        uint256 leveragePrimary,
+        uint256 leverageComplement,
+        uint256 newLeveragePrimary,
+        uint256 newLeverageComplement,
+        uint256 estPricePrimary,
+        uint256 estPriceComplement
+    );
+
+    event LogSetFeeParams(
+        uint256 baseFee,
+        uint256 maxFee,
+        uint256 feeAmpPrimary,
+        uint256 feeAmpComplement
+    );
+
+    event LogCall(bytes4 indexed sig, address indexed caller, bytes data) anonymous;
+
+    event FlashLoan(
+        address indexed target,
+        address indexed asset,
+        uint256 amount,
+        uint256 premium
+    );
+
+    event SetController(address indexed controller);
+
+    event UpdatedFlashLoanPremium(uint256 premium);
+
     /**
      * @notice Used to log the callee's sig, address and data
      */
     modifier _logs() {
-        emit LOG_CALL(msg.sig, msg.sender, msg.data);
+        emit LogCall(msg.sig, msg.sender, msg.data);
         _;
     }
 
@@ -323,7 +319,7 @@ contract VolmexPool is
             uint256 tokenAmountIn = mul(ratio, bal);
             require(tokenAmountIn <= maxAmountsIn[i], 'VolmexPool: Amount in limit exploit');
             _records[token].balance = _records[token].balance + tokenAmountIn;
-            emit LOG_JOIN(receiver, token, tokenAmountIn);
+            emit LogJoin(receiver, token, tokenAmountIn);
             _pullUnderlying(token, receiver, tokenAmountIn);
         }
 
@@ -353,10 +349,10 @@ contract VolmexPool is
             address token = _tokens[i];
             uint256 bal = _records[token].balance;
             require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
-            uint256 tokenAmountOut = calculateAmountOut(poolAmountIn, ratio, bal);
+            uint256 tokenAmountOut = _calculateAmountOut(poolAmountIn, ratio, bal);
             require(tokenAmountOut >= minAmountsOut[i], 'VolmexPool: Amount out limit exploit');
             _records[token].balance = _records[token].balance - tokenAmountOut;
-            emit LOG_EXIT(receiver, token, tokenAmountOut);
+            emit LogExit(receiver, token, tokenAmountOut);
             _pushUnderlying(token, receiver, tokenAmountOut);
         }
 
@@ -416,7 +412,7 @@ contract VolmexPool is
             0
         );
 
-        uint256 fee = calcFee(
+        uint256 fee = _calcFee(
             inRecord,
             tokenAmountIn,
             outRecord,
@@ -462,10 +458,10 @@ contract VolmexPool is
      * @param _primaryLeverage Leverage value of primary token
      * @param _complementBalance  Balance amount of complement token
      * @param _complementLeverage  Leverage value of complement token
-     * @param _exposureLimitPrimary TODO: Need to check this
-     * @param _exposureLimitComplement TODO: Need to check this
-     * @param _pMin TODO: Need to check this
-     * @param _qMin TODO: Need to check this
+     * @param _exposureLimitPrimary Primary to complement swap difference limit
+     * @param _exposureLimitComplement Complement to primary swap difference limit
+     * @param _pMin Minimum amount of tokens in the pool
+     * @param _qMin Minimum amount of token required for swap
      */
     function finalize(
         uint256 _primaryBalance,
@@ -533,10 +529,111 @@ contract VolmexPool is
         feeAmpPrimary = _feeAmpPrimary;
         feeAmpComplement = _feeAmpComplement;
 
-        emit LOG_SET_FEE_PARAMS(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
+        emit LogSetFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
     }
 
-    function getRepriced(address tokenIn) internal view returns (Record[2] memory) {
+    /**
+     * @notice getter, used to fetch the token amount out and fee
+     *
+     * @param _tokenIn Address of the token in
+     * @param _tokenAmountIn Amount of in token
+     */
+    function getTokenAmountOut(address _tokenIn, uint256 _tokenAmountIn)
+        external
+        view
+        returns (uint256 tokenAmountOut, uint256 fee)
+    {
+        (Record memory inRecord, Record memory outRecord) = _getRepriced(_tokenIn);
+
+        tokenAmountOut = calcOutGivenIn(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            _tokenAmountIn,
+            0
+        );
+
+        fee = _calcFee(
+            inRecord,
+            _tokenAmountIn,
+            outRecord,
+            tokenAmountOut,
+            _getPrimaryDerivativeAddress() == _tokenIn ? feeAmpPrimary : feeAmpComplement
+        );
+
+        tokenAmountOut = calcOutGivenIn(
+            _getLeveragedBalance(inRecord),
+            _getLeveragedBalance(outRecord),
+            _tokenAmountIn,
+            fee
+        );
+    }
+
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
+        return interfaceId == type(IVolmexPool).interfaceId;
+    }
+
+    /**
+     * @notice Used to pause the contract
+     */
+    function pause() external _onlyController {
+        _pause();
+    }
+
+    /**
+     * @notice Used to unpause the contract, if paused
+     */
+    function unpause() external _onlyController {
+        _unpause();
+    }
+
+    /**
+     * @notice Used to check the pool is finalized
+     */
+    function isFinalized() external view returns (bool) {
+        return _finalized;
+    }
+
+    /**
+     * @notice Used to get the token addresses
+     */
+    function getTokens() external view _viewlock returns (address[BOUND_TOKENS] memory tokens) {
+        return _tokens;
+    }
+
+    /**
+     * @notice Used to get the leverage of provided token address
+     *
+     * @param token Address of the token, either primary or complement
+     */
+    function getLeverage(address token) external view _viewlock returns (uint256) {
+        return _records[token].leverage;
+    }
+
+    /**
+     * @notice Used to get the balance of provided token address
+     *
+     * @param token Address of the token. either primary or complement
+     */
+    function getBalance(address token) external view _viewlock returns (uint256) {
+        return _records[token].balance;
+    }
+
+    function getPrimaryDerivativeAddress() external view returns (address) {
+        return _getPrimaryDerivativeAddress();
+    }
+
+    function getComplementDerivativeAddress() external view returns (address) {
+        return _getComplementDerivativeAddress();
+    }
+
+    function _getRepriced(address tokenIn)
+        internal
+        view
+        returns (Record memory inRecord, Record memory outRecord)
+    {
         Record memory primaryRecord = _records[_getPrimaryDerivativeAddress()];
         Record memory complementRecord = _records[_getComplementDerivativeAddress()];
 
@@ -561,41 +658,11 @@ contract VolmexPool is
             )
         );
         complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
-        return [
-            _getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord,
-            _getComplementDerivativeAddress() == tokenIn ? primaryRecord : complementRecord
-        ];
-    }
 
-    function getTokenAmountOut(
-        address tokenIn,
-        uint256 tokenAmountIn,
-        address tokenOut
-    ) external view returns (uint256 tokenAmountOut, uint256 fee) {
-        Record memory inRecord = getRepriced(tokenIn)[0];
-        Record memory outRecord = getRepriced(tokenIn)[1];
-
-        tokenAmountOut = calcOutGivenIn(
-            _getLeveragedBalance(inRecord),
-            _getLeveragedBalance(outRecord),
-            tokenAmountIn,
-            0
-        );
-
-        fee = calcFee(
-            inRecord,
-            tokenAmountIn,
-            outRecord,
-            tokenAmountOut,
-            _getPrimaryDerivativeAddress() == tokenIn ? feeAmpPrimary : feeAmpComplement
-        );
-
-        tokenAmountOut = calcOutGivenIn(
-            _getLeveragedBalance(inRecord),
-            _getLeveragedBalance(outRecord),
-            tokenAmountIn,
-            fee
-        );
+        inRecord = _getPrimaryDerivativeAddress() == tokenIn ? primaryRecord : complementRecord;
+        outRecord = _getComplementDerivativeAddress() == tokenIn
+            ? primaryRecord
+            : complementRecord;
     }
 
     /**
@@ -625,7 +692,6 @@ contract VolmexPool is
             complementRecordLeverageBefore
         );
 
-        // TODO: Need to lookover the sqrtWrapped equation and calculation
         primaryRecord.leverage = uint256(
             repricer.sqrtWrapped(
                 int256(
@@ -637,8 +703,7 @@ contract VolmexPool is
             )
         );
         complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
-
-        emit LOG_REPRICE(
+        emit LogReprice(
             repricingBlock,
             primaryRecord.balance,
             complementRecord.balance,
@@ -666,7 +731,6 @@ contract VolmexPool is
         Record storage inRecord = _records[tokenIn];
         Record storage outRecord = _records[tokenOut];
 
-        // TODO: Need to understand this and it's sub/used method
         _requireBoundaryConditions(
             inRecord,
             tokenAmountIn,
@@ -698,7 +762,7 @@ contract VolmexPool is
             'VolmexPool: Amount in max in ratio exploit other'
         );
 
-        emit LOG_SWAP(
+        emit LogSwap(
             msg.sender,
             tokenIn,
             tokenOut,
@@ -911,14 +975,14 @@ contract VolmexPool is
         return _balance * _leverage;
     }
 
-    function calc(
+    function _calc(
         int256[3] memory _inRecord,
         int256[3] memory _outRecord,
         int256 _baseFee,
         int256 _feeAmp,
         int256 _maxFee
     ) internal pure returns (int256 fee, int256 expStart) {
-        expStart = calcExpStart(_inRecord[0], _outRecord[0]);
+        expStart = _calcExpStart(_inRecord[0], _outRecord[0]);
 
         int256 _expEnd = ((_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) * iBONE) /
             (_inRecord[0] + _outRecord[0] + _inRecord[2] - _outRecord[2]);
@@ -943,7 +1007,7 @@ contract VolmexPool is
         }
     }
 
-    function calcFee(
+    function _calcFee(
         Record memory inRecord,
         uint256 tokenAmountIn,
         Record memory outRecord,
@@ -951,7 +1015,7 @@ contract VolmexPool is
         uint256 feeAmp
     ) internal view returns (uint256 fee) {
         int256 ifee;
-        (ifee, ) = calc(
+        (ifee, ) = _calc(
             [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
             [int256(outRecord.balance), int256(outRecord.leverage), int256(tokenAmountOut)],
             int256(baseFee),
@@ -962,21 +1026,14 @@ contract VolmexPool is
         fee = uint256(ifee);
     }
 
-    function calcExpStart(int256 _inBalance, int256 _outBalance) internal pure returns (int256) {
+    function _calcExpStart(int256 _inBalance, int256 _outBalance) internal pure returns (int256) {
         return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
-    }
-
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    function supportsInterface(bytes4 interfaceId) external view virtual returns (bool) {
-        return interfaceId == type(IVolmexPool).interfaceId;
     }
 
     /**
      * @notice Used to calculate the out amount after fee deduction
      */
-    function calculateAmountOut(
+    function _calculateAmountOut(
         uint256 _poolAmountIn,
         uint256 _ratio,
         uint256 _tokenReserve
@@ -987,60 +1044,6 @@ contract VolmexPool is
             uint256 feeAmount = mul(tokenAmount, div(adminFee, 10000));
             amountOut = amountOut - feeAmount;
         }
-    }
-
-    /**
-     * @notice Used to pause the contract
-     */
-    function pause() external _onlyController {
-        _pause();
-    }
-
-    /**
-     * @notice Used to unpause the contract, if paused
-     */
-    function unpause() external _onlyController {
-        _unpause();
-    }
-
-    /**
-     * @notice Used to check the pool is finalized
-     */
-    function isFinalized() external view returns (bool) {
-        return _finalized;
-    }
-
-    /**
-     * @notice Used to get the token addresses
-     */
-    function getTokens() external view _viewlock returns (address[BOUND_TOKENS] memory tokens) {
-        return _tokens;
-    }
-
-    /**
-     * @notice Used to get the leverage of provided token address
-     *
-     * @param token Address of the token, either primary or complement
-     */
-    function getLeverage(address token) external view _viewlock returns (uint256) {
-        return _records[token].leverage;
-    }
-
-    /**
-     * @notice Used to get the balance of provided token address
-     *
-     * @param token Address of the token. either primary or complement
-     */
-    function getBalance(address token) external view _viewlock returns (uint256) {
-        return _records[token].balance;
-    }
-
-    function getPrimaryDerivativeAddress() external view returns (address) {
-        return _getPrimaryDerivativeAddress();
-    }
-
-    function getComplementDerivativeAddress() external view returns (address) {
-        return _getComplementDerivativeAddress();
     }
 
     function getDerivativeDenomination() internal view returns (uint256) {
