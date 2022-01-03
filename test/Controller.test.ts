@@ -270,7 +270,7 @@ describe('VolmexController', function () {
     expect(controllerReceipt.confirmations).not.equal(0);
   });
 
-  it('Should swap volatility tokens', async () => {
+  it('Should swap in volatility tokens', async () => {
     await (
       await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
     ).wait();
@@ -295,7 +295,7 @@ describe('VolmexController', function () {
     ).wait();
 
     const balanceBefore = await inverseVolatilities['ETH'].balanceOf(owner);
-    const swap = await controller.swap(
+    const swap = await controller.swapIn(
       0,
       volatilities['ETH'].address,
       '20000000000000000000',
@@ -309,13 +309,58 @@ describe('VolmexController', function () {
     //   tokenOut: inverseVolatilities['ETH'].address
     // });
     // console.log(event)
-    // const logData = getEventLog(events, 'AssetSwappedSamePool', ['uint256', 'uint256']);
+    const logData = getEventLog(events, 'Swapped', ['uint256', 'uint256']);
+    console.log('swapIn', logData);
 
     const balanceAfter = await inverseVolatilities['ETH'].balanceOf(owner);
 
     const changedBalance = balanceAfter.sub(balanceBefore);
 
     expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
+  });
+
+  it('Should swap out volatility tokens', async () => {
+    await (
+      await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+    ).wait();
+    await (
+      await inverseVolatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+    ).wait();
+
+    const add = await controller.addLiquidity(
+      '250000000000000000000000000',
+      ['599999999000000000000000000', '599999999000000000000000000'],
+      '0'
+    );
+    await add.wait();
+
+    const amountOut = await pools['ETH'].getTokenAmountIn(
+      inverseVolatilities['ETH'].address,
+      '19599615847913244554'
+    );
+
+    await (
+      await volatilities['ETH'].approve(controller.address, amountOut[0].toString())
+    ).wait();
+
+    const balanceBefore = await inverseVolatilities['ETH'].balanceOf(owner);
+    const swap = await controller.swapOut(
+      0,
+      volatilities['ETH'].address,
+      amountOut[0].toString(),
+      inverseVolatilities['ETH'].address,
+      '19599615847913244554'
+    );
+    const {events} = await swap.wait();
+
+    const logData = getEventLog(events, 'Swapped', ['uint256', 'uint256']);
+    console.log('swapOut', logData);
+
+    const balanceAfter = await inverseVolatilities['ETH'].balanceOf(owner);
+
+    const changedBalance = balanceAfter.sub(balanceBefore);
+
+    // expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
   });
 
   it('Should swap collateral to volatility', async () => {
@@ -546,3 +591,15 @@ const getEventLog = (events: any[], eventName: string, params: string[]): any =>
   const logData = ethers.utils.defaultAbiCoder.decode(params, data);
   return logData;
 };
+
+/*
+swapIn swapIn [
+  BigNumber { value: "20000000000000000000" },
+  BigNumber { value: "19599615847913244554" }
+]
+
+swapOut [
+  BigNumber { value: "19999999999999383914" },
+  BigNumber { value: "19599615847913244554" }
+]
+*/
