@@ -13,7 +13,7 @@ import '../interfaces/IVolmexOracle.sol';
  */
 contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOracle {
     // price precision constant upto 6 decimal places
-    uint256 private constant VOLATILITY_PRICE_PRECISION = 1000000;
+    uint256 private constant _VOLATILITY_PRICE_PRECISION = 1000000;
     // Interface ID of VolmexOracle contract
     bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
 
@@ -92,7 +92,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
 
     /**
      * @notice Update the volatility token index by symbol
-     *
      * @param _index Number value of the index. { eg. 0 }
      * @param _tokenSymbol Symbol of the adding volatility token
      */
@@ -104,7 +103,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
 
     /**
      * @notice Add volatility token price by index
-     *
      * @param _volatilityTokenPrice Price of the adding volatility token
      * @param _volatilityTokenSymbol Symbol of the adding volatility token
      * @param _proofHash Bytes32 value of token price proof of hash
@@ -116,7 +114,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
         bytes32 _proofHash
     ) external onlyOwner {
         require(address(_protocol) != address(0), "VolmexOracle: protocol address can't be zero");
-        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
+        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio() * _VOLATILITY_PRICE_PRECISION;
         require(
             _volatilityCapRatio >= 1000000,
             'VolmexOracle: volatility cap ratio should be greater than 1000000'
@@ -142,7 +140,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
 
     /**
      * @notice Get the volatility token price by symbol
-     *
      * @param _volatilityTokenSymbol Symbol of the volatility token
      */
     function getVolatilityPriceBySymbol(string calldata _volatilityTokenSymbol)
@@ -160,7 +157,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
 
     /**
      * @notice Get the volatility token price by index
-     *
      * @param _index index of the volatility token
      */
     function getVolatilityTokenPriceByIndex(uint256 _index)

@@ -33,7 +33,11 @@ describe('Volmex Oracle', function () {
   });
 
   this.beforeEach(async function () {
-    collateral = await collateralFactory.deploy();
+    collateral = await collateralFactory.deploy(
+      "VUSD",
+      "100000000000000000000000000000000",
+      18
+    );
     await collateral.deployed();
 
     volatility = await volatilityFactory.deploy();
@@ -125,6 +129,14 @@ describe('Volmex Oracle', function () {
   });
 
   it('should add volatility index', async () => {
+    protocol = await upgrades.deployProxy(protocolFactory, [
+      `${collateral.address}`,
+      `${volatility.address}`,
+      `${inverseVolatility.address}`,
+      '25000000000000000000',
+      '250',
+    ]);
+    await protocol.deployed();
     const contractTx = await volmexOracle.addVolatilityIndex(
       '125000000',
       protocol.address,

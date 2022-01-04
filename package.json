@@ -73,6 +73,7 @@
         "decimal.js": "^10.2.1",
         "ganache-cli": "^6.12.2",
         "global": "^4.4.0",
+        "hardhat-contract-sizer": "^2.3.0",
         "hardhat-deploy": "^0.8.11",
         "hardhat-deploy-ethers": "^0.3.0-beta.10",
         "prettier": "^2.3.2",

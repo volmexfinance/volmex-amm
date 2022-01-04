@@ -33,7 +33,11 @@ describe('Repricer', function () {
   });
 
   this.beforeEach(async function () {
-    collateral = await collateralFactory.deploy();
+    collateral = await collateralFactory.deploy(
+      "VUSD",
+      "100000000000000000000000000000000",
+      18
+    );
     await collateral.deployed();
 
     volatility = await volatilityFactory.deploy();
@@ -101,7 +105,7 @@ describe('Repricer', function () {
 
     await expectRevert(
       upgrades.deployProxy(repricerFactory, [await other.getAddress()]),
-      'Repricer: Not an oracle contract'
+      'Address: low-level delegate call failed'
     );
   });
 

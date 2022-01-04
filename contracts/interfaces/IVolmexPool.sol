@@ -1,15 +1,3 @@
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity =0.8.11;
@@ -81,61 +69,37 @@ interface IVolmexPool is IERC20 {
     function finalized() external view returns (bool);
     function upperBoundary() external view returns (uint256);
     function adminFee() external view returns (uint256);
-    function getLeverage(address token) external view returns (uint256);
-    function getBalance(address token) external view returns (uint256);
-    function tokens(uint256 index) external view returns (address);
-    function getTokensToJoin(uint256 poolAmountOut) external view returns (uint256[2] memory);
-    function getTokensToExit(uint256 poolAmountIn) external view returns (uint256[2] memory);
+    function getLeverage(address _token) external view returns (uint256);
+    function getBalance(address _token) external view returns (uint256);
+    function tokens(uint256 _index) external view returns (address);
     function flashLoanPremium() external view returns (uint256);
     function getLeveragedBalance(Record memory r) external pure returns (uint256);
-    function getRepriced(address tokenIn)
-        external
-        view
-        returns (Record memory, Record memory);
     function getTokenAmountOut(
-        address tokenIn,
-        uint256 tokenAmountIn
+        address _tokenIn,
+        uint256 _tokenAmountIn
     ) external view returns (uint256, uint256);
-    function getTokenAmountIn(
-        address tokenOut,
-        uint256 tokenAmountOut
-    ) external view returns (uint256, uint256);
-    function calcFee(
-        Record memory inRecord,
-        uint256 tokenAmountIn,
-        Record memory outRecord,
-        uint256 tokenAmountOut,
-        uint256 feeAmp
-    ) external view returns (uint256 fee);
 
     // Setter methods
-    function setController(IVolmexController controller) external;
+    function setController(IVolmexController _controller) external;
     function updateFlashLoanPremium(uint256 _premium) external;
-    function joinPool(uint256 poolAmountOut, uint256[2] calldata maxAmountsIn, address receiver) external;
-    function exitPool(uint256 poolAmountIn, uint256[2] calldata minAmountsOut, address receiver) external;
+    function joinPool(uint256 _poolAmountOut, uint256[2] calldata _maxAmountsIn, address _receiver) external;
+    function exitPool(uint256 _poolAmountIn, uint256[2] calldata _minAmountsOut, address _receiver) external;
     function pause() external;
     function unpause() external;
+    function reprice() external;
     function swapExactAmountIn(
-        address tokenIn,
-        uint256 tokenAmountIn,
-        address tokenOut,
-        uint256 minAmountOut,
-        address receiver,
-        bool toController
-    ) external returns (uint256, uint256);
-    function swapExactAmountOut(
-        address tokenIn,
-        uint256 maxAmountIn,
-        address tokenOut,
-        uint256 tokenAmountOut,
-        address receiver,
-        bool toController
+        address _tokenIn,
+        uint256 _tokenAmountIn,
+        address _tokenOut,
+        uint256 _minAmountOut,
+        address _receiver,
+        bool _toController
     ) external returns (uint256, uint256);
     function flashLoan(
-        address receiverAddress,
-        address assetToken,
-        uint256 amount,
-        bytes calldata params
+        address _receiverAddress,
+        address _assetToken,
+        uint256 _amount,
+        bytes calldata _params
     ) external;
     function finalize(
         uint256 _primaryBalance,

@@ -11,6 +11,7 @@ import "@openzeppelin/hardhat-upgrades";
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
 import "solidity-coverage";
+import "hardhat-contract-sizer";
 
 import { config as dotEnvConfig } from "dotenv";
 dotEnvConfig();
@@ -30,6 +31,11 @@ import { HardhatUserConfig } from "hardhat/types";
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
+  },
   defaultNetwork: "hardhat",
   solidity: {
     compilers: [
@@ -38,7 +44,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 800,
+            runs: 2000,
           },
         },
       },
@@ -47,7 +53,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 800,
+            runs: 2000,
           },
         },
       },

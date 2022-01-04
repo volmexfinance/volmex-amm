@@ -85,14 +85,7 @@ interface IVolmexController {
         bytes calldata _params,
         uint256 _poolIndex
     ) external;
-    function swapIn(
-        uint256 _poolIndex,
-        address _tokenIn,
-        uint256 _amountIn,
-        address _tokenOut,
-        uint256 _amountOut
-    ) external;
-    function swapOut(
+    function swap(
         uint256 _poolIndex,
         address _tokenIn,
         uint256 _amountIn,
@@ -107,8 +100,7 @@ interface IVolmexController {
     function getVolatilityToCollateral(
         address _tokenIn,
         uint256 _amount,
-        uint256 _poolIndex,
-        uint256 _stableCoinIndex,
+        uint256[2] calldata _indices,
         bool _isInverse
     ) external view returns (uint256, uint256[2] memory);
     function getSwapAmountBetweenPools(
