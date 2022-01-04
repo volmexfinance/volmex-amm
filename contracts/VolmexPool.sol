@@ -505,7 +505,7 @@ contract VolmexPool is
         view
         returns (uint256 tokenAmountOut, uint256 fee)
     {
-        (Record memory inRecord, Record memory outRecord) = getRepriced(_tokenIn);
+        (Record memory inRecord, Record memory outRecord) = _getRepriced(_tokenIn);
 
         tokenAmountOut = calcOutGivenIn(
             getLeveragedBalance(inRecord),
@@ -549,59 +549,6 @@ contract VolmexPool is
      */
     function getBalance(address _token) external view viewlock returns (uint256) {
         return records[_token].balance;
-    }
-
-    function getRepriced(address _tokenIn)
-        public
-        view
-        returns (Record memory inRecord, Record memory outRecord)
-    {
-        Record memory primaryRecord = records[tokens[0]];
-        Record memory complementRecord = records[tokens[1]];
-
-        (, , uint256 estPrice) = repricer.reprice(volatilityIndex);
-
-        uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
-        uint256 complementRecordLeverageBefore = complementRecord.leverage;
-
-        uint256 leveragesMultiplied = _mul(
-            primaryRecordLeverageBefore,
-            complementRecordLeverageBefore
-        );
-
-        primaryRecord.leverage = uint256(
-            repricer.sqrtWrapped(
-                int256(
-                    _div(
-                        _mul(leveragesMultiplied, _mul(complementRecord.balance, estPrice)),
-                        primaryRecord.balance
-                    )
-                )
-            )
-        );
-        complementRecord.leverage = _div(leveragesMultiplied, primaryRecord.leverage);
-
-        inRecord = tokens[0] == _tokenIn ? primaryRecord : complementRecord;
-        outRecord = tokens[1] == _tokenIn ? primaryRecord : complementRecord;
-    }
-
-    function calcFee(
-        Record memory _inRecord,
-        uint256 _tokenAmountIn,
-        Record memory _outRecord,
-        uint256 _tokenAmountOut,
-        uint256 _feeAmp
-    ) public view returns (uint256 fee) {
-        int256 ifee;
-        (ifee, ) = _calc(
-            [int256(_inRecord.balance), int256(_inRecord.leverage), int256(_tokenAmountIn)],
-            [int256(_outRecord.balance), int256(_outRecord.leverage), int256(_tokenAmountOut)],
-            int256(baseFee),
-            int256(_feeAmp),
-            int256(maxFee)
-        );
-        require(ifee > 0, 'VolmexPool: Fee should be greater than 0');
-        fee = uint256(ifee);
     }
 
     /**
@@ -655,6 +602,86 @@ contract VolmexPool is
         );
     }
 
+    function getLeveragedBalance(Record memory r) public pure returns (uint256) {
+        return mul(r.balance, r.leverage);
+    }
+
+    /**
+     * @dev Similar to EIP20 transfer, except it handles a False result from `transferFrom` and reverts in that case.
+     * This will revert due to insufficient balance or insufficient allowance.
+     * This function returns the actual amount received,
+     * which may be less than `amount` if there is a fee attached to the transfer.
+     * @notice This wrapper safely handles non-standard ERC-20 tokens that do not return a value.
+     * See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+     */
+    function _pullUnderlying(
+        address _erc20,
+        address _from,
+        uint256 _amount
+    ) internal virtual returns (uint256) {
+        uint256 balanceBefore = IERC20(_erc20).balanceOf(address(this));
+        controller.transferAssetToPool(IERC20Modified(_erc20), _from, _amount);
+
+        bool success;
+        //solium-disable-next-line security/no-inline-assembly
+        assembly {
+            switch returndatasize()
+            case 0 {
+                // This is a non-standard ERC-20
+                success := not(0) // set success to true
+            }
+            case 32 {
+                // This is a compliant ERC-20
+                returndatacopy(0, 0, 32)
+                success := mload(0) // Set `success = returndata` of external call
+            }
+            default {
+                // This is an excessively non-compliant ERC-20, revert.
+                revert(0, 0)
+            }
+        }
+        require(success, 'VolmexPool: Token transfer failed');
+
+        // Calculate the amount that was *actually* transferred
+        uint256 balanceAfter = IERC20(_erc20).balanceOf(address(this));
+        require(balanceAfter >= balanceBefore, 'VolmexPool: Token transfer overflow met');
+        return balanceAfter - balanceBefore; // underflow already checked above, just subtract
+    }
+
+    function _getRepriced(address _tokenIn)
+        private
+        view
+        returns (Record memory inRecord, Record memory outRecord)
+    {
+        Record memory primaryRecord = records[tokens[0]];
+        Record memory complementRecord = records[tokens[1]];
+
+        (, , uint256 estPrice) = repricer.reprice(volatilityIndex);
+
+        uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
+        uint256 complementRecordLeverageBefore = complementRecord.leverage;
+
+        uint256 leveragesMultiplied = mul(
+            primaryRecordLeverageBefore,
+            complementRecordLeverageBefore
+        );
+
+        primaryRecord.leverage = uint256(
+            repricer.sqrtWrapped(
+                int256(
+                    div(
+                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
+                        primaryRecord.balance
+                    )
+                )
+            )
+        );
+        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
+
+        inRecord = tokens[0] == _tokenIn ? primaryRecord : complementRecord;
+        outRecord = tokens[1] == _tokenIn ? primaryRecord : complementRecord;
+    }
+
     function _calcFee(
         Record memory _inRecord,
         uint256 _tokenAmountIn,
@@ -672,10 +699,6 @@ contract VolmexPool is
         );
         require(ifee > 0, 'VolmexPool: Fee should be greater than 0');
         fee = uint256(ifee);
-    }
-
-    function getLeveragedBalance(Record memory r) public pure returns (uint256) {
-        return _mul(r.balance, r.leverage);
     }
 
     /**
@@ -822,52 +845,14 @@ contract VolmexPool is
         require(_inToken.leverage > 0, 'VolmexPool: In token leverage can not be zero');
     }
 
-    /// @dev Similar to EIP20 transfer, except it handles a False result from `transferFrom` and reverts in that case.
-    /// This will revert due to insufficient balance or insufficient allowance.
-    /// This function returns the actual amount received,
-    /// which may be less than `amount` if there is a fee attached to the transfer.
-    /// @notice This wrapper safely handles non-standard ERC-20 tokens that do not return a value.
-    /// See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
-    function _pullUnderlying(
-        address _erc20,
-        address _from,
-        uint256 _amount
-    ) internal virtual returns (uint256) {
-        uint256 balanceBefore = IERC20(_erc20).balanceOf(address(this));
-        controller.transferAssetToPool(IERC20Modified(_erc20), _from, _amount);
-
-        bool success;
-        //solium-disable-next-line security/no-inline-assembly
-        assembly {
-            switch returndatasize()
-            case 0 {
-                // This is a non-standard ERC-20
-                success := not(0) // set success to true
-            }
-            case 32 {
-                // This is a compliant ERC-20
-                returndatacopy(0, 0, 32)
-                success := mload(0) // Set `success = returndata` of external call
-            }
-            default {
-                // This is an excessively non-compliant ERC-20, revert.
-                revert(0, 0)
-            }
-        }
-        require(success, 'VolmexPool: Token transfer failed');
-
-        // Calculate the amount that was *actually* transferred
-        uint256 balanceAfter = IERC20(_erc20).balanceOf(address(this));
-        require(balanceAfter >= balanceBefore, 'VolmexPool: Token transfer overflow met');
-        return balanceAfter - balanceBefore; // underflow already checked above, just subtract
-    }
-
-    /// @dev Similar to EIP20 transfer, except it handles a False success from `transfer` and returns an explanatory
-    /// error code rather than reverting. If caller has not called checked protocol's balance, this may revert due to
-    /// insufficient cash held in this contract. If caller has checked protocol's balance prior to this call, and verified
-    /// it is >= amount, this should not revert in normal conditions.
-    /// @notice This wrapper safely handles non-standard ERC-20 tokens that do not return a value.
-    /// See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+    /**
+     * @dev Similar to EIP20 transfer, except it handles a False success from `transfer` and returns an explanatory
+     * error code rather than reverting. If caller has not called checked protocol's balance, this may revert due to
+     * insufficient cash held in this contract. If caller has checked protocol's balance prior to this call, and verified
+     * it is >= amount, this should not revert in normal conditions.
+     * @notice This wrapper safely handles non-standard ERC-20 tokens that do not return a value.
+     * See here: https://medium.com/coinmonks/missing-return-value-bug-at-least-130-tokens-affected-d67bf08521ca
+     */
     function _pushUnderlying(
         address _erc20,
         address _to,
