@@ -1,15 +1,3 @@
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity =0.8.11;
@@ -42,12 +30,12 @@ contract Math is Const, Num {
     // aI = tokenAmountIn    aO = bO * |  1 - | --------------------------  |  |                 //
     // sF = swapFee                     \      \ ( bI + ( aI * ( 1 - sF )) /   /                 //
     **********************************************************************************************/
-    function calcOutGivenIn(
+    function _calcOutGivenIn(
         uint256 _tokenBalanceIn,
         uint256 _tokenBalanceOut,
         uint256 _tokenAmountIn,
         uint256 _swapFee
-    ) public pure returns (uint256 tokenAmountOut) {
+    ) internal pure returns (uint256 tokenAmountOut) {
         uint256 adjustedIn = BONE - _swapFee;
         adjustedIn = _mul(_tokenAmountIn, adjustedIn);
         uint256 y = _div(_tokenBalanceIn, _tokenBalanceIn + adjustedIn);

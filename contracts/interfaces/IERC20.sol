@@ -2,8 +2,6 @@
 
 pragma solidity =0.8.11;
 
-// Highly opinionated token implementation
-
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address _whom) external view returns (uint256);
