@@ -13,7 +13,7 @@ import '../interfaces/IVolmexOracle.sol';
  */
 contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOracle {
     // price precision constant upto 6 decimal places
-    uint256 private constant VOLATILITY_PRICE_PRECISION = 1000000;
+    uint256 private constant _VOLATILITY_PRICE_PRECISION = 1000000;
     // Interface ID of VolmexOracle contract
     bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
 
@@ -116,7 +116,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
         bytes32 _proofHash
     ) external onlyOwner {
         require(address(_protocol) != address(0), "VolmexOracle: protocol address can't be zero");
-        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio() * VOLATILITY_PRICE_PRECISION;
+        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio() * _VOLATILITY_PRICE_PRECISION;
         require(
             _volatilityCapRatio >= 1000000,
             'VolmexOracle: volatility cap ratio should be greater than 1000000'
