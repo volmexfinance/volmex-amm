@@ -134,11 +134,11 @@ describe('Volmex Oracle', function () {
       `${volatility.address}`,
       `${inverseVolatility.address}`,
       '25000000000000000000',
-      '300',
+      '250',
     ]);
     await protocol.deployed();
     const contractTx = await volmexOracle.addVolatilityIndex(
-      '150000000',
+      '125000000',
       protocol.address,
       'ETHV3x',
       '0x6c00000000000000000000000000000000000000000000000000000000000000'
@@ -148,13 +148,13 @@ describe('Volmex Oracle', function () {
     const price = await volmexOracle.getVolatilityPriceBySymbol('ETHV3x');
     const price1 = await volmexOracle.getVolatilityTokenPriceByIndex(2);
     assert.equal(event?.args?.volatilityTokenIndex, 2);
-    assert.equal(event?.args?.volatilityCapRatio, 300000000);
+    assert.equal(event?.args?.volatilityCapRatio, 250000000);
     assert.equal(event?.args?.volatilityTokenSymbol, 'ETHV3x');
-    assert.equal(event?.args?.volatilityTokenPrice, 150000000);
-    assert.equal(price[0].toString(), '150000000');
-    assert.equal(price[1].toString(), '150000000');
-    assert.equal(price1[0].toString(), '150000000');
-    assert.equal(price1[1].toString(), '150000000');
+    assert.equal(event?.args?.volatilityTokenPrice, 125000000);
+    assert.equal(price[0].toString(), '125000000');
+    assert.equal(price[1].toString(), '125000000');
+    assert.equal(price1[0].toString(), '125000000');
+    assert.equal(price1[1].toString(), '125000000');
   });
 
   it('should revert when cap ratio is smaller than 1000000', async () => {

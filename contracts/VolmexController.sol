@@ -173,6 +173,7 @@ contract VolmexController is
      * @notice Used to add the protocol on a particular pool and stableCoin index
      *
      * @param _protocol Address of the Protocol contract
+     * @param _stableCoinIndex index of stable coin 
      */
     function addProtocol(
         uint256 _poolIndex,
@@ -757,9 +758,9 @@ contract VolmexController is
     function _transferAsset(
         IERC20Modified _token,
         uint256 _amount,
-        address receiver
+        address _receiver
     ) private {
-        _token.transfer(receiver, _amount);
+        _token.transfer(_receiver, _amount);
     }
 
     function _approveAssets(

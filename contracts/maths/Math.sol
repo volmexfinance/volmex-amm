@@ -1,15 +1,3 @@
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity =0.8.11;
@@ -25,13 +13,13 @@ contract Math is Const, Num {
     // sF = swapFee                        bO      ( 1 - sF )                                    //
     **********************************************************************************************/
     function calcSpotPrice(
-        uint256 tokenBalanceIn,
-        uint256 tokenBalanceOut,
-        uint256 swapFee
+        uint256 _tokenBalanceIn,
+        uint256 _tokenBalanceOut,
+        uint256 _swapFee
     ) public pure returns (uint256 spotPrice) {
-        uint256 ratio = div(tokenBalanceIn, tokenBalanceOut);
-        uint256 scale = div(BONE, BONE - swapFee);
-        spotPrice = mul(ratio, scale);
+        uint256 ratio = _div(_tokenBalanceIn, _tokenBalanceOut);
+        uint256 scale = _div(BONE, BONE - _swapFee);
+        spotPrice = _mul(ratio, scale);
     }
 
     /**********************************************************************************************
@@ -42,39 +30,17 @@ contract Math is Const, Num {
     // aI = tokenAmountIn    aO = bO * |  1 - | --------------------------  |  |                 //
     // sF = swapFee                     \      \ ( bI + ( aI * ( 1 - sF )) /   /                 //
     **********************************************************************************************/
-    function calcOutGivenIn(
-        uint256 tokenBalanceIn,
-        uint256 tokenBalanceOut,
-        uint256 tokenAmountIn,
-        uint256 swapFee
-    ) public pure returns (uint256 tokenAmountOut) {
-        uint256 adjustedIn = BONE - swapFee;
-        adjustedIn = mul(tokenAmountIn, adjustedIn);
-        uint256 y = div(tokenBalanceIn, tokenBalanceIn + adjustedIn);
+    function _calcOutGivenIn(
+        uint256 _tokenBalanceIn,
+        uint256 _tokenBalanceOut,
+        uint256 _tokenAmountIn,
+        uint256 _swapFee
+    ) internal pure returns (uint256 tokenAmountOut) {
+        uint256 adjustedIn = BONE - _swapFee;
+        adjustedIn = _mul(_tokenAmountIn, adjustedIn);
+        uint256 y = _div(_tokenBalanceIn, _tokenBalanceIn + adjustedIn);
         uint256 bar = BONE - y;
-        tokenAmountOut = mul(tokenBalanceOut, bar);
-    }
-
-    /**********************************************************************************************
-    // calcInGivenOut                                                                            //
-    // aI = tokenAmountIn                                                                        //
-    // bO = tokenBalanceOut               /  /     bO      \       \                             //
-    // bI = tokenBalanceIn          bI * |  | ------------  | - 1  |                             //
-    // aO = tokenAmountOut    aI =        \  \ ( bO - aO ) /       /                             //
-    // sF = swapFee                 --------------------------------                             //
-    //                                              ( 1 - sF )                                   //
-    **********************************************************************************************/
-    function calcInGivenOut(
-        uint256 tokenBalanceIn,
-        uint256 tokenBalanceOut,
-        uint256 tokenAmountOut,
-        uint256 swapFee
-    ) public pure returns (uint256 tokenAmountIn) {
-        uint256 diff = tokenBalanceOut - tokenAmountOut;
-        uint256 y = div(tokenBalanceOut, diff);
-        uint256 foo = y - BONE;
-        tokenAmountIn = BONE - swapFee;
-        tokenAmountIn = div(mul(tokenBalanceIn, foo), tokenAmountIn);
+        tokenAmountOut = _mul(_tokenBalanceOut, bar);
     }
 
     /**
@@ -87,10 +53,10 @@ contract Math is Const, Num {
         uint256 _upperBoundary,
         uint256 _adminFee
     ) internal pure returns (uint256 amountOut) {
-        uint256 tokenAmount = mul(div(_poolAmountIn, _upperBoundary), BONE);
-        amountOut = mul(_ratio, _tokenReserve);
+        uint256 tokenAmount = _mul(_div(_poolAmountIn, _upperBoundary), BONE);
+        amountOut = _mul(_ratio, _tokenReserve);
         if (amountOut > tokenAmount) {
-            uint256 feeAmount = div(mul(tokenAmount, _adminFee), 10000);
+            uint256 feeAmount = _div(_mul(tokenAmount, _adminFee), 10000);
             amountOut = amountOut - feeAmount;
         }
     }
