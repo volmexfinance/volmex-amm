@@ -838,6 +838,33 @@ describe('VolmexController', function () {
       expect(protocolAddress[0]).to.equal(protocolInner.address);
     });
   });
+
+  describe('Pool pause and unpause', () => {
+    it('Should pause the pool', async () => {
+      await (await controller.pausePool(pools['ETH'].address)).wait();
+
+      expect(await pools['ETH'].paused()).to.be.true;
+    });
+
+    it('Should un-pause the pool', async () => {
+      await (await controller.pausePool(pools['ETH'].address)).wait();
+      await (await controller.unpausePool(pools['ETH'].address)).wait();
+
+      expect(await pools['ETH'].paused()).to.be.false;
+    });
+  });
+
+  describe('sweep remaining pool amount', () => {
+    it('Should collect the pool token', async () => {
+      const poolBalance = await pools['ETH'].balanceOf(controller.address);
+      const collect = await controller.collect(pools['ETH'].address);
+      const { events } = await collect.wait();
+
+      const logData = getEventLog(events, 'PoolTokensCollected', ['uint256']);
+
+      expect(poolBalance).to.equal(logData[0]);
+    });
+  });
 });
 
 const getEventLog = (events: any[], eventName: string, params: string[]): any => {
