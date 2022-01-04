@@ -219,14 +219,6 @@ describe('VolmexController', function () {
       await (await collateral['DAI'].approve(protocols[type].address, MAX)).wait();
       await (await protocols[type].collateralize(MAX)).wait();
 
-      // await (await pools[vol].setController(owner)).wait();
-      // console.log('controller set to owner')
-
-      /**
-       * Use mock contract for setting the controller, because the support interface check will fail in case of owner() set as controller
-       * With this, revert the change in _pullUnderlying method
-       */
-
       await (await volatilities[vol].approve(pools[vol].address, '1000000000000000000')).wait();
       await (
         await inverseVolatilities[vol].approve(pools[vol].address, '1000000000000000000')
@@ -279,6 +271,52 @@ describe('VolmexController', function () {
   it('should deploy controller', async () => {
     const controllerReceipt = await controller.deployed();
     expect(controllerReceipt.confirmations).not.equal(0);
+  });
+
+  describe('Pool method - setController', function () {
+    it('Should set for ETH pool', async () => {
+      const set = await pools['ETH'].setController(controller.address);
+      const {events} = await set.wait();
+
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'ControllerSet') {
+          data = log['topics'];
+        }
+      });
+
+      const controllerAddress = ethers.utils.defaultAbiCoder.decode(['address'], data[1]);
+
+      expect(controller.address).to.equal(controllerAddress[0]);
+    });
+
+    it('Should set for BTC pool', async () => {
+      const set = await pools['BTC'].setController(controller.address);
+      const {events} = await set.wait();
+
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'ControllerSet') {
+          data = log['topics'];
+        }
+      });
+
+      const controllerAddress = ethers.utils.defaultAbiCoder.decode(['address'], data[1]);
+
+      expect(controller.address).to.equal(controllerAddress[0]);
+    });
+
+    it('Should revert on invalid interface', async () => {
+      await expectRevert(
+        pools['ETH'].setController(poolView.address),
+        'VolmexPool: Not Controller'
+      );
+
+      await expectRevert(
+        pools['BTC'].setController(poolView.address),
+        'VolmexPool: Not Controller'
+      );
+    });
   });
 
   describe('Swaps, liquidity - add & remove', function () {
