@@ -530,34 +530,6 @@ contract VolmexPool is
         );
     }
 
-    function getTokensToJoin(uint256 _poolAmountOut)
-        external
-        view
-        returns (uint256[2] memory _maxAmountsIn)
-    {
-        uint256 poolTotal = totalSupply();
-        uint256 ratio = _div(_poolAmountOut, poolTotal);
-        require(ratio != 0, 'VolmexPool: Invalid math approximation');
-        for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
-            uint256 bal = records[tokens[i]].balance;
-            _maxAmountsIn[i] = _mul(ratio, bal);
-        }
-    }
-
-    function getTokensToExit(uint256 _poolAmountIn)
-        external
-        view
-        returns (uint256[2] memory _minAmountsOut)
-    {
-        uint256 poolTotal = totalSupply();
-        uint256 ratio = _div(_poolAmountIn, poolTotal);
-        require(ratio != 0, 'VolmexPool: Invalid math approximation');
-        for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
-            uint256 bal = records[tokens[i]].balance;
-            _minAmountsOut[i] = _calculateAmountOut(_poolAmountIn, ratio, bal);
-        }
-    }
-
     /**
      * @notice Used to get the leverage of provided token address
      *
