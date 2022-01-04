@@ -119,6 +119,20 @@ describe('VolmexPool', function () {
     await (await volatility.approve(pool.address, "1000000000000000000")).wait();
     await (await inverseVolatility.approve(pool.address, "1000000000000000000")).wait();
 
+    await expectRevert(
+      pool.finalize(
+        '1000000000000000000',
+        leveragePrimary,
+        '10000000000000000000',
+        leverageComplement,
+        exposureLimitPrimary,
+        exposureLimitComplement,
+        pMin,
+        qMin
+      ),
+      'VolmexPool: Assets balance should be same'
+    );
+
     const finalizeReceipt = await pool.finalize(
       '1000000000000000000',
       leveragePrimary,
@@ -135,6 +149,89 @@ describe('VolmexPool', function () {
   it('should deploy pool', async () => {
     const poolreceipt = await pool.deployed();
     expect(poolreceipt.confirmations).not.equal(0);
+  });
+
+  describe('Initialize', () => {
+    let baseFee: any;
+    let maxFee: any;
+    let feeAmpPrimary: any;
+    let feeAmpComplement: any;
+    let qMin: any;
+    let pMin: any;
+    let exposureLimitPrimary: any;
+    let exposureLimitComplement: any;
+    let leveragePrimary: any;
+    let leverageComplement: any;
+    const zeroAddress = '0x0000000000000000000000000000000000000000';
+
+    this.beforeEach(async () => {
+      baseFee = (0.02 * Math.pow(10, 18)).toString();
+      maxFee = (0.4 * Math.pow(10, 18)).toString();
+      feeAmpPrimary = 10;
+      feeAmpComplement = 10;
+      qMin = (1 * Math.pow(10, 6)).toString();
+      pMin = (0.01 * Math.pow(10, 18)).toString();
+      exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
+      exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
+      leveragePrimary = '999996478162223000';
+      leverageComplement = '1000003521850180000';
+    });
+
+    it('Unsupported repricer', async () => {
+      await expectRevert(
+        upgrades.deployProxy(poolFactory, [
+          volmexOracle.address,
+          protocol.address,
+          0,
+          baseFee,
+          maxFee,
+          feeAmpPrimary,
+          feeAmpComplement
+        ]),
+        'VolmexPool: Repricer does not supports interface'
+      );
+    });
+
+    it('Unsupported protocol', async () => {
+      await expectRevert(
+        upgrades.deployProxy(poolFactory, [
+          repricer.address,
+          zeroAddress,
+          0,
+          baseFee,
+          maxFee,
+          feeAmpPrimary,
+          feeAmpComplement
+        ]),
+        'VolmexPool: protocol address can\'t be zero'
+      );
+    });
+
+    it('base fee revert', async () => {
+      pool = await upgrades.deployProxy(poolFactory, [
+        repricer.address,
+        protocol.address,
+        0, 0,
+        maxFee,
+        feeAmpPrimary,
+        feeAmpComplement
+      ]);
+      await pool.deployed();
+  
+      await expectRevert(
+        pool.finalize(
+          '1000000000000000000',
+          leveragePrimary,
+          '10000000000000000000',
+          leverageComplement,
+          exposureLimitPrimary,
+          exposureLimitComplement,
+          pMin,
+          qMin
+        ),
+        'VolmexPool: Assets balance should be same'
+      );
+    });
   });
 
   it('Should add liquidity', async () => {
