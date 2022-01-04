@@ -240,7 +240,8 @@ contract VolmexController is
             _amounts[0],
             _protocol.issuanceFees(),
             true,
-            fees[2]
+            fees[2],
+            _indices[1] == 1 ? 1000000000000 : 1 // Need to get value dynamically
         );
 
         IERC20Modified volatilityToken = _protocol.volatilityToken();
@@ -349,7 +350,8 @@ contract VolmexController is
             tokenAmountOut * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
-            _volatilityCapRatio
+            _volatilityCapRatio,
+            _indices[1] == 1 ? 1000000000000 : 1
         );
 
         require(
@@ -429,7 +431,8 @@ contract VolmexController is
             tokenAmounts[1] * protocolAmounts[2],
             _protocol.redeemFees(),
             false,
-            protocolAmounts[2]
+            protocolAmounts[2],
+            _indices[2] == 1 ? 1000000000000 : 1
         );
 
         _protocol = protocols[_indices[1]][_indices[2]];
@@ -446,7 +449,8 @@ contract VolmexController is
             protocolAmounts[0],
             _protocol.issuanceFees(),
             true,
-            protocolAmounts[2]
+            protocolAmounts[2],
+            _indices[2] == 1 ? 1000000000000 : 1
         );
 
         _pool = pools[_indices[1]];
@@ -605,7 +609,8 @@ contract VolmexController is
             _collateralAmount,
             _protocol.issuanceFees(),
             true,
-            _volatilityCapRatio
+            _volatilityCapRatio,
+            _indices[1] == 1 ? 1000000000000 : 1
         );
 
         bool isInverse = _pool.tokens(1) == _tokenOut;
@@ -656,7 +661,8 @@ contract VolmexController is
             tokenAmountOut * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
-            _volatilityCapRatio
+            _volatilityCapRatio,
+            _stableCoinIndex == 1 ? 1000000000000 : 1
         );
 
         fees = [poolFee, protocolFee];
@@ -695,7 +701,8 @@ contract VolmexController is
             tokenAmountOut * protocolAmount[2],
             _protocol.redeemFees(),
             false,
-            protocolAmount[2]
+            protocolAmount[2],
+            _indices[2] == 1 ? 1000000000000 : 1
         );
         fees[2] = fee;
 
@@ -706,7 +713,8 @@ contract VolmexController is
             protocolAmount[0],
             _protocol.issuanceFees(),
             true,
-            protocolAmount[2]
+            protocolAmount[2],
+            _indices[2] == 1 ? 1000000000000 : 1
         );
         fees[2] += fee;
 
@@ -727,12 +735,13 @@ contract VolmexController is
         uint256 _amount,
         uint256 _feePercent,
         bool _isVolatility,
-        uint256 _volatilityCapRatio
+        uint256 _volatilityCapRatio,
+        uint256 _precisionRatio
     ) private pure returns (uint256 amount, uint256 protocolFee) {
         protocolFee = (_amount * _feePercent) / 10000;
         _amount = _amount - protocolFee;
 
-        amount = _isVolatility ? _amount / _volatilityCapRatio : _amount;
+        amount = _isVolatility ? (_amount / _volatilityCapRatio) * _precisionRatio : _amount / _precisionRatio;
     }
 
     function _transferAsset(
