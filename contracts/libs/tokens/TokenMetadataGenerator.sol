@@ -2,8 +2,6 @@
 
 pragma solidity =0.8.11;
 
-import '../BokkyPooBahsDateTimeLibrary/BokkyPooBahsDateTimeLibrary.sol';
-
 contract TokenMetadataGenerator {
     function _formatMeta(
         string memory _prefix,
