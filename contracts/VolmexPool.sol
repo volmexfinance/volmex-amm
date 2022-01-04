@@ -439,7 +439,7 @@ contract VolmexPool is
             'VolmexPool: Amount in max ratio exploit'
         );
 
-        tokenAmountOut = calcOutGivenIn(
+        tokenAmountOut = _calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             _tokenAmountIn,
@@ -454,7 +454,7 @@ contract VolmexPool is
             tokens[0] == _tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
-        tokenAmountOut = calcOutGivenIn(
+        tokenAmountOut = _calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             _tokenAmountIn,
@@ -507,7 +507,7 @@ contract VolmexPool is
     {
         (Record memory inRecord, Record memory outRecord) = _getRepriced(_tokenIn);
 
-        tokenAmountOut = calcOutGivenIn(
+        tokenAmountOut = _calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             _tokenAmountIn,
@@ -522,7 +522,7 @@ contract VolmexPool is
             tokens[0] == _tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
-        tokenAmountOut = calcOutGivenIn(
+        tokenAmountOut = _calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             _tokenAmountIn,
@@ -603,7 +603,7 @@ contract VolmexPool is
     }
 
     function getLeveragedBalance(Record memory r) public pure returns (uint256) {
-        return mul(r.balance, r.leverage);
+        return _mul(r.balance, r.leverage);
     }
 
     /**
@@ -661,7 +661,7 @@ contract VolmexPool is
         uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
         uint256 complementRecordLeverageBefore = complementRecord.leverage;
 
-        uint256 leveragesMultiplied = mul(
+        uint256 leveragesMultiplied = _mul(
             primaryRecordLeverageBefore,
             complementRecordLeverageBefore
         );
@@ -669,14 +669,14 @@ contract VolmexPool is
         primaryRecord.leverage = uint256(
             repricer.sqrtWrapped(
                 int256(
-                    div(
-                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
+                    _div(
+                        _mul(leveragesMultiplied, _mul(complementRecord.balance, estPrice)),
                         primaryRecord.balance
                     )
                 )
             )
         );
-        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
+        complementRecord.leverage = _div(leveragesMultiplied, primaryRecord.leverage);
 
         inRecord = tokens[0] == _tokenIn ? primaryRecord : complementRecord;
         outRecord = tokens[1] == _tokenIn ? primaryRecord : complementRecord;
