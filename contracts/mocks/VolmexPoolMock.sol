@@ -23,7 +23,7 @@ contract VolmexPoolMock is VolmexPool {
         uint256 balanceBefore = IERC20(_erc20).balanceOf(address(this));
 
         address(controller) == owner()
-            ? EIP20NonStandardInterface(_erc20).transferFrom(_from, address(this), _amount)
+            ? IEIP20NonStandard(_erc20).transferFrom(_from, address(this), _amount)
             : controller.transferAssetToPool(IERC20Modified(_erc20), _from, _amount);
 
         bool success;
