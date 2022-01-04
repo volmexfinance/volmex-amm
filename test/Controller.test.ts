@@ -274,7 +274,7 @@ describe('VolmexController', function () {
     expect(controllerReceipt.confirmations).not.equal(0);
   });
 
-  xdescribe('Pool method - setController', function () {
+  describe('Pool method - setController', function () {
     it('Should set for ETH pool', async () => {
       const set = await pools['ETH'].setController(controller.address);
       const { events } = await set.wait();
@@ -320,7 +320,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('Swaps, liquidity - add & remove', function () {
+  describe('Swaps, liquidity - add & remove', function () {
     it('Should swap volatility tokens', async () => {
       await (
         await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
@@ -743,7 +743,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('Add Pools, Stablecoins and Protocols', function () {
+  describe('Add Pools, Stablecoins and Protocols', function () {
     it('Should add pool', async () => {
       const baseFee = (0.02 * Math.pow(10, 18)).toString();
       const maxFee = (0.4 * Math.pow(10, 18)).toString();
