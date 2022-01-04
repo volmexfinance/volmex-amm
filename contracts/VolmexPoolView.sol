@@ -5,13 +5,14 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 
+import './maths/Math.sol';
 import './interfaces/IVolmexPool.sol';
 import './interfaces/IERC20Modified.sol';
 import './interfaces/IVolmexPoolView.sol';
 import './interfaces/IPausablePool.sol';
 
 /// @title Reading key data from specified derivative trading Pool
-contract VolmexPoolView is ERC165StorageUpgradeable, IVolmexPoolView {
+contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
     // Interface ID of VolmexPoolView contract
     bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
 
@@ -153,6 +154,42 @@ contract VolmexPoolView is ERC165StorageUpgradeable, IVolmexPoolView {
         feeAmpPrimary = pool.feeAmpPrimary();
         feeAmpComplement = pool.feeAmpComplement();
         maxFee = pool.maxFee();
+    }
+
+    function getTokensToJoin(IVolmexPool _pool, uint256 _poolAmountOut)
+        external
+        view
+        returns (uint256[2] memory _maxAmountsIn)
+    {
+        uint256 ratio = div(_poolAmountOut, _pool.totalSupply());
+        require(ratio != 0, 'VolmexPoolView: Invalid math approximation in join');
+
+        for (uint256 i = 0; i < 2; i++) {
+            uint256 bal = _pool.getBalance(_pool.tokens(i));
+            _maxAmountsIn[i] = mul(ratio, bal);
+        }
+    }
+
+    function getTokensToExit(IVolmexPool _pool, uint256 _poolAmountIn)
+        external
+        view
+        returns (uint256[2] memory _minAmountsOut)
+    {
+        uint256 ratio = div(_poolAmountIn, _pool.totalSupply());
+        require(ratio != 0, 'VolmexPoolView: Invalid math approximation in exit');
+
+        uint256 upperBoundary = _pool.upperBoundary();
+        uint256 adminFee = _pool.adminFee();
+        for (uint256 i = 0; i < 2; i++) {
+            uint256 bal = _pool.getBalance(_pool.tokens(i));
+            _minAmountsOut[i] = _calculateAmountOut(
+                _poolAmountIn,
+                ratio,
+                bal,
+                upperBoundary,
+                adminFee
+            );
+        }
     }
 
     uint256[10] private __gap;
