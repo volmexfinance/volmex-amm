@@ -7,10 +7,10 @@ import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
 
-import './libs/tokens/EIP20NonStandardInterface.sol';
 import './libs/tokens/TokenMetadataGenerator.sol';
 import './libs/tokens/Token.sol';
 import './maths/Math.sol';
+import './interfaces/IEIP20NonStandard.sol';
 import './interfaces/IVolmexRepricer.sol';
 import './interfaces/IVolmexProtocol.sol';
 import './interfaces/IVolmexPool.sol';
@@ -858,7 +858,7 @@ contract VolmexPool is
         address _to,
         uint256 _amount
     ) private {
-        EIP20NonStandardInterface(_erc20).transfer(_to, _amount);
+        IEIP20NonStandard(_erc20).transfer(_to, _amount);
 
         bool success;
         //solium-disable-next-line security/no-inline-assembly
