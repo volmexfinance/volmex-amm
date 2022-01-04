@@ -21,6 +21,7 @@ interface IEIP20NonStandard {
      * @return balance The balance
      */
     function balanceOf(address owner) external view returns (uint256 balance);
+
     /** 
     *
     * !!!!!!!!!!!!!!
