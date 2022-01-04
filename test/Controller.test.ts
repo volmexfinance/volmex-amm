@@ -865,6 +865,217 @@ describe('VolmexController', function () {
       expect(poolBalance).to.equal(logData[0]);
     });
   });
+
+  describe('Require check reverts', () => {
+    const zeroAddress = '0x0000000000000000000000000000000000000000';
+    let controllerParam: any
+
+    describe('Initialize', () => {
+      this.beforeEach(async () => {
+        controllerParam = {
+          collaterals: [],
+          pools: [],
+          protocols: [],
+        };
+        Object.values(collateral).forEach((coll) => {
+          controllerParam.collaterals.push(coll.address);
+        });
+        Object.values(pools).forEach((pool) => {
+          controllerParam.pools.push(pool.address);
+        });
+        Object.values(protocols).forEach((protocol) => {
+          controllerParam.protocols.push(protocol.address);
+        });
+      });
+
+      it('Not oracle', async () => {  
+        await expectRevert(
+          upgrades.deployProxy(controllerFactory, [
+            controllerParam.collaterals,
+            controllerParam.pools,
+            controllerParam.protocols,
+            controllerParam.collaterals[0],
+          ]),
+          'VolmexController: Oracle does not supports interface'
+        );
+      });
+
+      it('Not pool', async () => {
+        controllerParam.pools[0] = controllerParam.collaterals[0];
+        await expectRevert(
+          upgrades.deployProxy(controllerFactory, [
+            controllerParam.collaterals,
+            controllerParam.pools,
+            controllerParam.protocols,
+            volmexOracle.address,
+          ]),
+          'VolmexController: Pool does not supports interface'
+        );
+      });
+
+      it('Not collateral', async () => {
+        controllerParam.collaterals[0] = zeroAddress;
+        await expectRevert(
+          upgrades.deployProxy(controllerFactory, [
+            controllerParam.collaterals,
+            controllerParam.pools,
+            controllerParam.protocols,
+            volmexOracle.address,
+          ]),
+          'VolmexController: address of stable coin can\'t be zero'
+        );
+      });
+
+      it('Not protocol', async () => {
+        controllerParam.pools[0] = controllerParam.pools[1];
+        await expectRevert(
+          upgrades.deployProxy(controllerFactory, [
+            controllerParam.collaterals,
+            controllerParam.pools,
+            controllerParam.protocols,
+            volmexOracle.address,
+          ]),
+          'VolmexController: Incorrect pool for add protocol'
+        );
+      });
+
+      it('Not protocol', async () => {
+        controllerParam.collaterals[0] = controllerParam.collaterals[1];
+        await expectRevert(
+          upgrades.deployProxy(controllerFactory, [
+            controllerParam.collaterals,
+            controllerParam.pools,
+            controllerParam.protocols,
+            volmexOracle.address,
+          ]),
+          'VolmexController: Incorrect stableCoin for add protocol'
+        );
+      });
+    });
+
+    describe('Add', () => {
+      it('Pool', async () => {
+        await expectRevert(
+          controller.addPool(collateral['DAI'].address),
+          'VolmexController: Pool does not supports interface'
+        );
+      });
+
+      it('Stablecoin', async () => {
+        await expectRevert(
+          controller.addStableCoin(zeroAddress),
+          'VolmexController: address of stable coin can\'t be zero'
+        );
+      });
+
+      it('Protocol: stablecoin', async () => {
+        await expectRevert(
+          controller.addProtocol(
+            1, 1,
+            protocols['BTCVDAI'].address
+          ),
+          'VolmexController: Incorrect stableCoin for add protocol'
+        );
+      });
+
+      it('Protocol: pool', async () => {
+        await expectRevert(
+          controller.addProtocol(
+            0, 0,
+            protocols['BTCVDAI'].address
+          ),
+          'VolmexController: Incorrect pool for add protocol'
+        );
+      });
+    });
+
+    describe('Swaps', () => {
+      this.beforeEach(async () => {
+        await (
+          await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        ).wait();
+        await (
+          await inverseVolatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        ).wait();
+  
+        const add = await controller.addLiquidity(
+          '250000000000000000000000000',
+          ['599999999000000000000000000', '599999999000000000000000000'],
+          '0'
+        );
+        await add.wait();
+      });
+
+      it('swapCollateralToVolatility', async () => {
+        await (await collateral['DAI'].approve(controller.address, '1500000000000000000000')).wait();
+
+        await expectRevert(
+          controller.swapCollateralToVolatility(
+            ['1500000000000000000000', '1500000000000000000000'],
+            volatilities['ETH'].address,
+            [0, 0]
+          ),
+          'VolmexController: Insufficient expected volatility amount'
+        );
+      });
+
+      it('swapVolatilityToCollateral', async () => {
+        await (await volatilities['ETH'].approve(controller.address, '20000000000000000000')).wait();
+
+        await expectRevert(
+          controller.swapVolatilityToCollateral(
+            ['20000000000000000000', '5000000000000000000000'],
+            ['0', '0'],
+            volatilities['ETH'].address
+          ),
+          'VolmexController: Insufficient expected collateral amount'
+        );
+      });
+
+      it('swapBetweenPools', async () => {
+        await (
+          await volatilities['BTC'].approve(controller.address, '599999999000000000000000000')
+        ).wait();
+        await (
+          await inverseVolatilities['BTC'].approve(controller.address, '599999999000000000000000000')
+        ).wait();
+  
+        const addBtc = await controller.addLiquidity(
+          '250000000000000000000000000',
+          ['599999999000000000000000000', '599999999000000000000000000'],
+          '1'
+        );
+        await addBtc.wait();
+  
+        await (await pools['ETH'].reprice()).wait();
+        await (await pools['BTC'].reprice()).wait();
+
+        await (await volatilities['ETH'].approve(controller.address, '20000000000000000000')).wait();
+
+        await expectRevert(
+          controller.swapBetweenPools(
+            [volatilities['ETH'].address, volatilities['BTC'].address],
+            ['20000000000000000000', '20000000000000000000'],
+            [0, 1, 0]
+          ),
+          'VolmexController: Insufficient expected volatility amount'
+        );
+      });
+
+      it('transferAssetToPool', async () => {
+        await (await volatilities['ETH'].approve(controller.address, '20000000000000000000')).wait();
+
+        await expectRevert(
+          controller.transferAssetToPool(
+            volatilities['ETH'].address,
+            accounts[1].getAddress(),
+            '20000000000000000000'
+          ),
+          'VolmexController: Caller is not pool'
+        );
+      });
+    });
+  });
 });
 
 const getEventLog = (events: any[], eventName: string, params: string[]): any => {
@@ -877,15 +1088,3 @@ const getEventLog = (events: any[], eventName: string, params: string[]): any =>
   const logData = ethers.utils.defaultAbiCoder.decode(params, data);
   return logData;
 };
-
-/*
-swapIn swapIn [
-  BigNumber { value: "20000000000000000000" },
-  BigNumber { value: "19599615847913244554" }
-]
-
-swapOut [
-  BigNumber { value: "19999999999999383914" },
-  BigNumber { value: "19599615847913244554" }
-]
-*/

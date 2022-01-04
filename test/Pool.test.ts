@@ -115,6 +115,20 @@ describe('VolmexPool', function () {
     await (await volatility.approve(pool.address, '1000000000000000000')).wait();
     await (await inverseVolatility.approve(pool.address, '1000000000000000000')).wait();
 
+    await expectRevert(
+      pool.finalize(
+        '1000000000000000000',
+        leveragePrimary,
+        '10000000000000000000',
+        leverageComplement,
+        exposureLimitPrimary,
+        exposureLimitComplement,
+        pMin,
+        qMin
+      ),
+      'VolmexPool: Assets balance should be same'
+    );
+
     const finalizeReceipt = await pool.finalize(
       '1000000000000000000',
       leveragePrimary,
@@ -133,47 +147,87 @@ describe('VolmexPool', function () {
     expect(poolreceipt.confirmations).not.equal(0);
   });
 
-  it('should not deploy pool if protocol address is zero', async () => {
-    zeroAddress = '0x0000000000000000000000000000000000000000';
-    const baseFee = (0.02 * Math.pow(10, 18)).toString();
-    const maxFee = (0.4 * Math.pow(10, 18)).toString();
-    const feeAmpPrimary = 10;
-    const feeAmpComplement = 10;
-    await expectRevert.unspecified(
-      upgrades.deployProxy(poolFactory, [
+  describe('Initialize', () => {
+    let baseFee: any;
+    let maxFee: any;
+    let feeAmpPrimary: any;
+    let feeAmpComplement: any;
+    let qMin: any;
+    let pMin: any;
+    let exposureLimitPrimary: any;
+    let exposureLimitComplement: any;
+    let leveragePrimary: any;
+    let leverageComplement: any;
+    const zeroAddress = '0x0000000000000000000000000000000000000000';
+
+    this.beforeEach(async () => {
+      baseFee = (0.02 * Math.pow(10, 18)).toString();
+      maxFee = (0.4 * Math.pow(10, 18)).toString();
+      feeAmpPrimary = 10;
+      feeAmpComplement = 10;
+      qMin = (1 * Math.pow(10, 6)).toString();
+      pMin = (0.01 * Math.pow(10, 18)).toString();
+      exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
+      exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
+      leveragePrimary = '999996478162223000';
+      leverageComplement = '1000003521850180000';
+    });
+
+    it('Unsupported repricer', async () => {
+      await expectRevert(
+        upgrades.deployProxy(poolFactory, [
+          volmexOracle.address,
+          protocol.address,
+          0,
+          baseFee,
+          maxFee,
+          feeAmpPrimary,
+          feeAmpComplement
+        ]),
+        'VolmexPool: Repricer does not supports interface'
+      );
+    });
+
+    it('Unsupported protocol', async () => {
+      await expectRevert(
+        upgrades.deployProxy(poolFactory, [
+          repricer.address,
+          zeroAddress,
+          0,
+          baseFee,
+          maxFee,
+          feeAmpPrimary,
+          feeAmpComplement
+        ]),
+        'VolmexPool: protocol address can\'t be zero'
+      );
+    });
+
+    it('base fee revert', async () => {
+      pool = await upgrades.deployProxy(poolFactory, [
         repricer.address,
-        zeroAddress,
-        '0',
-        baseFee,
-        maxFee,
-        feeAmpPrimary,
-        feeAmpComplement,
-      ])
-    );
-  });
-
-  it('should not deploy pool if base fee is zero', async () => {
-    zeroAddress = '0x0000000000000000000000000000000000000000';
-    const baseFee = 0;
-    const maxFee = (0.4 * Math.pow(10, 18)).toString();
-    const feeAmpPrimary = 10;
-    const feeAmpComplement = 10;
-    await expectRevert.unspecified(
-      upgrades.deployProxy(poolFactory, [
-        zeroAddress,
         protocol.address,
-        '0',
-        baseFee,
+        0, 0,
         maxFee,
         feeAmpPrimary,
-        feeAmpComplement,
-      ])
-    );
-  });
-
-  it('should update flashloan premium', async () => {
-    await pool.updateFlashLoanPremium('100');
-    expect(await pool.flashLoanPremium()).equal(100);
+        feeAmpComplement
+      ]);
+      await pool.deployed();
+  
+      await expectRevert(
+        pool.finalize(
+          '1000000000000000000',
+          leveragePrimary,
+          '10000000000000000000',
+          leverageComplement,
+          exposureLimitPrimary,
+          exposureLimitComplement,
+          pMin,
+          qMin
+        ),
+        'VolmexPool: Assets balance should be same'
+      );
+    });
   });
 
   it('should not update flashloan premium if it is greter than 1000', async () => {
