@@ -161,12 +161,12 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
         view
         returns (uint256[2] memory _maxAmountsIn)
     {
-        uint256 ratio = div(_poolAmountOut, _pool.totalSupply());
+        uint256 ratio = _div(_poolAmountOut, _pool.totalSupply());
         require(ratio != 0, 'VolmexPoolView: Invalid math approximation in join');
 
         for (uint256 i = 0; i < 2; i++) {
             uint256 bal = _pool.getBalance(_pool.tokens(i));
-            _maxAmountsIn[i] = mul(ratio, bal);
+            _maxAmountsIn[i] = _mul(ratio, bal);
         }
     }
 
@@ -175,7 +175,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
         view
         returns (uint256[2] memory _minAmountsOut)
     {
-        uint256 ratio = div(_poolAmountIn, _pool.totalSupply());
+        uint256 ratio = _div(_poolAmountIn, _pool.totalSupply());
         require(ratio != 0, 'VolmexPoolView: Invalid math approximation in exit');
 
         uint256 upperBoundary = _pool.upperBoundary();
