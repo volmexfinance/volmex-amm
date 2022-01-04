@@ -76,4 +76,22 @@ contract Math is Const, Num {
         tokenAmountIn = BONE - swapFee;
         tokenAmountIn = div(mul(tokenBalanceIn, foo), tokenAmountIn);
     }
+
+    /**
+     * @notice Used to calculate the out amount after fee deduction
+     */
+    function _calculateAmountOut(
+        uint256 _poolAmountIn,
+        uint256 _ratio,
+        uint256 _tokenReserve,
+        uint256 _upperBoundary,
+        uint256 _adminFee
+    ) internal pure returns (uint256 amountOut) {
+        uint256 tokenAmount = mul(div(_poolAmountIn, _upperBoundary), BONE);
+        amountOut = mul(_ratio, _tokenReserve);
+        if (amountOut > tokenAmount) {
+            uint256 feeAmount = div(mul(tokenAmount, _adminFee), 10000);
+            amountOut = amountOut - feeAmount;
+        }
+    }
 }
