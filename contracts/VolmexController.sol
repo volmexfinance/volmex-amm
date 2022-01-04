@@ -644,11 +644,10 @@ contract VolmexController is
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
-        uint256 swapAmount;
-        uint256 tokenAmountOut;
+        uint256[2] memory amounts;
         uint256 poolFee;
         uint256 protocolFee;
-        (swapAmount, tokenAmountOut, poolFee) = _getSwappedAssetAmount(
+        (amounts[0], amounts[1], poolFee) = _getSwappedAssetAmount(
             _tokenIn,
             _amount,
             _pool,
@@ -656,7 +655,7 @@ contract VolmexController is
         );
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
         (collateralAmount, protocolFee) = _calculateAssetQuantity(
-            tokenAmountOut * _volatilityCapRatio,
+            amounts[1] * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
             _volatilityCapRatio,
