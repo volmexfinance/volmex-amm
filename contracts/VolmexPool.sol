@@ -375,7 +375,13 @@ contract VolmexPool is
             address token = tokens[i];
             uint256 bal = records[token].balance;
             require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
-            uint256 tokenAmountOut = _calculateAmountOut(_poolAmountIn, ratio, bal);
+            uint256 tokenAmountOut = _calculateAmountOut(
+                _poolAmountIn,
+                ratio,
+                bal,
+                upperBoundary,
+                adminFee
+            );
             require(tokenAmountOut >= _minAmountsOut[i], 'VolmexPool: Amount out limit exploit');
             records[token].balance = records[token].balance - tokenAmountOut;
             emit Exited(_receiver, token, tokenAmountOut);
@@ -558,34 +564,6 @@ contract VolmexPool is
             _tokenAmountOut,
             fee
         );
-    }
-
-    function getTokensToJoin(uint256 _poolAmountOut)
-        external
-        view
-        returns (uint256[2] memory _maxAmountsIn)
-    {
-        uint256 poolTotal = totalSupply();
-        uint256 ratio = div(_poolAmountOut, poolTotal);
-        require(ratio != 0, 'VolmexPool: Invalid math approximation');
-        for (uint256 i = 0; i < BOUND_TOKENS; i++) {
-            uint256 bal = records[tokens[i]].balance;
-            _maxAmountsIn[i] = mul(ratio, bal);
-        }
-    }
-
-    function getTokensToExit(uint256 _poolAmountIn)
-        external
-        view
-        returns (uint256[2] memory _minAmountsOut)
-    {
-        uint256 poolTotal = totalSupply();
-        uint256 ratio = div(_poolAmountIn, poolTotal);
-        require(ratio != 0, 'VolmexPool: Invalid math approximation');
-        for (uint256 i = 0; i < BOUND_TOKENS; i++) {
-            uint256 bal = records[tokens[i]].balance;
-            _minAmountsOut[i] = _calculateAmountOut(_poolAmountIn, ratio, bal);
-        }
     }
 
     /**
@@ -1057,22 +1035,6 @@ contract VolmexPool is
 
     function _calcExpStart(int256 _inBalance, int256 _outBalance) private pure returns (int256) {
         return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
-    }
-
-    /**
-     * @notice Used to calculate the out amount after fee deduction
-     */
-    function _calculateAmountOut(
-        uint256 _poolAmountIn,
-        uint256 _ratio,
-        uint256 _tokenReserve
-    ) private view returns (uint256 amountOut) {
-        uint256 tokenAmount = mul(div(_poolAmountIn, upperBoundary), BONE);
-        amountOut = mul(_ratio, _tokenReserve);
-        if (amountOut > tokenAmount) {
-            uint256 feeAmount = div(mul(tokenAmount, adminFee), 10000);
-            amountOut = amountOut - feeAmount;
-        }
     }
 
     uint256[10] private __gap;
