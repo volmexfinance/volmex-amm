@@ -40,9 +40,7 @@ contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
 
     /**
      * @notice Fetches the price of asset from oracle
-     *
      * @dev Calculates the price of complement asset. { volatility cap ratio - primary asset price }
-     *
      * @param _volatilityIndex Number value of the volatility index. { eg. 0 }
      */
     function reprice(uint256 _volatilityIndex)
@@ -62,7 +60,6 @@ contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
 
     /**
      * @notice Used to calculate the square root of the provided value
-     *
      * @param x Value of which the square root will be calculated
      */
     function sqrtWrapped(int256 x) external pure returns (int256) {

@@ -92,7 +92,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
 
     /**
      * @notice Update the volatility token index by symbol
-     *
      * @param _index Number value of the index. { eg. 0 }
      * @param _tokenSymbol Symbol of the adding volatility token
      */
@@ -104,7 +103,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
 
     /**
      * @notice Add volatility token price by index
-     *
      * @param _volatilityTokenPrice Price of the adding volatility token
      * @param _volatilityTokenSymbol Symbol of the adding volatility token
      * @param _proofHash Bytes32 value of token price proof of hash
@@ -142,7 +140,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
 
     /**
      * @notice Get the volatility token price by symbol
-     *
      * @param _volatilityTokenSymbol Symbol of the volatility token
      */
     function getVolatilityPriceBySymbol(string calldata _volatilityTokenSymbol)
@@ -160,7 +157,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
 
     /**
      * @notice Get the volatility token price by index
-     *
      * @param _index index of the volatility token
      */
     function getVolatilityTokenPriceByIndex(uint256 _index)
