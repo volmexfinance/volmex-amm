@@ -632,19 +632,17 @@ contract VolmexController is
      *
      * @param _tokenIn Address of token in
      * @param _amount Value of amount wants to swap
-     * @param _poolIndex Index of pool on operation
-     * @param _stableCoinIndex Index of the stable coin / collateral
+     * @param _indices Index of pool and stableCoin
      * @param _isInverse Bool value of passed token in type
      */
     function getVolatilityToCollateral(
         address _tokenIn,
         uint256 _amount,
-        uint256 _poolIndex,
-        uint256 _stableCoinIndex,
+        uint256[2] calldata _indices,
         bool _isInverse
     ) external view returns (uint256 collateralAmount, uint256[2] memory fees) {
-        IVolmexProtocol _protocol = protocols[_poolIndex][_stableCoinIndex];
-        IVolmexPool _pool = pools[_poolIndex];
+        IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
+        IVolmexPool _pool = pools[_indices[0]];
 
         uint256 swapAmount;
         uint256 tokenAmountOut;
@@ -662,7 +660,7 @@ contract VolmexController is
             _protocol.redeemFees(),
             false,
             _volatilityCapRatio,
-            _stableCoinIndex == 1 ? 1000000000000 : 1
+            _indices[1] == 1 ? 1000000000000 : 1
         );
 
         fees = [poolFee, protocolFee];
