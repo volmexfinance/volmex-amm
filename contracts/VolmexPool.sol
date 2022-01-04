@@ -1001,21 +1001,5 @@ contract VolmexPool is
         return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
     }
 
-    /**
-     * @notice Used to calculate the out amount after fee deduction
-     */
-    function _calculateAmountOut(
-        uint256 _poolAmountIn,
-        uint256 _ratio,
-        uint256 _tokenReserve
-    ) private view returns (uint256 amountOut) {
-        uint256 tokenAmount = _mul(_div(_poolAmountIn, upperBoundary), BONE);
-        amountOut = _mul(_ratio, _tokenReserve);
-        if (amountOut > tokenAmount) {
-            uint256 feeAmount = _div(_mul(tokenAmount, adminFee), 10000);
-            amountOut = amountOut - feeAmount;
-        }
-    }
-
     uint256[10] private __gap;
 }
