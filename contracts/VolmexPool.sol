@@ -37,14 +37,14 @@ contract VolmexPool is
     // Interface ID of VolmexController contract
     bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
     // Number of tokens the pool can hold
-    uint256 private constant BOUND_TOKENS = 2;
+    uint256 private constant _BOUND_TOKENS = 2;
 
     // Used to prevent the re-entry
     bool private _mutex;
     // `finalize` sets `PUBLIC can SWAP`, `PUBLIC can JOIN`
     bool public finalized;
     // Address of the pool tokens
-    address[BOUND_TOKENS] public tokens;
+    address[_BOUND_TOKENS] public tokens;
 
     // This is mapped by token addresses
     mapping(address => Record) public records;
@@ -180,9 +180,9 @@ contract VolmexPool is
         adminFee = 30;
         flashLoanPremium = 9;
 
-        setName(makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
-        setSymbol(
-            makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol())
+        _setName(_makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
+        _setSymbol(
+            _makeTokenSymbol(protocol.volatilityToken().symbol(), protocol.collateral().symbol())
         );
 
         _setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
@@ -298,7 +298,7 @@ contract VolmexPool is
         IERC20Modified(_assetToken).transfer(_receiverAddress, _amount);
 
         IFlashLoanReceiver receiver = IFlashLoanReceiver(_receiverAddress);
-        uint256 premium = div(mul(_amount, flashLoanPremium), 10000);
+        uint256 premium = _div(_mul(_amount, flashLoanPremium), 10000);
 
         require(
             receiver.executeOperation(_assetToken, _amount, premium, _receiverAddress, _params),
@@ -332,17 +332,17 @@ contract VolmexPool is
         address _receiver
     ) external logs lock onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
-        uint256 ratio = div(_poolAmountOut, poolTotal);
+        uint256 ratio = _div(_poolAmountOut, poolTotal);
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
 
-        for (uint256 i = 0; i < BOUND_TOKENS; i++) {
+        for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
             address token = tokens[i];
             uint256 bal = records[token].balance;
             // This can't be tested, as the div method will fail, due to zero supply of lp token
             // The supply of lp token is greater than zero, means token reserve is greater than zero
             // Also, in the case of swap, there's some amount of tokens available pool more than qMin
             require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
-            uint256 tokenAmountIn = mul(ratio, bal);
+            uint256 tokenAmountIn = _mul(ratio, bal);
             require(tokenAmountIn <= _maxAmountsIn[i], 'VolmexPool: Amount in limit exploit');
             records[token].balance = records[token].balance + tokenAmountIn;
             emit Joined(_receiver, token, tokenAmountIn);
@@ -368,10 +368,10 @@ contract VolmexPool is
         address _receiver
     ) external logs lock onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
-        uint256 ratio = div(_poolAmountIn, poolTotal);
+        uint256 ratio = _div(_poolAmountIn, poolTotal);
         require(ratio != 0, 'VolmexPool: Invalid math approximation');
 
-        for (uint256 i = 0; i < BOUND_TOKENS; i++) {
+        for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
             address token = tokens[i];
             uint256 bal = records[token].balance;
             require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
@@ -435,7 +435,7 @@ contract VolmexPool is
 
         require(
             _tokenAmountIn <=
-                mul(min(getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
+                _mul(_min(getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
             'VolmexPool: Amount in max ratio exploit'
         );
 
@@ -530,40 +530,32 @@ contract VolmexPool is
         );
     }
 
-    /**
-     * @notice getter, used to fetch the token amount in and fee
-     *
-     * @param _tokenOut Address of the token out
-     * @param _tokenAmountOut Amount of out token
-     */
-    function getTokenAmountIn(address _tokenOut, uint256 _tokenAmountOut)
+    function getTokensToJoin(uint256 _poolAmountOut)
         external
         view
-        returns (uint256 tokenAmountIn, uint256 fee)
+        returns (uint256[2] memory _maxAmountsIn)
     {
-        (Record memory inRecord, Record memory outRecord) = getRepriced(_tokenOut);
+        uint256 poolTotal = totalSupply();
+        uint256 ratio = _div(_poolAmountOut, poolTotal);
+        require(ratio != 0, 'VolmexPool: Invalid math approximation');
+        for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
+            uint256 bal = records[tokens[i]].balance;
+            _maxAmountsIn[i] = _mul(ratio, bal);
+        }
+    }
 
-        tokenAmountIn = calcInGivenOut(
-            getLeveragedBalance(inRecord),
-            getLeveragedBalance(outRecord),
-            _tokenAmountOut,
-            0
-        );
-
-        fee = _calcFee(
-            inRecord,
-            _tokenAmountOut,
-            outRecord,
-            tokenAmountIn,
-            tokens[0] == _tokenOut ? feeAmpPrimary : feeAmpComplement
-        );
-
-        tokenAmountIn = calcInGivenOut(
-            getLeveragedBalance(inRecord),
-            getLeveragedBalance(outRecord),
-            _tokenAmountOut,
-            fee
-        );
+    function getTokensToExit(uint256 _poolAmountIn)
+        external
+        view
+        returns (uint256[2] memory _minAmountsOut)
+    {
+        uint256 poolTotal = totalSupply();
+        uint256 ratio = _div(_poolAmountIn, poolTotal);
+        require(ratio != 0, 'VolmexPool: Invalid math approximation');
+        for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
+            uint256 bal = records[tokens[i]].balance;
+            _minAmountsOut[i] = _calculateAmountOut(_poolAmountIn, ratio, bal);
+        }
     }
 
     /**
@@ -600,7 +592,7 @@ contract VolmexPool is
         uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
         uint256 complementRecordLeverageBefore = complementRecord.leverage;
 
-        uint256 leveragesMultiplied = mul(
+        uint256 leveragesMultiplied = _mul(
             primaryRecordLeverageBefore,
             complementRecordLeverageBefore
         );
@@ -608,14 +600,14 @@ contract VolmexPool is
         primaryRecord.leverage = uint256(
             repricer.sqrtWrapped(
                 int256(
-                    div(
-                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
+                    _div(
+                        _mul(leveragesMultiplied, _mul(complementRecord.balance, estPrice)),
                         primaryRecord.balance
                     )
                 )
             )
         );
-        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
+        complementRecord.leverage = _div(leveragesMultiplied, primaryRecord.leverage);
 
         inRecord = tokens[0] == _tokenIn ? primaryRecord : complementRecord;
         outRecord = tokens[1] == _tokenIn ? primaryRecord : complementRecord;
@@ -662,7 +654,7 @@ contract VolmexPool is
         uint256 primaryRecordLeverageBefore = primaryRecord.leverage;
         uint256 complementRecordLeverageBefore = complementRecord.leverage;
 
-        uint256 leveragesMultiplied = mul(
+        uint256 leveragesMultiplied = _mul(
             primaryRecordLeverageBefore,
             complementRecordLeverageBefore
         );
@@ -670,14 +662,14 @@ contract VolmexPool is
         primaryRecord.leverage = uint256(
             repricer.sqrtWrapped(
                 int256(
-                    div(
-                        mul(leveragesMultiplied, mul(complementRecord.balance, estPrice)),
+                    _div(
+                        _mul(leveragesMultiplied, _mul(complementRecord.balance, estPrice)),
                         primaryRecord.balance
                     )
                 )
             )
         );
-        complementRecord.leverage = div(leveragesMultiplied, primaryRecord.leverage);
+        complementRecord.leverage = _div(leveragesMultiplied, primaryRecord.leverage);
         emit Repriced(
             repricingBlock,
             primaryRecord.balance,
@@ -692,18 +684,18 @@ contract VolmexPool is
     }
 
     function _calcFee(
-        Record memory inRecord,
-        uint256 tokenAmountIn,
-        Record memory outRecord,
-        uint256 tokenAmountOut,
-        uint256 feeAmp
+        Record memory _inRecord,
+        uint256 _tokenAmountIn,
+        Record memory _outRecord,
+        uint256 _tokenAmountOut,
+        uint256 _feeAmp
     ) private view returns (uint256 fee) {
         int256 ifee;
         (ifee, ) = _calc(
-            [int256(inRecord.balance), int256(inRecord.leverage), int256(tokenAmountIn)],
-            [int256(outRecord.balance), int256(outRecord.leverage), int256(tokenAmountOut)],
+            [int256(_inRecord.balance), int256(_inRecord.leverage), int256(_tokenAmountIn)],
+            [int256(_outRecord.balance), int256(_outRecord.leverage), int256(_tokenAmountOut)],
             int256(baseFee),
-            int256(feeAmp),
+            int256(_feeAmp),
             int256(maxFee)
         );
         require(ifee > 0, 'VolmexPool: Fee should be greater than 0');
@@ -711,7 +703,7 @@ contract VolmexPool is
     }
 
     function getLeveragedBalance(Record memory r) public pure returns (uint256) {
-        return mul(r.balance, r.leverage);
+        return _mul(r.balance, r.leverage);
     }
 
     /**
@@ -776,7 +768,7 @@ contract VolmexPool is
         // _spotPriceBefore will remain smaller, because _tokenAmountOut will be smaller than _tokenAmountIn
         // because of the fee and oracle price.
         require(
-            _spotPriceBefore <= div(_tokenAmountIn, _tokenAmountOut),
+            _spotPriceBefore <= _div(_tokenAmountIn, _tokenAmountOut),
             'VolmexPool: Amount in max in ratio exploit other'
         );
 
@@ -803,39 +795,39 @@ contract VolmexPool is
     function _requireBoundaryConditions(
         Record storage _inToken,
         uint256 _tokenAmountIn,
-        Record storage outToken,
-        uint256 tokenAmountOut,
-        uint256 exposureLimit
+        Record storage _outToken,
+        uint256 _tokenAmountOut,
+        uint256 _exposureLimit
     ) private view {
         require(
-            getLeveragedBalance(outToken) - tokenAmountOut > qMin,
+            getLeveragedBalance(_outToken) - _tokenAmountOut > qMin,
             'VolmexPool: Leverage boundary exploit'
         );
         require(
-            outToken.balance - tokenAmountOut > qMin,
+            _outToken.balance - _tokenAmountOut > qMin,
             'VolmexPool: Non leverage boundary exploit'
         );
 
-        uint256 lowerBound = div(pMin, upperBoundary - pMin);
-        uint256 upperBound = div(upperBoundary - pMin, pMin);
-        uint256 value = div(
+        uint256 lowerBound = _div(pMin, upperBoundary - pMin);
+        uint256 upperBound = _div(upperBoundary - pMin, pMin);
+        uint256 value = _div(
             getLeveragedBalance(_inToken) + _tokenAmountIn,
-            getLeveragedBalance(outToken) - tokenAmountOut
+            getLeveragedBalance(_outToken) - _tokenAmountOut
         );
 
         require(lowerBound < value, 'VolmexPool: Lower boundary');
         require(value < upperBound, 'VolmexPool: Upper boundary');
 
-        (uint256 numerator, bool sign) = subSign(
-            _inToken.balance + _tokenAmountIn + tokenAmountOut,
-            outToken.balance
+        (uint256 numerator, bool sign) = _subSign(
+            _inToken.balance + _tokenAmountIn + _tokenAmountOut,
+            _outToken.balance
         );
 
         if (!sign) {
-            uint256 denominator = (_inToken.balance + _tokenAmountIn + outToken.balance) -
-                tokenAmountOut;
+            uint256 denominator = (_inToken.balance + _tokenAmountIn + _outToken.balance) -
+                _tokenAmountOut;
 
-            require(div(numerator, denominator) < exposureLimit, 'VolmexPool: Exposure boundary');
+            require(_div(numerator, denominator) < _exposureLimit, 'VolmexPool: Exposure boundary');
         }
     }
 
@@ -845,13 +837,13 @@ contract VolmexPool is
         Record storage _outToken,
         uint256 _tokenAmountOut
     ) private {
-        _outToken.leverage = div(
+        _outToken.leverage = _div(
             getLeveragedBalance(_outToken) - _tokenAmountOut,
             _outToken.balance - _tokenAmountOut
         );
         require(_outToken.leverage > 0, 'VolmexPool: Out token leverage can not be zero');
 
-        _inToken.leverage = div(
+        _inToken.leverage = _div(
             getLeveragedBalance(_inToken) + _tokenAmountIn,
             _inToken.balance + _tokenAmountIn
         );
@@ -1035,6 +1027,22 @@ contract VolmexPool is
 
     function _calcExpStart(int256 _inBalance, int256 _outBalance) private pure returns (int256) {
         return ((_inBalance - _outBalance) * iBONE) / (_inBalance + _outBalance);
+    }
+
+    /**
+     * @notice Used to calculate the out amount after fee deduction
+     */
+    function _calculateAmountOut(
+        uint256 _poolAmountIn,
+        uint256 _ratio,
+        uint256 _tokenReserve
+    ) private view returns (uint256 amountOut) {
+        uint256 tokenAmount = _mul(_div(_poolAmountIn, upperBoundary), BONE);
+        amountOut = _mul(_ratio, _tokenReserve);
+        if (amountOut > tokenAmount) {
+            uint256 feeAmount = _div(_mul(tokenAmount, adminFee), 10000);
+            amountOut = amountOut - feeAmount;
+        }
     }
 
     uint256[10] private __gap;
