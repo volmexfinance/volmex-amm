@@ -40,6 +40,8 @@ describe('VolmexController', function () {
   let inverseVolatilities: IVolatility;
   let controllerFactory: any;
   let controller: any;
+  let poolViewFactory: any;
+  let poolView: any;
 
   const collaterals = ['DAI', 'USDC'];
   const volatilitys = ['ETH', 'BTC'];
@@ -62,6 +64,8 @@ describe('VolmexController', function () {
     protocolFactoryPrecision = await ethers.getContractFactory('VolmexProtocolWithPrecision');
 
     controllerFactory = await ethers.getContractFactory('VolmexController');
+
+    poolViewFactory = await ethers.getContractFactory('VolmexPoolView');
   });
 
   this.beforeEach(async function () {
@@ -267,6 +271,9 @@ describe('VolmexController', function () {
 
     await (await pools['ETH'].setController(controller.address)).wait();
     await (await pools['BTC'].setController(controller.address)).wait();
+
+    poolView = await upgrades.deployProxy(poolViewFactory, []);
+    await poolView.deployed();
   });
 
   it('should deploy controller', async () => {
@@ -467,7 +474,7 @@ describe('VolmexController', function () {
 
     it('Should add liquidity', async () => {
       const poolAmountOut = '250000000000000000000000000';
-      const amountsIn = await pools['ETH'].getTokensToJoin(poolAmountOut);
+      const amountsIn = await poolView.getTokensToJoin(pools['ETH'].address, poolAmountOut);
 
       await (
         await volatilities['ETH'].approve(controller.address, amountsIn[0].toString())
@@ -495,7 +502,7 @@ describe('VolmexController', function () {
 
     it('Should remove liquidity', async () => {
       let poolAmountOut = '250000000000000000000000000';
-      let amountsIn = await pools['ETH'].getTokensToJoin(poolAmountOut);
+      let amountsIn = await poolView.getTokensToJoin(pools['ETH'].address, poolAmountOut);
 
       await (
         await volatilities['ETH'].approve(controller.address, amountsIn[0].toString())
@@ -512,7 +519,7 @@ describe('VolmexController', function () {
       await addEth.wait();
 
       const poolAmountIn = '250000000000000000000000';
-      const amountsOut = await pools['ETH'].getTokensToExit(poolAmountIn);
+      const amountsOut = await poolView.getTokensToExit(pools['ETH'].address, poolAmountIn);
 
       const balanceBefore = await volatilities['ETH'].balanceOf(owner);
       const iBalanceBefore = await inverseVolatilities['ETH'].balanceOf(owner);
