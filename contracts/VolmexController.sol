@@ -13,6 +13,7 @@ import './interfaces/IERC20Modified.sol';
 import './interfaces/IVolmexOracle.sol';
 import './interfaces/IPausablePool.sol';
 import './interfaces/IVolmexController.sol';
+import './interfaces/IFlashLoanReceiver.sol';
 import './maths/Const.sol';
 
 /**
@@ -32,6 +33,8 @@ contract VolmexController is
     bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
     // Interface ID of VolmexPool contract
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
+    // Interface ID of FlashLoanReceiver contract
+    bytes4 private constant _IFlashLoan_Receiver_ID = type(IFlashLoanReceiver).interfaceId;
 
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
@@ -565,6 +568,11 @@ contract VolmexController is
         bytes calldata _params,
         uint256 _poolIndex
     ) external whenNotPaused {
+        require(
+            IERC165Upgradeable(_receiver).supportsInterface(_IFlashLoan_Receiver_ID),
+            'VolmexPool: Repricer does not supports interface'
+        );
+
         IVolmexPool _pool = pools[_poolIndex];
         _pool.flashLoan(_receiver, _assetToken, _amount, _params);
     }
