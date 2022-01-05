@@ -23,6 +23,8 @@ describe('VolmexPool', function () {
   let controllerFactory: any;
   let controller: any;
   let zeroAddress: any;
+  let flashLoanFactory: any;
+  let flashLoanInstance: any;
 
   this.beforeAll(async function () {
     accounts = await ethers.getSigners();
@@ -40,6 +42,8 @@ describe('VolmexPool', function () {
     protocolFactory = await ethers.getContractFactory('VolmexProtocol');
 
     controllerFactory = await ethers.getContractFactory('VolmexController');
+
+    flashLoanFactory = await ethers.getContractFactory('FlashLoanExample');
   });
 
   this.beforeEach(async function () {
@@ -106,7 +110,7 @@ describe('VolmexPool', function () {
     const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
     const leveragePrimary = '999996478162223000';
     const leverageComplement = '1000003521850180000';
-    const MAX = '10000000000000000000000';
+    const MAX = '1000000000000000000000000000';
 
     await (await collateral.mint(owner, MAX)).wait();
     await (await collateral.approve(protocol.address, MAX)).wait();
@@ -240,19 +244,19 @@ describe('VolmexPool', function () {
     });
 
     it('Should add liquidity', async () => {
-      await (await volatility.approve(pool.address, '28000000000000000000')).wait();
-      await (await inverseVolatility.approve(pool.address, '28000000000000000000')).wait();
+      await (await volatility.approve(pool.address, '30000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '30000000000000000000')).wait();
 
-      const balanceBefore = Number(await volatility.balanceOf(owner));
+      const balanceBefore = await volatility.balanceOf(owner);
 
       const join = await pool.joinPool(
         '7000000000000000000000',
-        ['28000000000000000000', '28000000000000000000'],
+        ['30000000000000000000', '30000000000000000000'],
         owner
       );
       const { events } = await join.wait();
 
-      const balanceAfter = Number(await volatility.balanceOf(owner));
+      const balanceAfter = await volatility.balanceOf(owner);
 
       let data;
       events.forEach((log: any) => {
@@ -261,22 +265,22 @@ describe('VolmexPool', function () {
         }
       });
       const logData = ethers.utils.defaultAbiCoder.decode(['uint256'], data);
-
-      expect(Number(balanceBefore - balanceAfter)).be.closeTo(Number(logData[0].toString()), 0);
+      const changedBalance = balanceBefore.sub(balanceAfter);
+      expect(Number(changedBalance.toString())).to.equal(Number(logData[0].toString()));
     });
 
     it('Should remove liquidity', async () => {
-      await (await volatility.approve(pool.address, '28000000000000000000')).wait();
-      await (await inverseVolatility.approve(pool.address, '28000000000000000000')).wait();
+      await (await volatility.approve(pool.address, '30000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '30000000000000000000')).wait();
 
       const join = await pool.joinPool(
         '7000000000000000000000',
-        ['28000000000000000000', '28000000000000000000'],
+        ['30000000000000000000', '30000000000000000000'],
         owner
       );
       await join.wait();
 
-      const balanceBefore = Number(await volatility.balanceOf(owner));
+      const balanceBefore = await volatility.balanceOf(owner);
 
       const exit = await pool.exitPool(
         '700000000000000000000',
@@ -285,7 +289,7 @@ describe('VolmexPool', function () {
       );
       const { events } = await exit.wait();
 
-      const balanceAfter = Number(await volatility.balanceOf(owner));
+      const balanceAfter = await volatility.balanceOf(owner);
 
       let data;
       events.forEach((log: any) => {
@@ -294,8 +298,8 @@ describe('VolmexPool', function () {
         }
       });
       const logData = ethers.utils.defaultAbiCoder.decode(['uint256'], data);
-
-      expect(Number(balanceAfter - balanceBefore)).be.closeTo(Number(logData[0].toString()), 14);
+      const changedBalance = balanceAfter.sub(balanceBefore);
+      expect(Number(changedBalance.toString())).to.equal(Number(logData[0].toString()));
     });
 
     it('Should swap the token', async () => {
@@ -650,7 +654,7 @@ describe('VolmexPool', function () {
       await expectRevert(
         pool.swapExactAmountIn(
           volatility.address,
-          '100000',
+          '10000',
           inverseVolatility.address,
           '1000000000000000000',
           owner,
@@ -663,7 +667,7 @@ describe('VolmexPool', function () {
       await expectRevert(
         pool.swapExactAmountIn(
           volatility.address,
-          '6599999999999998746',
+          '65999999999999987460',
           inverseVolatility.address,
           '1000000000000000000',
           owner,
@@ -698,11 +702,11 @@ describe('VolmexPool', function () {
     });
 
     it('Should revert require boundary exposure', async () => {
-      await (await volatility.approve(pool.address, '16000000000000000000')).wait();
-      await (await inverseVolatility.approve(pool.address, '16000000000000000000')).wait();
+      await (await volatility.approve(pool.address, '18000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '18000000000000000000')).wait();
       const joinReceipt = await pool.joinPool(
         '4000000000000000000000',
-        ['16000000000000000000', '16000000000000000000'],
+        ['18000000000000000000', '18000000000000000000'],
         owner
       );
       await joinReceipt.wait();
@@ -719,6 +723,31 @@ describe('VolmexPool', function () {
         ),
         'VolmexPool: Exposure boundary'
       );
+    });
+  });
+
+  describe('Flash loan', () => {
+    this.beforeEach(async () => {
+      flashLoanInstance = await flashLoanFactory.deploy(pool.address);
+      await flashLoanInstance.deployed();
+
+      await (await volatility.approve(pool.address, '28000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '28000000000000000000')).wait();
+
+      const join = await pool.joinPool(
+        '7000000000000000000000',
+        ['28000000000000000000', '28000000000000000000'],
+        owner
+      );
+      await join.wait();
+    });
+
+    it('Should flash loan', async () => {
+      await (await volatility.transfer(flashLoanInstance.address, '90000000000000000')).wait();
+      await (await pool.setControllerWithoutCheck(flashLoanInstance.address)).wait();
+
+      const flashLoan = await flashLoanInstance.flashLoan(volatility.address);
+      const {events} = await flashLoan.wait();
     });
   });
 });
