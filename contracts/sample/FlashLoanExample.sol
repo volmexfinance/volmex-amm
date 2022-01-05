@@ -2,18 +2,24 @@
 
 pragma solidity =0.8.11;
 
+import '@openzeppelin/contracts/utils/introspection/ERC165Storage.sol';
+
 import '../interfaces/IFlashLoanReceiver.sol';
 import '../maths/Num.sol';
 import '../interfaces/IVolmexPool.sol';
 import '../interfaces/IVolmexController.sol';
 
-contract FlashLoanExample is Num {
+contract FlashLoanExample is Num, ERC165Storage, IFlashLoanReceiver {
+    bytes4 private constant _IFlashLoan_Receiver_ID = type(IFlashLoanReceiver).interfaceId;
+
     address public pool;
     address public controller;
 
     constructor(address _pool, address _controller) {
         pool = _pool;
         controller = _controller;
+
+        _registerInterface(_IFlashLoan_Receiver_ID);
     }
 
     /**
