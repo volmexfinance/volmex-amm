@@ -749,5 +749,16 @@ describe('VolmexPool', function () {
       const flashLoan = await flashLoanInstance.flashLoan(volatility.address);
       const {events} = await flashLoan.wait();
     });
+
+    it('Should revert for invalid receiver', async () => {
+      const flashLoanMock = await ethers.getContractFactory('FlashLoanMock');
+      const flashLoan = await flashLoanMock.deploy(pool.address);
+      await (await pool.setControllerWithoutCheck(flashLoan.address)).wait();
+
+      await expectRevert(
+        flashLoan.flashLoan(volatility.address),
+        'VolmexPool: Invalid flash loan executor'
+      );
+    });
   });
 });
