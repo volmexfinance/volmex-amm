@@ -140,16 +140,16 @@ describe('Volmex Oracle', function () {
     const contractTx = await volmexOracle.addVolatilityIndex(
       '125000000',
       protocol.address,
-      'ETHV3x',
+      'ETHV2x',
       '0x6c00000000000000000000000000000000000000000000000000000000000000'
     );
     const contractReceipt: ContractReceipt = await contractTx.wait();
     const event = contractReceipt.events?.find((event) => event.event === 'VolatilityIndexAdded');
-    const price = await volmexOracle.getVolatilityPriceBySymbol('ETHV3x');
+    const price = await volmexOracle.getVolatilityPriceBySymbol('ETHV2x');
     const price1 = await volmexOracle.getVolatilityTokenPriceByIndex(2);
     assert.equal(event?.args?.volatilityTokenIndex, 2);
     assert.equal(event?.args?.volatilityCapRatio, 250000000);
-    assert.equal(event?.args?.volatilityTokenSymbol, 'ETHV3x');
+    assert.equal(event?.args?.volatilityTokenSymbol, 'ETHV2x');
     assert.equal(event?.args?.volatilityTokenPrice, 125000000);
     assert.equal(price[0].toString(), '125000000');
     assert.equal(price[1].toString(), '125000000');
