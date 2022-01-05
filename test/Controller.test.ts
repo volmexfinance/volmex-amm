@@ -375,6 +375,7 @@ describe('VolmexController', function () {
       );
       await add.wait();
 
+      await (await pools['ETH'].reprice()).wait();
       const volAmount = await controller.getCollateralToVolatility(
         '1500000000000000000000',
         volatilities['ETH'].address,
