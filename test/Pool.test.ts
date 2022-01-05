@@ -701,7 +701,7 @@ describe('VolmexPool', function () {
       );
     });
 
-    it('Should revert require boundary exposure', async () => {
+    xit('Should revert require boundary exposure', async () => {
       await (await volatility.approve(pool.address, '18000000000000000000')).wait();
       await (await inverseVolatility.approve(pool.address, '18000000000000000000')).wait();
       const joinReceipt = await pool.joinPool(
