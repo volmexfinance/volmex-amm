@@ -265,6 +265,7 @@ contract VolmexController is
 
         bool isInverse = _pool.tokens(1) == _tokenOut;
 
+        _pool.reprice();
         uint256 tokenAmountOut;
         (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
             isInverse
