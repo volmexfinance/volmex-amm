@@ -558,13 +558,14 @@ contract VolmexController is
      * @param _poolIndex Index of the Pool
      */
     function makeFlashLoan(
+        address _receiver,
         address _assetToken,
         uint256 _amount,
         bytes calldata _params,
         uint256 _poolIndex
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
-        _pool.flashLoan(msg.sender, _assetToken, _amount, _params);
+        _pool.flashLoan(_receiver, _assetToken, _amount, _params);
     }
 
     /**
