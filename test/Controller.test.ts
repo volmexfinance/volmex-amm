@@ -375,6 +375,7 @@ describe('VolmexController', function () {
       );
       await add.wait();
 
+      await (await pools['ETH'].reprice()).wait();
       const volAmount = await controller.getCollateralToVolatility(
         '1500000000000000000000',
         volatilities['ETH'].address,
@@ -837,6 +838,41 @@ describe('VolmexController', function () {
       expect(Number(logData[1].toString())).to.equal(0);
       expect(protocolAddress[0]).to.equal(protocolInner.address);
     });
+
+    it('Should add protocol with precision ratio', async () => {
+      const protocolInner = await upgrades.deployProxy(
+        protocolFactoryPrecision,
+        [
+          `${collateral[collaterals[1]].address}`,
+          `${volatilities['ETH'].address}`,
+          `${inverseVolatilities['ETH'].address}`,
+          '25000000',
+          '250',
+          '1000000000000',
+        ],
+        {
+          initializer: 'initializePrecision',
+        }
+      );
+      await protocolInner.deployed();
+
+      const addProtocol = await controller.addProtocol(0, 1, protocolInner.address);
+      const { events } = await addProtocol.wait();
+
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'ProtocolAdded') {
+          data = log['topics'];
+        }
+      });
+
+      const protocolAddress = ethers.utils.defaultAbiCoder.decode(['address'], data[1]);
+      const logData = getEventLog(events, 'ProtocolAdded', ['uint256', 'uint256']);
+
+      expect(Number(logData[0].toString())).to.equal(0);
+      expect(Number(logData[1].toString())).to.equal(1);
+      expect(protocolAddress[0]).to.equal(protocolInner.address);
+    });
   });
 
   describe('Pool pause and unpause', () => {
@@ -1108,6 +1144,36 @@ describe('VolmexController', function () {
         poolView.getTokensToExit(pools['ETH'].address, 0),
         'VolmexPoolView: Invalid math approximation in exit'
       );
+    });
+  });
+
+  describe('Flash loan', () => {
+    let flashLoanInstance: any;
+    this.beforeEach(async () => {
+      const flashLoanFactory = await ethers.getContractFactory('FlashLoanExample');
+      flashLoanInstance = await flashLoanFactory.deploy(pools['ETH'].address, controller.address);
+      await flashLoanInstance.deployed();
+
+      await (
+        await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+      ).wait();
+      await (
+        await inverseVolatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+      ).wait();
+
+      const add = await controller.addLiquidity(
+        '250000000000000000000000000',
+        ['599999999000000000000000000', '599999999000000000000000000'],
+        0
+      );
+      await add.wait();
+    });
+
+    it('Should flash loan', async () => {
+      await (await volatilities['ETH'].transfer(flashLoanInstance.address, '90000000000000000')).wait();
+
+      const flashLoan = await flashLoanInstance.makeFlashLoan(volatilities['ETH'].address, 0);
+      const {events} = await flashLoan.wait();
     });
   });
 });

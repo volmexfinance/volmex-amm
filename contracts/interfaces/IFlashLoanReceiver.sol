@@ -2,12 +2,9 @@
 
 pragma solidity =0.8.11;
 
-import './IERC20Modified.sol';
 import './IVolmexPool.sol';
 
 interface IFlashLoanReceiver {
-    function POOL() external returns (IVolmexPool);
-
     function executeOperation(
         address assetToken,
         uint256 amounts,

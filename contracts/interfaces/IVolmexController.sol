@@ -80,6 +80,7 @@ interface IVolmexController {
         uint256 _poolIndex
     ) external;
     function makeFlashLoan(
+        address _receiver,
         address _assetToken,
         uint256 _amount,
         bytes calldata _params,

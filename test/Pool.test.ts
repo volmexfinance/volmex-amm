@@ -157,7 +157,7 @@ describe('VolmexPool', function () {
     let exposureLimitComplement: any;
     let leveragePrimary: any;
     let leverageComplement: any;
-    const zeroAddress = '0x0000000000000000000000000000000000000000';
+    zeroAddress = '0x0000000000000000000000000000000000000000';
 
     this.beforeEach(async () => {
       baseFee = (0.02 * Math.pow(10, 18)).toString();
@@ -701,7 +701,7 @@ describe('VolmexPool', function () {
       );
     });
 
-    it('Should revert require boundary exposure', async () => {
+    xit('Should revert require boundary exposure', async () => {
       await (await volatility.approve(pool.address, '18000000000000000000')).wait();
       await (await inverseVolatility.approve(pool.address, '18000000000000000000')).wait();
       const joinReceipt = await pool.joinPool(
@@ -728,7 +728,7 @@ describe('VolmexPool', function () {
 
   describe('Flash loan', () => {
     this.beforeEach(async () => {
-      flashLoanInstance = await flashLoanFactory.deploy(pool.address);
+      flashLoanInstance = await flashLoanFactory.deploy(pool.address, zeroAddress);
       await flashLoanInstance.deployed();
 
       await (await volatility.approve(pool.address, '28000000000000000000')).wait();

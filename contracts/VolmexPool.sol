@@ -287,6 +287,12 @@ contract VolmexPool is
      * @dev Calculate the premium (fee) on the flash loan
      * @dev Check if executor is valid
      * @dev Increase the token amount of the record after pulling
+     *
+     * @param _receiverAddress Address of the receiver contract
+     * @param _assetToken Address of the token required.
+     * NOTE: For invalid asset token the records balance subtraction will throw underflow
+     * @param _amount Amount of token required
+     * @param _params msg.data value passed in the method, eg `0x10`
      */
     function flashLoan(
         address _receiverAddress,
