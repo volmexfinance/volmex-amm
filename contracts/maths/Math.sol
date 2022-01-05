@@ -4,7 +4,7 @@ pragma solidity =0.8.11;
 
 import './Num.sol';
 
-contract Math is Const, Num {
+contract Math is Num {
     /**********************************************************************************************
     // calcSpotPrice                                                                             //
     // sP = spotPrice                                                                            //

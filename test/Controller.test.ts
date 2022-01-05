@@ -1076,6 +1076,40 @@ describe('VolmexController', function () {
       });
     });
   });
+
+  describe('VolmexPoolView', () => {
+    it('getPoolInfo', async () => {
+      await poolView.getPoolInfo(pools['ETH'].address, owner);
+    });
+
+    it('getPoolTokenData', async () => {
+      await poolView.getPoolTokenData(pools['ETH'].address);
+    });
+
+    it('getPoolConfig', async () => {
+      await poolView.getPoolConfig(pools['ETH'].address);
+    });
+
+    it('getTokensToJoin', async () => {
+      const poolAmountOut = '250000000000000000000000000';
+      await poolView.getTokensToJoin(pools['ETH'].address, poolAmountOut);
+
+      await expectRevert(
+        poolView.getTokensToJoin(pools['ETH'].address, 0),
+        'VolmexPoolView: Invalid math approximation in join'
+      );
+    });
+
+    it('getTokensToExit', async () => {
+      const poolAmountIn = '250000000000000000000000000';
+      await poolView.getTokensToExit(pools['ETH'].address, poolAmountIn);
+
+      await expectRevert(
+        poolView.getTokensToExit(pools['ETH'].address, 0),
+        'VolmexPoolView: Invalid math approximation in exit'
+      );
+    });
+  });
 });
 
 const getEventLog = (events: any[], eventName: string, params: string[]): any => {

@@ -23,6 +23,8 @@ describe('VolmexPool', function () {
   let controllerFactory: any;
   let controller: any;
   let zeroAddress: any;
+  let flashLoanFactory: any;
+  let flashLoanInstance: any;
 
   this.beforeAll(async function () {
     accounts = await ethers.getSigners();
@@ -40,6 +42,8 @@ describe('VolmexPool', function () {
     protocolFactory = await ethers.getContractFactory('VolmexProtocol');
 
     controllerFactory = await ethers.getContractFactory('VolmexController');
+
+    flashLoanFactory = await ethers.getContractFactory('FlashLoanExample');
   });
 
   this.beforeEach(async function () {
@@ -106,7 +110,7 @@ describe('VolmexPool', function () {
     const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
     const leveragePrimary = '999996478162223000';
     const leverageComplement = '1000003521850180000';
-    const MAX = '10000000000000000000000';
+    const MAX = '1000000000000000000000000000';
 
     await (await collateral.mint(owner, MAX)).wait();
     await (await collateral.approve(protocol.address, MAX)).wait();
@@ -140,11 +144,6 @@ describe('VolmexPool', function () {
       qMin
     );
     await finalizeReceipt.wait();
-  });
-
-  it('should deploy pool', async () => {
-    const poolreceipt = await pool.deployed();
-    expect(poolreceipt.confirmations).not.equal(0);
   });
 
   describe('Initialize', () => {
@@ -182,7 +181,7 @@ describe('VolmexPool', function () {
           baseFee,
           maxFee,
           feeAmpPrimary,
-          feeAmpComplement
+          feeAmpComplement,
         ]),
         'VolmexPool: Repricer does not supports interface'
       );
@@ -197,9 +196,9 @@ describe('VolmexPool', function () {
           baseFee,
           maxFee,
           feeAmpPrimary,
-          feeAmpComplement
+          feeAmpComplement,
         ]),
-        'VolmexPool: protocol address can\'t be zero'
+        "VolmexPool: protocol address can't be zero"
       );
     });
 
@@ -207,13 +206,14 @@ describe('VolmexPool', function () {
       pool = await upgrades.deployProxy(poolFactory, [
         repricer.address,
         protocol.address,
-        0, 0,
+        0,
+        0,
         maxFee,
         feeAmpPrimary,
-        feeAmpComplement
+        feeAmpComplement,
       ]);
       await pool.deployed();
-  
+
       await expectRevert(
         pool.finalize(
           '1000000000000000000',
@@ -230,489 +230,535 @@ describe('VolmexPool', function () {
     });
   });
 
-  it('should not update flashloan premium if it is greter than 1000', async () => {
-    await expectRevert(
-      pool.updateFlashLoanPremium('100000'),
-      'VolmexPool: _premium value not in range'
-    );
-  });
-
-  it('Should add liquidity', async () => {
-    await (await volatility.approve(pool.address, '28000000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '28000000000000000000')).wait();
-
-    const balanceBefore = Number(await volatility.balanceOf(owner));
-
-    const join = await pool.joinPool(
-      '7000000000000000000000',
-      ['28000000000000000000', '28000000000000000000'],
-      owner
-    );
-    const { events } = await join.wait();
-
-    const balanceAfter = Number(await volatility.balanceOf(owner));
-
-    let data;
-    events.forEach((log: any) => {
-      if (log['event'] == 'Joined') {
-        data = log['data'];
-      }
+  describe('Pool Methods', () => {
+    it('should deploy pool', async () => {
+      const poolreceipt = await pool.deployed();
+      expect(poolreceipt.confirmations).not.equal(0);
     });
-    const logData = ethers.utils.defaultAbiCoder.decode(['uint256'], data);
 
-    expect(Number(balanceBefore - balanceAfter)).be.closeTo(Number(logData[0].toString()), 0);
-  });
-
-  it('Should remove liquidity', async () => {
-    await (await volatility.approve(pool.address, '28000000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '28000000000000000000')).wait();
-
-    const join = await pool.joinPool(
-      '7000000000000000000000',
-      ['28000000000000000000', '28000000000000000000'],
-      owner
-    );
-    await join.wait();
-
-    const balanceBefore = Number(await volatility.balanceOf(owner));
-
-    const exit = await pool.exitPool(
-      '700000000000000000000',
-      ['2700000000000000000', '2700000000000000000'],
-      owner
-    );
-    const { events } = await exit.wait();
-
-    const balanceAfter = Number(await volatility.balanceOf(owner));
-
-    let data;
-    events.forEach((log: any) => {
-      if (log['event'] == 'Exited') {
-        data = log['data'];
-      }
+    it('should not update flashloan premium if it is greter than 1000', async () => {
+      await expectRevert(
+        pool.updateFlashLoanPremium('100000'),
+        'VolmexPool: _premium value not in range'
+      );
     });
-    const logData = ethers.utils.defaultAbiCoder.decode(['uint256'], data);
 
-    expect(Number(balanceAfter - balanceBefore)).be.closeTo(Number(logData[0].toString()), 14);
-  });
+    it('Should add liquidity', async () => {
+      await (await volatility.approve(pool.address, '30000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '30000000000000000000')).wait();
 
-  it('Should swap the token', async () => {
-    await (await volatility.approve(pool.address, '38960000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '38960000000000000000')).wait();
+      const balanceBefore = await volatility.balanceOf(owner);
 
-    const join = await pool.joinPool(
-      '7000000000000000000000',
-      ['38960000000000000000', '38960000000000000000'],
-      owner
-    );
-    await join.wait();
+      const join = await pool.joinPool(
+        '7000000000000000000000',
+        ['30000000000000000000', '30000000000000000000'],
+        owner
+      );
+      const { events } = await join.wait();
 
-    const amountOut = await pool.getTokenAmountOut(volatility.address, '5960000000000000000');
+      const balanceAfter = await volatility.balanceOf(owner);
 
-    await (await volatility.approve(pool.address, '5960000000000000000')).wait();
-    // await (await inverseVolatility.approve(pool.address, "38960000000000000000")).wait();
-
-    const balanceBefore = await inverseVolatility.balanceOf(owner);
-    const swap = await pool.swapExactAmountIn(
-      volatility.address,
-      '5960000000000000000',
-      inverseVolatility.address,
-      amountOut[0].toString(),
-      owner,
-      false
-    );
-    const { events } = await swap.wait();
-    const balanceAfter = await inverseVolatility.balanceOf(owner);
-
-    let data;
-    events.forEach((log: any) => {
-      if (log['event'] == 'Swapped') {
-        data = log['data'];
-      }
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'Joined') {
+          data = log['data'];
+        }
+      });
+      const logData = ethers.utils.defaultAbiCoder.decode(['uint256'], data);
+      const changedBalance = balanceBefore.sub(balanceAfter);
+      expect(Number(changedBalance.toString())).to.equal(Number(logData[0].toString()));
     });
-    const logData = ethers.utils.defaultAbiCoder.decode(
-      ['uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256'],
-      data
-    );
 
-    expect(Number(balanceAfter.sub(balanceBefore))).to.equal(Number(logData[1].toString()));
-  });
+    it('Should remove liquidity', async () => {
+      await (await volatility.approve(pool.address, '30000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '30000000000000000000')).wait();
 
-  it('Should update reprice', async () => {
-    await (await volatility.approve(pool.address, '38960000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '38960000000000000000')).wait();
+      const join = await pool.joinPool(
+        '7000000000000000000000',
+        ['30000000000000000000', '30000000000000000000'],
+        owner
+      );
+      await join.wait();
 
-    const test = await pool.joinPool(
-      '7000000000000000000000',
-      ['38960000000000000000', '38960000000000000000'],
-      owner
-    );
-    await test.wait();
+      const balanceBefore = await volatility.balanceOf(owner);
 
-    const latest = await time.latestBlock();
-    await (await inverseVolatility.approve(pool.address, '3000000000000000000')).wait();
+      const exit = await pool.exitPool(
+        '700000000000000000000',
+        ['2700000000000000000', '2700000000000000000'],
+        owner
+      );
+      const { events } = await exit.wait();
 
-    let amountOut = await pool.getTokenAmountOut(inverseVolatility.address, '3000000000000000000');
+      const balanceAfter = await volatility.balanceOf(owner);
 
-    let swap = await pool.swapExactAmountIn(
-      inverseVolatility.address,
-      '3000000000000000000',
-      volatility.address,
-      '1000000000000000000',
-      owner,
-      false
-    );
-    let swapreceipt = await swap.wait();
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'Exited') {
+          data = log['data'];
+        }
+      });
+      const logData = ethers.utils.defaultAbiCoder.decode(['uint256'], data);
+      const changedBalance = balanceAfter.sub(balanceBefore);
+      expect(Number(changedBalance.toString())).to.equal(Number(logData[0].toString()));
+    });
 
-    amountOut = await pool.getTokenAmountOut(inverseVolatility.address, '3000000000000000000');
+    it('Should swap the token', async () => {
+      await (await volatility.approve(pool.address, '38960000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '38960000000000000000')).wait();
 
-    await time.advanceBlockTo(parseInt(latest) + 5);
-    const current = await time.latestBlock();
+      const join = await pool.joinPool(
+        '7000000000000000000000',
+        ['38960000000000000000', '38960000000000000000'],
+        owner
+      );
+      await join.wait();
 
-    amountOut = await pool.getTokenAmountOut(inverseVolatility.address, '3000000000000000000');
+      const amountOut = await pool.getTokenAmountOut(volatility.address, '5960000000000000000');
 
-    await (await inverseVolatility.approve(pool.address, '3000000000000000000')).wait();
+      await (await volatility.approve(pool.address, '5960000000000000000')).wait();
+      // await (await inverseVolatility.approve(pool.address, "38960000000000000000")).wait();
 
-    const swap2 = await pool.swapExactAmountIn(
-      inverseVolatility.address,
-      '3000000000000000000',
-      volatility.address,
-      '1000000000000000000',
-      owner,
-      false
-    );
-    await swap.wait();
-  });
-
-  it('should swap the assets', async () => {
-    await (await volatility.approve(pool.address, '20000000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
-    const joinReceipt = await pool.joinPool(
-      '3000000000000000000000',
-      ['20000000000000000000', '20000000000000000000'],
-      owner
-    );
-    await joinReceipt.wait();
-    await (await volatility.approve(pool.address, '3000000000000000000')).wait();
-
-    const swap = await pool.swapExactAmountIn(
-      volatility.address,
-      '3000000000000000000',
-      inverseVolatility.address,
-      '1000000000000000000',
-      owner,
-      false
-    );
-    const swapreceipt = await swap.wait();
-    expect(swapreceipt.confirmations).equal(1);
-  });
-
-  it('Should user exit liquidity from pool', async () => {
-    await (await volatility.approve(pool.address, '20000000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
-    const joinReceipt = await pool.joinPool(
-      '3000000000000000000000',
-      ['20000000000000000000', '20000000000000000000'],
-      owner
-    );
-    await joinReceipt.wait();
-
-    const exitReceipt = await pool.exitPool(
-      '1000000000000000000000',
-      ['1000000000000000000', '1000000000000000000'],
-      owner
-    );
-    await exitReceipt.wait();
-  });
-
-  it('Should volatility tokens', async () => {
-    expect(await pool.tokens(0)).to.equal(await protocol.volatilityToken());
-    expect(await pool.tokens(1)).to.equal(await protocol.inverseVolatilityToken());
-  });
-
-  it('Should return the token leverage', async () => {
-    let receipt = await pool.getLeverage(await protocol.volatilityToken());
-    expect(await receipt).not.equal(0);
-
-    receipt = await pool.getLeverage(await protocol.inverseVolatilityToken());
-    expect(await receipt).not.equal(0);
-  });
-
-  it('Should return the reserve of token', async () => {
-    let receipt = await pool.getBalance(await protocol.volatilityToken());
-    expect(await receipt).not.equal(0);
-
-    receipt = await pool.getBalance(await protocol.inverseVolatilityToken());
-    expect(await receipt).not.equal(0);
-  });
-
-  it('Should pause/unpause the tokens', async () => {
-    let receipt = await pool.pause();
-    expect(receipt.confirmations).equal(1);
-
-    receipt = await pool.unpause();
-    expect(receipt.confirmations).equal(1);
-  });
-
-  it('Should check the pool is finalized', async () => {
-    let receipt = await pool.finalized();
-    expect(receipt).to.be.true;
-  });
-
-  it('Should not finalized if balances are not same', async () => {
-    const qMin = (1 * Math.pow(10, 6)).toString();
-    const pMin = (0.01 * Math.pow(10, 18)).toString();
-    const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
-    const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
-    const leveragePrimary = '999996478162223000';
-    const leverageComplement = '1000003521850180000';
-    const MAX = '10000000000000000000000';
-    await expectRevert.unspecified(
-      pool.finalize(
-        '100000000000000000000',
-        leveragePrimary,
-        '1000000000000000000',
-        leverageComplement,
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      )
-    );
-  });
-
-  it('Should not finalized if pool is already finalized', async () => {
-    const qMin = (1 * Math.pow(10, 6)).toString();
-    const pMin = (0.01 * Math.pow(10, 18)).toString();
-    const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
-    const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
-    const leveragePrimary = '999996478162223000';
-    const leverageComplement = '1000003521850180000';
-    const MAX = '10000000000000000000000';
-    await expectRevert(
-      pool.finalize(
-        '1000000000000000000',
-        leveragePrimary,
-        '1000000000000000000',
-        leverageComplement,
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      ),
-      'VolmexPool: Pool is finalized'
-    );
-  });
-  it('Should not finalized if base fee is less than zero', async () => {
-    const baseFee = 0;
-    const qMin = (1 * Math.pow(10, 6)).toString();
-    const pMin = (0.01 * Math.pow(10, 18)).toString();
-    const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
-    const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
-    const leveragePrimary = '999996478162223000';
-    const leverageComplement = '1000003521850180000';
-    const MAX = '10000000000000000000000';
-    await expectRevert.unspecified(
-      pool.finalize(
-        '100000000000000000000',
-        leveragePrimary,
-        '1000000000000000000',
-        leverageComplement,
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      ),
-      'VolmexPool: baseFee should be larger than 0'
-    );
-  });
-
-  it('Should not swap if protocol is settled', async () => {
-    await protocol.settle(150);
-
-    await expectRevert(
-      pool.swapExactAmountIn(
+      const balanceBefore = await inverseVolatility.balanceOf(owner);
+      const swap = await pool.swapExactAmountIn(
         volatility.address,
-        '3000000000000000000',
+        '5960000000000000000',
         inverseVolatility.address,
+        amountOut[0].toString(),
+        owner,
+        false
+      );
+      const { events } = await swap.wait();
+      const balanceAfter = await inverseVolatility.balanceOf(owner);
+
+      let data;
+      events.forEach((log: any) => {
+        if (log['event'] == 'Swapped') {
+          data = log['data'];
+        }
+      });
+      const logData = ethers.utils.defaultAbiCoder.decode(
+        ['uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256'],
+        data
+      );
+
+      expect(Number(balanceAfter.sub(balanceBefore))).to.equal(Number(logData[1].toString()));
+    });
+
+    it('Should update reprice', async () => {
+      await (await volatility.approve(pool.address, '38960000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '38960000000000000000')).wait();
+
+      const test = await pool.joinPool(
+        '7000000000000000000000',
+        ['38960000000000000000', '38960000000000000000'],
+        owner
+      );
+      await test.wait();
+
+      const latest = await time.latestBlock();
+      await (await inverseVolatility.approve(pool.address, '3000000000000000000')).wait();
+
+      let amountOut = await pool.getTokenAmountOut(
+        inverseVolatility.address,
+        '3000000000000000000'
+      );
+
+      let swap = await pool.swapExactAmountIn(
+        inverseVolatility.address,
+        '3000000000000000000',
+        volatility.address,
         '1000000000000000000',
         owner,
         false
-      ),
-      'VolmexPool: Protocol is settled'
-    );
-  });
+      );
+      let swapreceipt = await swap.wait();
 
-  it('Should revert when finalize call', async () => {
-    const qMin = (1 * Math.pow(10, 6)).toString();
-    const pMin = (0.01 * Math.pow(10, 18)).toString();
-    const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
-    const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
-    const leveragePrimary = '999996478162223000';
-    const leverageComplement = '1000003521850180000';
+      amountOut = await pool.getTokenAmountOut(inverseVolatility.address, '3000000000000000000');
 
-    await expectRevert(
-      pool.finalize(
+      await time.advanceBlockTo(parseInt(latest) + 5);
+      const current = await time.latestBlock();
+
+      amountOut = await pool.getTokenAmountOut(inverseVolatility.address, '3000000000000000000');
+
+      await (await inverseVolatility.approve(pool.address, '3000000000000000000')).wait();
+
+      const swap2 = await pool.swapExactAmountIn(
+        inverseVolatility.address,
+        '3000000000000000000',
+        volatility.address,
         '1000000000000000000',
-        leveragePrimary,
-        '1000000000000000000',
-        leverageComplement,
-        exposureLimitPrimary,
-        exposureLimitComplement,
-        pMin,
-        qMin
-      ),
-      'VolmexPool: Pool is finalized'
-    );
-  });
+        owner,
+        false
+      );
+      await swap.wait();
+    });
 
-  it('Should revert join pool', async () => {
-    await (await volatility.approve(pool.address, '20000000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
-    await expectRevert(
-      pool.joinPool('0', ['20000000000000000000', '20000000000000000000'], owner),
-      'VolmexPool: Invalid math approximation'
-    );
-
-    await expectRevert(
-      pool.joinPool(
-        '3000000000000000000000',
-        ['2000000000000000000', '2000000000000000000'],
-        owner
-      ),
-      'VolmexPool: Amount in limit exploit'
-    );
-  });
-
-  it('Should revert if pool is not finalized', async () => {
-    const baseFee = (0.02 * Math.pow(10, 18)).toString();
-    const maxFee = (0.4 * Math.pow(10, 18)).toString();
-    const feeAmpPrimary = 10;
-    const feeAmpComplement = 10;
-    pool = await upgrades.deployProxy(poolFactory, [
-      repricer.address,
-      protocol.address,
-      '0',
-      baseFee,
-      maxFee,
-      feeAmpPrimary,
-      feeAmpComplement,
-    ]);
-    await pool.deployed();
-    await (await volatility.approve(pool.address, '20000000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
-    await expectRevert(
-      pool.joinPool(
+    it('should swap the assets', async () => {
+      await (await volatility.approve(pool.address, '20000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
+      const joinReceipt = await pool.joinPool(
         '3000000000000000000000',
         ['20000000000000000000', '20000000000000000000'],
         owner
-      ),
-      'VolmexPool: Pool is not finalized'
-    );
-  });
+      );
+      await joinReceipt.wait();
+      await (await volatility.approve(pool.address, '3000000000000000000')).wait();
 
-  it('Should revert exit pool', async () => {
-    await expectRevert(
-      pool.exitPool('0', ['1000000000000000000', '1000000000000000000'], owner),
-      'VolmexPool: Invalid math approximation'
-    );
+      const swap = await pool.swapExactAmountIn(
+        volatility.address,
+        '3000000000000000000',
+        inverseVolatility.address,
+        '1000000000000000000',
+        owner,
+        false
+      );
+      const swapreceipt = await swap.wait();
+      expect(swapreceipt.confirmations).equal(1);
+    });
 
-    await expectRevert(
-      pool.exitPool(
-        '250000000000000000000',
-        ['2000000000000000000', '2000000000000000000'],
+    it('Should user exit liquidity from pool', async () => {
+      await (await volatility.approve(pool.address, '20000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
+      const joinReceipt = await pool.joinPool(
+        '3000000000000000000000',
+        ['20000000000000000000', '20000000000000000000'],
         owner
-      ),
-      'VolmexPool: Amount out limit exploit'
-    );
+      );
+      await joinReceipt.wait();
+
+      const exitReceipt = await pool.exitPool(
+        '1000000000000000000000',
+        ['1000000000000000000', '1000000000000000000'],
+        owner
+      );
+      await exitReceipt.wait();
+    });
+
+    it('Should volatility tokens', async () => {
+      expect(await pool.tokens(0)).to.equal(await protocol.volatilityToken());
+      expect(await pool.tokens(1)).to.equal(await protocol.inverseVolatilityToken());
+    });
+
+    it('Should return the token leverage', async () => {
+      let receipt = await pool.getLeverage(await protocol.volatilityToken());
+      expect(await receipt).not.equal(0);
+
+      receipt = await pool.getLeverage(await protocol.inverseVolatilityToken());
+      expect(await receipt).not.equal(0);
+    });
+
+    it('Should return the reserve of token', async () => {
+      let receipt = await pool.getBalance(await protocol.volatilityToken());
+      expect(await receipt).not.equal(0);
+
+      receipt = await pool.getBalance(await protocol.inverseVolatilityToken());
+      expect(await receipt).not.equal(0);
+    });
+
+    it('Should pause/unpause the tokens', async () => {
+      let receipt = await pool.pause();
+      expect(receipt.confirmations).equal(1);
+
+      receipt = await pool.unpause();
+      expect(receipt.confirmations).equal(1);
+    });
+
+    it('Should check the pool is finalized', async () => {
+      let receipt = await pool.finalized();
+      expect(receipt).to.be.true;
+    });
+
+    it('Should not finalized if balances are not same', async () => {
+      const qMin = (1 * Math.pow(10, 6)).toString();
+      const pMin = (0.01 * Math.pow(10, 18)).toString();
+      const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
+      const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
+      const leveragePrimary = '999996478162223000';
+      const leverageComplement = '1000003521850180000';
+      const MAX = '10000000000000000000000';
+      await expectRevert.unspecified(
+        pool.finalize(
+          '100000000000000000000',
+          leveragePrimary,
+          '1000000000000000000',
+          leverageComplement,
+          exposureLimitPrimary,
+          exposureLimitComplement,
+          pMin,
+          qMin
+        )
+      );
+    });
+
+    it('Should not finalized if pool is already finalized', async () => {
+      const qMin = (1 * Math.pow(10, 6)).toString();
+      const pMin = (0.01 * Math.pow(10, 18)).toString();
+      const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
+      const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
+      const leveragePrimary = '999996478162223000';
+      const leverageComplement = '1000003521850180000';
+      const MAX = '10000000000000000000000';
+      await expectRevert(
+        pool.finalize(
+          '1000000000000000000',
+          leveragePrimary,
+          '1000000000000000000',
+          leverageComplement,
+          exposureLimitPrimary,
+          exposureLimitComplement,
+          pMin,
+          qMin
+        ),
+        'VolmexPool: Pool is finalized'
+      );
+    });
+    it('Should not finalized if base fee is less than zero', async () => {
+      const baseFee = 0;
+      const qMin = (1 * Math.pow(10, 6)).toString();
+      const pMin = (0.01 * Math.pow(10, 18)).toString();
+      const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
+      const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
+      const leveragePrimary = '999996478162223000';
+      const leverageComplement = '1000003521850180000';
+      const MAX = '10000000000000000000000';
+      await expectRevert.unspecified(
+        pool.finalize(
+          '100000000000000000000',
+          leveragePrimary,
+          '1000000000000000000',
+          leverageComplement,
+          exposureLimitPrimary,
+          exposureLimitComplement,
+          pMin,
+          qMin
+        ),
+        'VolmexPool: baseFee should be larger than 0'
+      );
+    });
+
+    it('Should not swap if protocol is settled', async () => {
+      await protocol.settle(150);
+
+      await expectRevert(
+        pool.swapExactAmountIn(
+          volatility.address,
+          '3000000000000000000',
+          inverseVolatility.address,
+          '1000000000000000000',
+          owner,
+          false
+        ),
+        'VolmexPool: Protocol is settled'
+      );
+    });
+
+    it('Should revert when finalize call', async () => {
+      const qMin = (1 * Math.pow(10, 6)).toString();
+      const pMin = (0.01 * Math.pow(10, 18)).toString();
+      const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
+      const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
+      const leveragePrimary = '999996478162223000';
+      const leverageComplement = '1000003521850180000';
+
+      await expectRevert(
+        pool.finalize(
+          '1000000000000000000',
+          leveragePrimary,
+          '1000000000000000000',
+          leverageComplement,
+          exposureLimitPrimary,
+          exposureLimitComplement,
+          pMin,
+          qMin
+        ),
+        'VolmexPool: Pool is finalized'
+      );
+    });
+
+    it('Should revert join pool', async () => {
+      await (await volatility.approve(pool.address, '20000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
+      await expectRevert(
+        pool.joinPool('0', ['20000000000000000000', '20000000000000000000'], owner),
+        'VolmexPool: Invalid math approximation'
+      );
+
+      await expectRevert(
+        pool.joinPool(
+          '3000000000000000000000',
+          ['2000000000000000000', '2000000000000000000'],
+          owner
+        ),
+        'VolmexPool: Amount in limit exploit'
+      );
+    });
+
+    it('Should revert if pool is not finalized', async () => {
+      const baseFee = (0.02 * Math.pow(10, 18)).toString();
+      const maxFee = (0.4 * Math.pow(10, 18)).toString();
+      const feeAmpPrimary = 10;
+      const feeAmpComplement = 10;
+      pool = await upgrades.deployProxy(poolFactory, [
+        repricer.address,
+        protocol.address,
+        '0',
+        baseFee,
+        maxFee,
+        feeAmpPrimary,
+        feeAmpComplement,
+      ]);
+      await pool.deployed();
+      await (await volatility.approve(pool.address, '20000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
+      await expectRevert(
+        pool.joinPool(
+          '3000000000000000000000',
+          ['20000000000000000000', '20000000000000000000'],
+          owner
+        ),
+        'VolmexPool: Pool is not finalized'
+      );
+    });
+
+    it('Should revert exit pool', async () => {
+      await expectRevert(
+        pool.exitPool('0', ['1000000000000000000', '1000000000000000000'], owner),
+        'VolmexPool: Invalid math approximation'
+      );
+
+      await expectRevert(
+        pool.exitPool(
+          '250000000000000000000',
+          ['2000000000000000000', '2000000000000000000'],
+          owner
+        ),
+        'VolmexPool: Amount out limit exploit'
+      );
+    });
+
+    it('Should revert swap', async () => {
+      await (await volatility.approve(pool.address, '3000000000000000000')).wait();
+      await expectRevert(
+        pool.swapExactAmountIn(
+          volatility.address,
+          '3000000000000000000',
+          volatility.address,
+          '1000000000000000000',
+          owner,
+          false
+        ),
+        'VolmexPool: Passed same token addresses'
+      );
+
+      await (await volatility.approve(pool.address, '3000000000000000000')).wait();
+      await expectRevert(
+        pool.swapExactAmountIn(
+          volatility.address,
+          '10000',
+          inverseVolatility.address,
+          '1000000000000000000',
+          owner,
+          false
+        ),
+        'VolmexPool: Amount in quantity should be larger'
+      );
+
+      await (await volatility.approve(pool.address, '6599999999999998746')).wait();
+      await expectRevert(
+        pool.swapExactAmountIn(
+          volatility.address,
+          '65999999999999987460',
+          inverseVolatility.address,
+          '1000000000000000000',
+          owner,
+          false
+        ),
+        'VolmexPool: Amount in max ratio exploit'
+      );
+    });
+
+    it('Should revert on limit out', async () => {
+      await (await volatility.approve(pool.address, '20000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
+      const joinReceipt = await pool.joinPool(
+        '3000000000000000000000',
+        ['20000000000000000000', '20000000000000000000'],
+        owner
+      );
+      await joinReceipt.wait();
+
+      await (await volatility.approve(pool.address, '3000000000000000000')).wait();
+      await expectRevert(
+        pool.swapExactAmountIn(
+          volatility.address,
+          '3000000000000000000',
+          inverseVolatility.address,
+          '3000000000000000000',
+          owner,
+          false
+        ),
+        'VolmexPool: Amount out limit exploit'
+      );
+    });
+
+    it('Should revert require boundary exposure', async () => {
+      await (await volatility.approve(pool.address, '18000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '18000000000000000000')).wait();
+      const joinReceipt = await pool.joinPool(
+        '4000000000000000000000',
+        ['18000000000000000000', '18000000000000000000'],
+        owner
+      );
+      await joinReceipt.wait();
+
+      await (await volatility.approve(pool.address, '8000000000000000000')).wait();
+      await expectRevert(
+        pool.swapExactAmountIn(
+          volatility.address,
+          '8000000000000000000',
+          inverseVolatility.address,
+          '1000000000000000000',
+          owner,
+          false
+        ),
+        'VolmexPool: Exposure boundary'
+      );
+    });
   });
 
-  it('Should revert swap', async () => {
-    await (await volatility.approve(pool.address, '3000000000000000000')).wait();
-    await expectRevert(
-      pool.swapExactAmountIn(
-        volatility.address,
-        '3000000000000000000',
-        volatility.address,
-        '1000000000000000000',
-        owner,
-        false
-      ),
-      'VolmexPool: Passed same token addresses'
-    );
+  describe('Flash loan', () => {
+    this.beforeEach(async () => {
+      flashLoanInstance = await flashLoanFactory.deploy(pool.address);
+      await flashLoanInstance.deployed();
 
-    await (await volatility.approve(pool.address, '3000000000000000000')).wait();
-    await expectRevert(
-      pool.swapExactAmountIn(
-        volatility.address,
-        '100000',
-        inverseVolatility.address,
-        '1000000000000000000',
-        owner,
-        false
-      ),
-      'VolmexPool: Amount in quantity should be larger'
-    );
+      await (await volatility.approve(pool.address, '28000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '28000000000000000000')).wait();
 
-    await (await volatility.approve(pool.address, '6599999999999998746')).wait();
-    await expectRevert(
-      pool.swapExactAmountIn(
-        volatility.address,
-        '6599999999999998746',
-        inverseVolatility.address,
-        '1000000000000000000',
-        owner,
-        false
-      ),
-      'VolmexPool: Amount in max ratio exploit'
-    );
-  });
+      const join = await pool.joinPool(
+        '7000000000000000000000',
+        ['28000000000000000000', '28000000000000000000'],
+        owner
+      );
+      await join.wait();
+    });
 
-  it('Should revert on limit out', async () => {
-    await (await volatility.approve(pool.address, '20000000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '20000000000000000000')).wait();
-    const joinReceipt = await pool.joinPool(
-      '3000000000000000000000',
-      ['20000000000000000000', '20000000000000000000'],
-      owner
-    );
-    await joinReceipt.wait();
+    it('Should flash loan', async () => {
+      await (await volatility.transfer(flashLoanInstance.address, '90000000000000000')).wait();
+      await (await pool.setControllerWithoutCheck(flashLoanInstance.address)).wait();
 
-    await (await volatility.approve(pool.address, '3000000000000000000')).wait();
-    await expectRevert(
-      pool.swapExactAmountIn(
-        volatility.address,
-        '3000000000000000000',
-        inverseVolatility.address,
-        '3000000000000000000',
-        owner,
-        false
-      ),
-      'VolmexPool: Amount out limit exploit'
-    );
-  });
+      const flashLoan = await flashLoanInstance.flashLoan(volatility.address);
+      const {events} = await flashLoan.wait();
+    });
 
-  it('Should revert require boundary exposure', async () => {
-    await (await volatility.approve(pool.address, '16000000000000000000')).wait();
-    await (await inverseVolatility.approve(pool.address, '16000000000000000000')).wait();
-    const joinReceipt = await pool.joinPool(
-      '4000000000000000000000',
-      ['16000000000000000000', '16000000000000000000'],
-      owner
-    );
-    await joinReceipt.wait();
+    it('Should revert for invalid receiver', async () => {
+      const flashLoanMock = await ethers.getContractFactory('FlashLoanMock');
+      const flashLoan = await flashLoanMock.deploy(pool.address);
+      await (await pool.setControllerWithoutCheck(flashLoan.address)).wait();
 
-    await (await volatility.approve(pool.address, '8000000000000000000')).wait();
-    await expectRevert(
-      pool.swapExactAmountIn(
-        volatility.address,
-        '8000000000000000000',
-        inverseVolatility.address,
-        '1000000000000000000',
-        owner,
-        false
-      ),
-      'VolmexPool: Exposure boundary'
-    );
+      await expectRevert(
+        flashLoan.flashLoan(volatility.address),
+        'VolmexPool: Invalid flash loan executor'
+      );
+    });
   });
 });

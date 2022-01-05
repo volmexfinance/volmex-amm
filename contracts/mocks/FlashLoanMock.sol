@@ -2,11 +2,9 @@
 
 pragma solidity =0.8.11;
 
-import '../interfaces/IFlashLoanReceiver.sol';
-import '../maths/Num.sol';
 import '../interfaces/IVolmexPool.sol';
 
-contract FlashLoanExample is Num {
+contract FlashLoanMock {
     address public pool;
 
     constructor(address _pool) {
@@ -35,7 +33,7 @@ contract FlashLoanExample is Num {
         uint256 amountOwing = amount + premium;
         IERC20Modified(asset).approve(pool, amountOwing);
 
-        return true;
+        return false;
     }
 
     function flashLoan(address _assetToken) external {

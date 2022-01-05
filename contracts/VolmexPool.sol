@@ -301,7 +301,7 @@ contract VolmexPool is
         uint256 premium = _div(_mul(_amount, flashLoanPremium), 10000);
 
         require(
-            receiver.executeOperation(_assetToken, _amount, premium, _receiverAddress, _params),
+            receiver.executeOperation(_assetToken, _amount, premium, _params),
             'VolmexPool: Invalid flash loan executor'
         );
 
