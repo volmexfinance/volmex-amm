@@ -280,7 +280,7 @@ describe('VolmexController', function () {
     expect(controllerReceipt.confirmations).not.equal(0);
   });
 
-  xdescribe('Pool method - setController', function () {
+  describe('Pool method - setController', function () {
     it('Should set for ETH pool', async () => {
       const set = await pools['ETH'].setController(controller.address);
       const { events } = await set.wait();
@@ -629,7 +629,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('Swaps using USDC collateral', function () {
+  describe('Swaps using USDC collateral', function () {
     this.beforeEach(async function () {
       const MAX = '100000000000000000000';
       await (await collateral['USDC'].mint(owner, MAX)).wait();
@@ -792,7 +792,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('Add Pools, Stablecoins and Protocols', function () {
+  describe('Add Pools, Stablecoins and Protocols', function () {
     it('Should add pool', async () => {
       const baseFee = (0.02 * Math.pow(10, 18)).toString();
       const maxFee = (0.4 * Math.pow(10, 18)).toString();
@@ -923,7 +923,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('Pool pause and unpause', () => {
+  describe('Pool pause and unpause', () => {
     it('Should pause the pool', async () => {
       await (await controller.pausePool(pools['ETH'].address)).wait();
 
@@ -938,7 +938,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('sweep remaining pool amount', () => {
+  describe('sweep remaining pool amount', () => {
     it('Should collect the pool token', async () => {
       const poolBalance = await pools['ETH'].balanceOf(controller.address);
       const collect = await controller.collect(pools['ETH'].address);
@@ -950,7 +950,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('Require check reverts', () => {
+  describe('Require check reverts', () => {
     const zeroAddress = '0x0000000000000000000000000000000000000000';
     let controllerParam: any
 
@@ -1161,7 +1161,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('VolmexPoolView', () => {
+  describe('VolmexPoolView', () => {
     it('getPoolInfo', async () => {
       await poolView.getPoolInfo(pools['ETH'].address, owner);
     });
@@ -1195,7 +1195,7 @@ describe('VolmexController', function () {
     });
   });
 
-  xdescribe('Flash loan', () => {
+  describe('Flash loan', () => {
     let flashLoanInstance: any;
     this.beforeEach(async () => {
       const flashLoanFactory = await ethers.getContractFactory('FlashLoanExample');
