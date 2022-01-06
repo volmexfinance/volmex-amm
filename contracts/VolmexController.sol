@@ -485,12 +485,18 @@ contract VolmexController is
             protocolAmounts[1]
         );
 
+        _approveAssets(
+            IERC20Modified(poolOutTokenIn),
+            protocolAmounts[1],
+            address(this),
+            address(this)
+        );
         (tokenAmounts[1], fees[1]) = _pool.swapExactAmountIn(
             poolOutTokenIn,
             protocolAmounts[1],
             _tokens[1],
             tokenAmounts[1],
-            msg.sender,
+            address(this),
             true
         );
 
