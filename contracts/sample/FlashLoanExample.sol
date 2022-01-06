@@ -10,7 +10,8 @@ import '../interfaces/IVolmexPool.sol';
 import '../interfaces/IVolmexController.sol';
 
 contract FlashLoanExample is Num, ERC165Storage, IFlashLoanReceiver {
-    bytes4 private constant _IFlashLoan_Receiver_ID = 0xee872558;
+    // Interface ID of FlashLoanExample constract, hashId = 0xee872558
+    bytes4 private constant _IFlashLoan_Receiver_ID = type(IFlashLoanReceiver).interfaceId;
 
     address public pool;
     address public controller;

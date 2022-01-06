@@ -14,8 +14,8 @@ import '../interfaces/IVolmexOracle.sol';
 contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOracle {
     // price precision constant upto 6 decimal places
     uint256 private constant _VOLATILITY_PRICE_PRECISION = 1000000;
-    // Interface ID of VolmexOracle contract
-    bytes4 private constant _IVOLMEX_ORACLE_ID = 0xf9fffc9f;
+    // Interface ID of VolmexOracle contract, hashId = 0xf9fffc9f
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
 
     // Store the price of volatility by indexes { 0 - ETHV, 1 = BTCV }
     mapping(uint256 => uint256) private _volatilityTokenPriceByIndex;

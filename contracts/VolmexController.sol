@@ -27,14 +27,14 @@ contract VolmexController is
     Const,
     IVolmexController
 {
-    // Interface ID of VolmexController contract
-    bytes4 private constant _IVOLMEX_CONTROLLER_ID = 0xe8f8535b;
-    // Interface ID of VolmexOracle contract
-    bytes4 private constant _IVOLMEX_ORACLE_ID = 0xf9fffc9f;
-    // Interface ID of VolmexPool contract
-    bytes4 private constant _IVOLMEX_POOL_ID = 0x71e45f88;
-    // Interface ID of FlashLoanReceiver contract
-    bytes4 private constant _IFlashLoan_Receiver_ID = 0xee872558;
+    // Interface ID of VolmexController contract, hashId  = 0xe8f8535b
+    bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
+    // Interface ID of VolmexOracle contract, hashId = 0xf9fffc9f
+    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
+    // Interface ID of VolmexPool contract, hashId = 0x71e45f88
+    bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
+    // Interface ID of FlashLoanReceiver contract, hashId = 0xee872558
+    bytes4 private constant _IFlashLoan_Receiver_ID = type(IFlashLoanReceiver).interfaceId;
 
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
