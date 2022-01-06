@@ -8,7 +8,8 @@ import '../interfaces/IFlashLoanReceiver.sol';
 import '../interfaces/IVolmexPool.sol';
 
 contract FlashLoanMock is ERC165Storage, IFlashLoanReceiver {
-    bytes4 private constant _IFlashLoan_Receiver_ID = 0xee872558;
+    // Interface Id of FlashLoanReceiver contract, hashId = 0xee872558 
+    bytes4 private constant _IFlashLoan_Receiver_ID = type(IFlashLoanReceiver).interfaceId;
 
     address public pool;
 
