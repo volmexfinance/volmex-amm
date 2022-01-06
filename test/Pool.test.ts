@@ -25,6 +25,8 @@ describe('VolmexPool', function () {
   let zeroAddress: any;
   let flashLoanFactory: any;
   let flashLoanInstance: any;
+  let protocolFactoryPrecision: any;
+  let protocolPrecision: any;
 
   this.beforeAll(async function () {
     accounts = await ethers.getSigners();
@@ -40,6 +42,8 @@ describe('VolmexPool', function () {
     volatilityFactory = await ethers.getContractFactory('VolmexPositionToken');
 
     protocolFactory = await ethers.getContractFactory('VolmexProtocol');
+
+    protocolFactoryPrecision = await ethers.getContractFactory('VolmexProtocolWithPrecision');
 
     controllerFactory = await ethers.getContractFactory('VolmexController');
 
@@ -227,6 +231,57 @@ describe('VolmexPool', function () {
         ),
         'VolmexPool: baseFee should be larger than 0'
       );
+    });
+
+    it('USDC collateral', async () => {
+      const collateralUSDC = await collateralFactory.deploy('USDC', '10000000000000', 6);
+      await collateralUSDC.deployed();
+      const precision = await upgrades.deployProxy(
+        protocolFactoryPrecision,
+        [
+          `${collateralUSDC.address}`,
+          `${volatility.address}`,
+          `${inverseVolatility.address}`,
+          '25000000',
+          '250',
+          '1000000000000',
+        ],
+        {
+          initializer: 'initializePrecision',
+        }
+      );
+      await precision.deployed();
+
+      const pool = await upgrades.deployProxy(poolFactory, [
+        repricer.address,
+        precision.address,
+        '1',
+        baseFee,
+        maxFee,
+        feeAmpPrimary,
+        feeAmpComplement,
+      ]);
+      await pool.deployed();
+      await (await pool.setControllerWithoutCheck(owner)).wait();
+
+      const MAX = '1000000000000000000000000';
+      await (await collateral.mint(owner, MAX)).wait();
+      await (await collateral.approve(protocol.address, MAX)).wait();
+      await (await protocol.collateralize(MAX)).wait();
+
+      await (await volatility.approve(pool.address, '1000000000000000000')).wait();
+      await (await inverseVolatility.approve(pool.address, '1000000000000000000')).wait();
+
+      await (await pool.finalize(
+        '1000000000000000000',
+        leveragePrimary,
+        '1000000000000000000',
+        leverageComplement,
+        exposureLimitPrimary,
+        exposureLimitComplement,
+        pMin,
+        qMin
+      )).wait();
     });
   });
 
