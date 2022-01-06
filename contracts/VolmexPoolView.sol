@@ -16,7 +16,7 @@ import './interfaces/IPausablePool.sol';
  */
 contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
     // Interface ID of VolmexPoolView contract
-    bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
+    bytes4 private constant _IVOLMEX_POOLVIEW_ID = 0x45ea1e36;
 
     function initialize() external initializer {
         __ERC165Storage_init();
