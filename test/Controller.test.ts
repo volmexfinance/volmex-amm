@@ -42,6 +42,9 @@ describe('VolmexController', function () {
   let controller: any;
   let poolViewFactory: any;
   let poolView: any;
+  let lpHolder: string;
+  let swapper1: string;
+  let swapper2: string;
 
   const collaterals = ['DAI', 'USDC'];
   const volatilitys = ['ETH', 'BTC'];
@@ -185,6 +188,9 @@ describe('VolmexController', function () {
     const feeAmpPrimary = 10;
     const feeAmpComplement = 10;
     owner = await accounts[0].getAddress();
+    lpHolder = accounts[1];
+    swapper1 = accounts[2];
+    swapper2 = accounts[3];
 
     const qMin = (1 * Math.pow(10, 6)).toString();
     const pMin = (0.01 * Math.pow(10, 18)).toString();
@@ -274,7 +280,7 @@ describe('VolmexController', function () {
     expect(controllerReceipt.confirmations).not.equal(0);
   });
 
-  describe('Pool method - setController', function () {
+  xdescribe('Pool method - setController', function () {
     it('Should set for ETH pool', async () => {
       const set = await pools['ETH'].setController(controller.address);
       const { events } = await set.wait();
@@ -321,30 +327,62 @@ describe('VolmexController', function () {
   });
 
   describe('Swaps, liquidity - add & remove', function () {
+    let lp: string;
+    let swap1: string;
+    let swap2: string;
+    this.beforeEach(async () => {
+      const collateralTokens = '100000000000000000000000000000000';
+      const volatilityTokens = '100000000000000000000000000';
+
+      lp = await lpHolder.getAddress();
+      swap1 = await swapper1.getAddress();
+      swap2 = await swapper2.getAddress();
+
+      await (await collateral['DAI'].mint(lp, collateralTokens)).wait();
+      await (await collateral['DAI'].connect(lpHolder).approve(protocols['ETHVDAI'].address, volatilityTokens)).wait();
+      await (await collateral['DAI'].connect(lpHolder).approve(protocols['BTCVDAI'].address, volatilityTokens)).wait();
+      await (await protocols['ETHVDAI'].connect(lpHolder).collateralize(volatilityTokens)).wait();
+      await (await protocols['BTCVDAI'].connect(lpHolder).collateralize(volatilityTokens)).wait();
+
+      await (await collateral['DAI'].mint(swap1, collateralTokens)).wait();
+      await (await collateral['DAI'].connect(swapper1).approve(protocols['ETHVDAI'].address, volatilityTokens)).wait();
+      await (await collateral['DAI'].connect(swapper1).approve(protocols['BTCVDAI'].address, volatilityTokens)).wait();
+      await (await protocols['ETHVDAI'].connect(swapper1).collateralize(volatilityTokens)).wait();
+      await (await protocols['BTCVDAI'].connect(swapper1).collateralize(volatilityTokens)).wait();
+
+      await (await collateral['DAI'].mint(swap2, collateralTokens)).wait();
+      await (await collateral['DAI'].connect(swapper2).approve(protocols['ETHVDAI'].address, volatilityTokens)).wait();
+      await (await collateral['DAI'].connect(swapper2).approve(protocols['BTCVDAI'].address, volatilityTokens)).wait();
+      await (await protocols['ETHVDAI'].connect(swapper2).collateralize(volatilityTokens)).wait();
+      await (await protocols['BTCVDAI'].connect(swapper2).collateralize(volatilityTokens)).wait();
+    });
     it('Should swap volatility tokens', async () => {
+      const poolAmountOut = '150000000000000000000000';
+      const amountsIn = await poolView.getTokensToJoin(pools['ETH'].address, poolAmountOut);
+
       await (
-        await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        await volatilities['ETH'].connect(lpHolder).approve(controller.address, amountsIn[0].toString())
       ).wait();
       await (
-        await inverseVolatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        await inverseVolatilities['ETH'].connect(lpHolder).approve(controller.address, amountsIn[0].toString())
       ).wait();
 
-      const add = await controller.addLiquidity(
-        '250000000000000000000000000',
-        ['599999999000000000000000000', '599999999000000000000000000'],
+      const add = await controller.connect(lpHolder).addLiquidity(
+        poolAmountOut,
+        [amountsIn[0].toString(), amountsIn[0].toString()],
         '0'
       );
       await add.wait();
 
-      const amountOut = await pools['ETH'].getTokenAmountOut(
+      const amountOut = await pools['ETH'].connect(swapper2).getTokenAmountOut(
         volatilities['ETH'].address,
         '20000000000000000000'
       );
 
-      await (await volatilities['ETH'].approve(controller.address, '20000000000000000000')).wait();
+      await (await volatilities['ETH'].connect(swapper2).approve(controller.address, '20000000000000000000')).wait();
 
-      const balanceBefore = await inverseVolatilities['ETH'].balanceOf(owner);
-      const swap = await controller.swap(
+      const balanceBefore = await inverseVolatilities['ETH'].balanceOf(swap2);
+      const swap = await controller.connect(swapper2).swap(
         0,
         volatilities['ETH'].address,
         '20000000000000000000',
@@ -353,7 +391,7 @@ describe('VolmexController', function () {
       );
       await swap.wait();
 
-      const balanceAfter = await inverseVolatilities['ETH'].balanceOf(owner);
+      const balanceAfter = await inverseVolatilities['ETH'].balanceOf(swap2);
 
       const changedBalance = balanceAfter.sub(balanceBefore);
 
@@ -361,37 +399,40 @@ describe('VolmexController', function () {
     });
 
     it('Should swap collateral to volatility', async () => {
+      const poolAmountOut = '150000000000000000000000';
+      const amountsIn = await poolView.getTokensToJoin(pools['ETH'].address, poolAmountOut);
+
       await (
-        await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        await volatilities['ETH'].connect(lpHolder).approve(controller.address, amountsIn[0].toString())
       ).wait();
       await (
-        await inverseVolatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        await inverseVolatilities['ETH'].connect(lpHolder).approve(controller.address, amountsIn[0].toString())
       ).wait();
 
-      const add = await controller.addLiquidity(
-        '250000000000000000000000000',
-        ['599999999000000000000000000', '599999999000000000000000000'],
+      const add = await controller.connect(lpHolder).addLiquidity(
+        poolAmountOut,
+        [amountsIn[0].toString(), amountsIn[0].toString()],
         '0'
       );
       await add.wait();
 
       await (await pools['ETH'].reprice()).wait();
-      const volAmount = await controller.getCollateralToVolatility(
+      const volAmount = await controller.connect(swapper2).getCollateralToVolatility(
         '1500000000000000000000',
         volatilities['ETH'].address,
         [0, 0]
       );
 
-      await (await collateral['DAI'].approve(controller.address, '1500000000000000000000')).wait();
-      const balanceBefore = await volatilities['ETH'].balanceOf(owner);
+      await (await collateral['DAI'].connect(swapper2).approve(controller.address, '1500000000000000000000')).wait();
+      const balanceBefore = await volatilities['ETH'].balanceOf(swap2);
 
-      const swap = await controller.swapCollateralToVolatility(
+      const swap = await controller.connect(swapper2).swapCollateralToVolatility(
         ['1500000000000000000000', volAmount[0].toString()],
         volatilities['ETH'].address,
         [0, 0]
       );
       const { events } = await swap.wait();
-      const balanceAfter = await volatilities['ETH'].balanceOf(owner);
+      const balanceAfter = await volatilities['ETH'].balanceOf(swap2);
 
       const logData = getEventLog(events, 'CollateralSwapped', [
         'uint256',
@@ -406,38 +447,41 @@ describe('VolmexController', function () {
     });
 
     it('Should swap volatility to collateral', async () => {
+      const poolAmountOut = '150000000000000000000000';
+      const amountsIn = await poolView.getTokensToJoin(pools['ETH'].address, poolAmountOut);
+
       await (
-        await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        await volatilities['ETH'].connect(lpHolder).approve(controller.address, amountsIn[0].toString())
       ).wait();
       await (
-        await inverseVolatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        await inverseVolatilities['ETH'].connect(lpHolder).approve(controller.address, amountsIn[0].toString())
       ).wait();
 
-      const add = await controller.addLiquidity(
-        '250000000000000000000000000',
-        ['599999999000000000000000000', '599999999000000000000000000'],
+      const add = await controller.connect(lpHolder).addLiquidity(
+        poolAmountOut,
+        [amountsIn[0].toString(), amountsIn[0].toString()],
         '0'
       );
       await add.wait();
 
       await (await pools['ETH'].reprice()).wait();
-      const colAmount = await controller.getVolatilityToCollateral(
+      const colAmount = await controller.connect(swapper1).getVolatilityToCollateral(
         volatilities['ETH'].address,
         '20000000000000000000',
         [0, 0],
         false
       );
 
-      await (await volatilities['ETH'].approve(controller.address, '20000000000000000000')).wait();
-      const collateralBefore = await collateral['DAI'].balanceOf(owner);
+      await (await volatilities['ETH'].connect(swapper1).approve(controller.address, '20000000000000000000')).wait();
+      const collateralBefore = await collateral['DAI'].balanceOf(swap1);
 
-      const swap = await controller.swapVolatilityToCollateral(
+      const swap = await controller.connect(swapper1).swapVolatilityToCollateral(
         ['20000000000000000000', colAmount[0].toString()],
         ['0', '0'],
         volatilities['ETH'].address
       );
       const { events } = await swap.wait();
-      const collateralAfter = await collateral['DAI'].balanceOf(owner);
+      const collateralAfter = await collateral['DAI'].balanceOf(swap1);
 
       const changedBalance = collateralAfter.sub(collateralBefore);
 
@@ -452,46 +496,50 @@ describe('VolmexController', function () {
     });
 
     it('Should swap between multiple pools', async () => {
+      const poolAmountOut = '150000000000000000000000';
+      const amountsIn = await poolView.getTokensToJoin(pools['ETH'].address, poolAmountOut);
+
       await (
-        await volatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        await volatilities['ETH'].connect(lpHolder).approve(controller.address, amountsIn[0].toString())
       ).wait();
       await (
-        await inverseVolatilities['ETH'].approve(controller.address, '599999999000000000000000000')
+        await inverseVolatilities['ETH'].connect(lpHolder).approve(controller.address, amountsIn[1].toString())
       ).wait();
 
-      const addEth = await controller.addLiquidity(
-        '250000000000000000000000000',
-        ['599999999000000000000000000', '599999999000000000000000000'],
+      const add = await controller.connect(lpHolder).addLiquidity(
+        poolAmountOut,
+        [amountsIn[0].toString(), amountsIn[1].toString()],
         '0'
       );
-      await addEth.wait();
+      await add.wait();
 
+      amountsIn = await poolView.getTokensToJoin(pools['ETH'].address, poolAmountOut);
       await (
-        await volatilities['BTC'].approve(controller.address, '599999999000000000000000000')
+        await volatilities['BTC'].connect(lpHolder).approve(controller.address, amountsIn[0].toString())
       ).wait();
       await (
-        await inverseVolatilities['BTC'].approve(controller.address, '599999999000000000000000000')
+        await inverseVolatilities['BTC'].connect(lpHolder).approve(controller.address, amountsIn[1].toString())
       ).wait();
 
-      const addBtc = await controller.addLiquidity(
-        '250000000000000000000000000',
-        ['599999999000000000000000000', '599999999000000000000000000'],
+      const addBtc = await controller.connect(lpHolder).addLiquidity(
+        poolAmountOut,
+        [amountsIn[0].toString(), amountsIn[1].toString()],
         '1'
       );
       await addBtc.wait();
 
       await (await pools['ETH'].reprice()).wait();
       await (await pools['BTC'].reprice()).wait();
-      const volAmountOut = await controller.getSwapAmountBetweenPools(
+      const volAmountOut = await controller.connect(swapper1).getSwapAmountBetweenPools(
         [volatilities['ETH'].address, volatilities['BTC'].address],
         '20000000000000000000',
         [0, 1, 0]
       );
 
-      await (await volatilities['ETH'].approve(controller.address, '20000000000000000000')).wait();
+      await (await volatilities['ETH'].connect(swapper1).approve(controller.address, '20000000000000000000')).wait();
 
-      const balanceBefore = await volatilities['BTC'].balanceOf(owner);
-      const swap = await controller.swapBetweenPools(
+      const balanceBefore = await volatilities['BTC'].balanceOf(swap1);
+      const swap = await controller.connect(swapper1).swapBetweenPools(
         [volatilities['ETH'].address, volatilities['BTC'].address],
         ['20000000000000000000', volAmountOut[0].toString()],
         [0, 1, 0]
@@ -504,7 +552,7 @@ describe('VolmexController', function () {
         'uint256',
         'address',
       ]);
-      const balanceAfter = await volatilities['BTC'].balanceOf(owner);
+      const balanceAfter = await volatilities['BTC'].balanceOf(swap1);
 
       const changedBalance = balanceAfter.sub(balanceBefore);
 
@@ -581,7 +629,7 @@ describe('VolmexController', function () {
     });
   });
 
-  describe('Swaps using USDC collateral', function () {
+  xdescribe('Swaps using USDC collateral', function () {
     this.beforeEach(async function () {
       const MAX = '100000000000000000000';
       await (await collateral['USDC'].mint(owner, MAX)).wait();
@@ -744,7 +792,7 @@ describe('VolmexController', function () {
     });
   });
 
-  describe('Add Pools, Stablecoins and Protocols', function () {
+  xdescribe('Add Pools, Stablecoins and Protocols', function () {
     it('Should add pool', async () => {
       const baseFee = (0.02 * Math.pow(10, 18)).toString();
       const maxFee = (0.4 * Math.pow(10, 18)).toString();
@@ -875,7 +923,7 @@ describe('VolmexController', function () {
     });
   });
 
-  describe('Pool pause and unpause', () => {
+  xdescribe('Pool pause and unpause', () => {
     it('Should pause the pool', async () => {
       await (await controller.pausePool(pools['ETH'].address)).wait();
 
@@ -890,7 +938,7 @@ describe('VolmexController', function () {
     });
   });
 
-  describe('sweep remaining pool amount', () => {
+  xdescribe('sweep remaining pool amount', () => {
     it('Should collect the pool token', async () => {
       const poolBalance = await pools['ETH'].balanceOf(controller.address);
       const collect = await controller.collect(pools['ETH'].address);
@@ -902,7 +950,7 @@ describe('VolmexController', function () {
     });
   });
 
-  describe('Require check reverts', () => {
+  xdescribe('Require check reverts', () => {
     const zeroAddress = '0x0000000000000000000000000000000000000000';
     let controllerParam: any
 
@@ -1113,7 +1161,7 @@ describe('VolmexController', function () {
     });
   });
 
-  describe('VolmexPoolView', () => {
+  xdescribe('VolmexPoolView', () => {
     it('getPoolInfo', async () => {
       await poolView.getPoolInfo(pools['ETH'].address, owner);
     });
@@ -1147,7 +1195,7 @@ describe('VolmexController', function () {
     });
   });
 
-  describe('Flash loan', () => {
+  xdescribe('Flash loan', () => {
     let flashLoanInstance: any;
     this.beforeEach(async () => {
       const flashLoanFactory = await ethers.getContractFactory('FlashLoanExample');

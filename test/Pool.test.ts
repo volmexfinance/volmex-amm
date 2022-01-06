@@ -218,14 +218,14 @@ describe('VolmexPool', function () {
         pool.finalize(
           '1000000000000000000',
           leveragePrimary,
-          '10000000000000000000',
+          '1000000000000000000',
           leverageComplement,
           exposureLimitPrimary,
           exposureLimitComplement,
           pMin,
           qMin
         ),
-        'VolmexPool: Assets balance should be same'
+        'VolmexPool: baseFee should be larger than 0'
       );
     });
   });
@@ -237,6 +237,9 @@ describe('VolmexPool', function () {
     });
 
     it('should not update flashloan premium if it is greter than 1000', async () => {
+      await (await pool.updateFlashLoanPremium('1000')).wait();
+
+      expect((await pool.flashLoanPremium()).toString()).to.equal('1000')
       await expectRevert(
         pool.updateFlashLoanPremium('100000'),
         'VolmexPool: _premium value not in range'
