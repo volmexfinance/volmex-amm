@@ -56,7 +56,7 @@ describe('VolmexController', function () {
 
     volmexOracleFactory = await ethers.getContractFactory('VolmexOracle');
 
-    poolFactory = await ethers.getContractFactory('VolmexPoolMock');
+    poolFactory = await ethers.getContractFactory('VolmexPool');
 
     collateralFactory = await ethers.getContractFactory('TestCollateralToken');
 
@@ -220,29 +220,10 @@ describe('VolmexController', function () {
       );
       await pools[vol].deployed();
 
-      await (await pools[vol].setControllerWithoutCheck(owner)).wait();
 
       await (await collateral['DAI'].mint(owner, MAX)).wait();
       await (await collateral['DAI'].approve(protocols[type].address, MAX)).wait();
       await (await protocols[type].collateralize(MAX)).wait();
-
-      await (await volatilities[vol].approve(pools[vol].address, '1000000000000000000')).wait();
-      await (
-        await inverseVolatilities[vol].approve(pools[vol].address, '1000000000000000000')
-      ).wait();
-
-      await (
-        await pools[vol].finalize(
-          '1000000000000000000',
-          leveragePrimary,
-          '1000000000000000000',
-          leverageComplement,
-          exposureLimitPrimary,
-          exposureLimitComplement,
-          pMin,
-          qMin
-        )
-      ).wait();
     }
 
     let controllerParam = {
@@ -270,6 +251,39 @@ describe('VolmexController', function () {
 
     await (await pools['ETH'].setController(controller.address)).wait();
     await (await pools['BTC'].setController(controller.address)).wait();
+
+    await (await volatilities['ETH'].approve(controller.address, '1000000000000000000')).wait();
+    await (
+      await inverseVolatilities['ETH'].approve(controller.address, '1000000000000000000')
+    ).wait();
+    await (await volatilities['BTC'].approve(controller.address, '1000000000000000000')).wait();
+    await (
+      await inverseVolatilities['BTC'].approve(controller.address, '1000000000000000000')
+    ).wait();
+
+    await (await controller.finalizePool(
+      0,
+      '1000000000000000000',
+      leveragePrimary,
+      '1000000000000000000',
+      leverageComplement,
+      exposureLimitPrimary,
+      exposureLimitComplement,
+      pMin,
+      qMin
+    )).wait()
+
+    await (await controller.finalizePool(
+      1,
+      '1000000000000000000',
+      leveragePrimary,
+      '1000000000000000000',
+      leverageComplement,
+      exposureLimitPrimary,
+      exposureLimitComplement,
+      pMin,
+      qMin
+    )).wait()
 
     poolView = await upgrades.deployProxy(poolViewFactory, []);
     await poolView.deployed();
@@ -815,7 +829,7 @@ describe('VolmexController', function () {
       );
       let receipt = await pool.deployed();
       expect(receipt.confirmations).not.equal(0);
-      await (await pool.setControllerWithoutCheck(owner)).wait();
+      await (await pool.setController(controller.address)).wait();
 
       const addPool = await controller.addPool(pool.address);
       const { events } = await addPool.wait();
