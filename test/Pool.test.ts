@@ -1,6 +1,5 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require('hardhat');
-import { assert } from 'console';
 import { Signer } from 'ethers';
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 
@@ -26,7 +25,6 @@ describe('VolmexPool', function () {
   let flashLoanFactory: any;
   let flashLoanInstance: any;
   let protocolFactoryPrecision: any;
-  let protocolPrecision: any;
 
   this.beforeAll(async function () {
     accounts = await ethers.getSigners();
@@ -132,7 +130,8 @@ describe('VolmexPool', function () {
         exposureLimitPrimary,
         exposureLimitComplement,
         pMin,
-        qMin
+        qMin,
+        owner
       ),
       'VolmexPool: Assets balance should be same'
     );
@@ -145,7 +144,8 @@ describe('VolmexPool', function () {
       exposureLimitPrimary,
       exposureLimitComplement,
       pMin,
-      qMin
+      qMin,
+      owner
     );
     await finalizeReceipt.wait();
   });
@@ -217,6 +217,7 @@ describe('VolmexPool', function () {
         feeAmpComplement,
       ]);
       await pool.deployed();
+      await (await pool.setControllerWithoutCheck(owner)).wait();
 
       await expectRevert(
         pool.finalize(
@@ -227,7 +228,8 @@ describe('VolmexPool', function () {
           exposureLimitPrimary,
           exposureLimitComplement,
           pMin,
-          qMin
+          qMin,
+          owner
         ),
         'VolmexPool: baseFee should be larger than 0'
       );
@@ -280,7 +282,8 @@ describe('VolmexPool', function () {
         exposureLimitPrimary,
         exposureLimitComplement,
         pMin,
-        qMin
+        qMin,
+        owner
       )).wait();
     });
   });
@@ -543,7 +546,8 @@ describe('VolmexPool', function () {
           exposureLimitPrimary,
           exposureLimitComplement,
           pMin,
-          qMin
+          qMin,
+          owner
         )
       );
     });
@@ -565,7 +569,8 @@ describe('VolmexPool', function () {
           exposureLimitPrimary,
           exposureLimitComplement,
           pMin,
-          qMin
+          qMin,
+          owner
         ),
         'VolmexPool: Pool is finalized'
       );
@@ -588,7 +593,8 @@ describe('VolmexPool', function () {
           exposureLimitPrimary,
           exposureLimitComplement,
           pMin,
-          qMin
+          qMin,
+          owner
         ),
         'VolmexPool: baseFee should be larger than 0'
       );
@@ -627,7 +633,8 @@ describe('VolmexPool', function () {
           exposureLimitPrimary,
           exposureLimitComplement,
           pMin,
-          qMin
+          qMin,
+          owner
         ),
         'VolmexPool: Pool is finalized'
       );
@@ -817,6 +824,81 @@ describe('VolmexPool', function () {
         flashLoan.flashLoan(volatility.address),
         'VolmexPool: Invalid flash loan executor'
       );
+    });
+  });
+
+  describe('Modifers', () => {
+    it('Should revert on not controller', async () => {
+      await expectRevert(
+        pool.connect(accounts[1]).joinPool(
+          '7000000000000000000000',
+          ['30000000000000000000', '30000000000000000000'],
+          await accounts[1].getAddress()
+        ),
+        'VolmexPool: Caller is not controller'
+      );
+    })
+  });
+
+  describe('Swap revert', () => {
+    let bytes32: string;
+    this.beforeEach(async () => {
+      bytes32 = '0x6c00000000000000000000000000000000000000000000000000000000000000'
+    }) 
+    it('Exposure boundary', async () => {
+      await (await volmexOracle.updateBatchVolatilityTokenPrice(
+        [0],
+        ['125000000'],
+        [bytes32]
+      )).wait();
+      const amountOut = await pool.getTokenAmountOut(volatility.address, '10000000000000000000');
+      await (await volatility.approve(pool.address, '10000000000000000000')).wait();
+      await expectRevert(
+        pool.swapExactAmountIn(
+          volatility.address,
+          '10000000000000000000',
+          inverseVolatility.address,
+          amountOut[0].toString(),
+          owner,
+          false
+        ),
+        'VolmexPool: Exposure boundary'
+      );
+    });
+
+    xit('Exposure boundary', async () => {
+      await (await volatility.approve(pool.address, '16000000000000000000')).wait();
+      
+      let amountOut = await pool.getTokenAmountOut(volatility.address, '8000000000000000000');
+      await (await pool.swapExactAmountIn(
+        volatility.address,
+        '8000000000000000000',
+        inverseVolatility.address,
+        amountOut[0].toString(),
+        owner,
+        false
+      )).wait();
+
+      amountOut = await pool.getTokenAmountOut(volatility.address, '8000000000000000000');
+      await (await pool.swapExactAmountIn(
+        volatility.address,
+        '8000000000000000000',
+        inverseVolatility.address,
+        amountOut[0].toString(),
+        owner,
+        false
+      )).wait();
+
+      amountOut = await pool.getTokenAmountOut(volatility.address, '7446944723135031082');
+
+      await (await pool.swapExactAmountIn(
+        volatility.address,
+        '14531453399216261402',
+        inverseVolatility.address,
+        amountOut[0].toString(),
+        owner,
+        false
+      )).wait();
     });
   });
 });
