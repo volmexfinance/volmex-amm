@@ -972,9 +972,9 @@ describe('VolmexPool', function () {
     });
 
     it('Name and symbol', async () => {
-      console.log(await pool.name());
-      console.log(await pool.symbol());
-      console.log(await pool.decimals());
+      await pool.name();
+      await pool.symbol();
+      await pool.decimals();
     });
   });
 });
