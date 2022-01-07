@@ -168,17 +168,14 @@ contract VolmexPool is
         require(address(_protocol) != address(0), "VolmexPool: protocol address can't be zero");
 
         repricer = _repricer;
-
         protocol = _protocol;
-
         upperBoundary = protocol.volatilityCapRatio() * BONE;
-
         volatilityIndex = _volatilityIndex;
-
         denomination = protocol.volatilityCapRatio();
-
         adminFee = 30;
         flashLoanPremium = 9;
+        tokens[0] = address(protocol.volatilityToken());
+        tokens[1] = address(protocol.inverseVolatilityToken());
 
         _setName(_makeTokenName(protocol.volatilityToken().name(), protocol.collateral().name()));
         _setSymbol(
@@ -243,8 +240,9 @@ contract VolmexPool is
         uint256 _exposureLimitPrimary,
         uint256 _exposureLimitComplement,
         uint256 _pMin,
-        uint256 _qMin
-    ) external logs lock onlyNotSettled onlyOwner {
+        uint256 _qMin,
+        address _receiver
+    ) external logs lock onlyNotSettled onlyController {
         require(!finalized, 'VolmexPool: Pool is finalized');
 
         require(
@@ -261,12 +259,17 @@ contract VolmexPool is
 
         finalized = true;
 
-        _bind(0, address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage);
         _bind(
-            1,
+            address(protocol.volatilityToken()),
+            _primaryBalance,
+            _primaryLeverage,
+            _receiver
+        );
+        _bind(
             address(protocol.inverseVolatilityToken()),
             _complementBalance,
-            _complementLeverage
+            _complementLeverage,
+            _receiver
         );
 
         uint256 initPoolSupply = denomination * _primaryBalance;
@@ -277,7 +280,7 @@ contract VolmexPool is
         }
 
         _mintPoolShare(initPoolSupply);
-        _pushPoolShare(msg.sender, initPoolSupply);
+        _pushPoolShare(_receiver, initPoolSupply);
     }
 
     /**
@@ -893,19 +896,17 @@ contract VolmexPool is
      * @dev This method will transfer the provided assets balance to pool from controller
      */
     function _bind(
-        uint256 _index,
         address _token,
         uint256 _balance,
-        uint256 _leverage
+        uint256 _leverage,
+        address _receiver
     ) private {
         require(_balance >= qMin, 'VolmexPool: Unsatisfied min balance supplied');
         require(_leverage > 0, 'VolmexPool: Token leverage should be greater than 0');
 
         records[_token] = Record({ leverage: _leverage, balance: _balance });
 
-        tokens[_index] = _token;
-
-        _pullUnderlying(_token, msg.sender, _balance);
+        _pullUnderlying(_token, _receiver, _balance);
     }
 
     // ==
