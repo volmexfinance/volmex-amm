@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../interfaces/IERC20Modified.sol";
-import "./library/VolmexSafeERC20.sol";
 
 /**
  * @title Protocol Contract
@@ -18,8 +17,6 @@ contract VolmexProtocol is
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable
 {
-    using VolmexSafeERC20 for IERC20Modified;
-
     event ToggleActivated(bool isActive);
     event UpdatedVolatilityToken(
         address indexed positionToken,

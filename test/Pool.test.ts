@@ -901,4 +901,80 @@ describe('VolmexPool', function () {
       )).wait();
     });
   });
+
+  describe('Pool token', () => {
+    let setAmount: string;
+    this.beforeEach(async () => {
+      setAmount = '10000000000000000000';
+    });
+
+    it('Approve the assets', async () => {
+      console.log(await pool.balanceOf(owner));
+
+      const beforeAllowance = await pool.allowance(owner, pool.address);
+      await (await pool.approve(pool.address, setAmount)).wait();
+      const afterAllowance = await pool.allowance(owner, pool.address);
+      const changedBalance = afterAllowance.sub(beforeAllowance);
+      expect(Number(changedBalance.toString())).to.equal(Number(setAmount))
+    });
+
+    it('Increase approval', async () => {
+      const beforeAllowance = await pool.allowance(owner, pool.address);
+      await (await pool.increaseApproval(pool.address, setAmount)).wait();
+      const afterAllowance = await pool.allowance(owner, pool.address);
+      const changedBalance = afterAllowance.sub(beforeAllowance);
+      expect(Number(changedBalance.toString())).to.equal(Number(setAmount))
+    });
+
+    it('Decrease approval', async () => {
+      await (await pool.approve(pool.address, setAmount)).wait();
+      const beforeAllowance = await pool.allowance(owner, pool.address);
+      await (await pool.decreaseApproval(pool.address, setAmount)).wait();
+      await (await pool.decreaseApproval(pool.address, setAmount)).wait();
+      const afterAllowance = await pool.allowance(owner, pool.address);
+      const changedBalance = beforeAllowance.sub(afterAllowance);
+      expect(Number(changedBalance.toString())).to.equal(Number(setAmount))
+    });
+
+    it('Transfer from', async () => {
+      const beforeBalance = await pool.balanceOf(owner);
+      await (await pool.approve(pool.address, setAmount)).wait();
+      await (await pool.transferFrom(owner, await accounts[1].getAddress(), setAmount)).wait();
+      const afterBalance = await pool.balanceOf(owner);
+      const changedBalance = beforeBalance.sub(afterBalance);
+      expect(Number(changedBalance.toString())).to.equal(Number(setAmount));
+
+      await expectRevert(
+        pool.connect(accounts[2]).transferFrom(
+          await accounts[3].getAddress(),
+          await accounts[4].getAddress(),
+          setAmount
+        ),
+        'TOKEN_BAD_CALLER'
+      );
+
+      await (await pool.connect(accounts[1]).approve(owner, setAmount)).wait();
+      await (await pool.approve(pool.address, setAmount)).wait();
+      await (await pool.transferFrom(await accounts[1].getAddress(), await accounts[2].getAddress(), setAmount)).wait();
+    });
+
+    it('Transfer', async () => {
+      const beforeBalance = await pool.balanceOf(owner);
+      await (await pool.transfer(await accounts[1].getAddress(), setAmount)).wait();
+      const afterBalance = await pool.balanceOf(owner);
+      const changedBalance = beforeBalance.sub(afterBalance);
+      expect(Number(changedBalance.toString())).to.equal(Number(setAmount));
+
+      await expectRevert(
+        pool.connect(accounts[2]).transfer(await accounts[1].getAddress(), setAmount),
+        'INSUFFICIENT_BAL'
+      );
+    });
+
+    it('Name and symbol', async () => {
+      await pool.name();
+      await pool.symbol();
+      await pool.decimals();
+    });
+  });
 });
