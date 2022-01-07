@@ -315,29 +315,10 @@ describe('VolmexController', function () {
                 );
                 await pools[vol].deployed();
 
-                await (await pools[vol].setControllerWithoutCheck(owner)).wait();
-
                 await (await collateral['DAI'].mint(owner, MAX)).wait();
                 await (await collateral['DAI'].approve(protocols[type].address, MAX)).wait();
                 await (await protocols[type].collateralize(MAX)).wait();
 
-                await (await volatilities[vol].approve(pools[vol].address, '1000000000000000000')).wait();
-                await (
-                    await inverseVolatilities[vol].approve(pools[vol].address, '1000000000000000000')
-                ).wait();
-
-                await (
-                    await pools[vol].finalize(
-                        '1000000000000000000',
-                        leveragePrimary,
-                        '1000000000000000000',
-                        leverageComplement,
-                        exposureLimitPrimary,
-                        exposureLimitComplement,
-                        pMin,
-                        qMin
-                    )
-                ).wait();
             }
             for (let vol of volatilitys2) {
                 const type = `${vol}V${collaterals[0]}`;
@@ -359,29 +340,11 @@ describe('VolmexController', function () {
                 );
                 await pools2[vol].deployed();
 
-                await (await pools2[vol].setControllerWithoutCheck(owner)).wait();
 
                 await (await collateral['DAI'].mint(owner, MAX)).wait();
                 await (await collateral['DAI'].approve(protocols2[type].address, MAX)).wait();
                 await (await protocols2[type].collateralize(MAX)).wait();
 
-                await (await volatilities2[vol].approve(pools2[vol].address, '1000000000000000000')).wait();
-                await (
-                    await inverseVolatilities2[vol].approve(pools2[vol].address, '1000000000000000000')
-                ).wait();
-
-                await (
-                    await pools2[vol].finalize(
-                        '1000000000000000000',
-                        leveragePrimary,
-                        '1000000000000000000',
-                        leverageComplement,
-                        exposureLimitPrimary,
-                        exposureLimitComplement,
-                        pMin,
-                        qMin
-                    )
-                ).wait();
             }
 
             let controllerParam = {
@@ -433,6 +396,68 @@ describe('VolmexController', function () {
             await (await pools2['ETH5x'].setController(controller2.address)).wait();
             await (await pools2['BTC5x'].setController(controller2.address)).wait();
 
+            await (await volatilities['ETH2x'].approve(controller.address, '1000000000000000000')).wait();
+            await (
+                await inverseVolatilities['ETH2x'].approve(controller.address, '1000000000000000000')
+            ).wait();
+            await (await volatilities['BTC2x'].approve(controller.address, '1000000000000000000')).wait();
+            await (
+                await inverseVolatilities['BTC2x'].approve(controller.address, '1000000000000000000')
+            ).wait();
+            await (await volatilities2['ETH5x'].approve(controller2.address, '1000000000000000000')).wait();
+            await (
+                await inverseVolatilities2['ETH5x'].approve(controller2.address, '1000000000000000000')
+            ).wait();
+            await (await volatilities2['BTC5x'].approve(controller2.address, '1000000000000000000')).wait();
+            await (
+                await inverseVolatilities2['BTC5x'].approve(controller2.address, '1000000000000000000')
+            ).wait();
+            await (await controller.finalizePool(
+                0,
+                '1000000000000000000',
+                leveragePrimary,
+                '1000000000000000000',
+                leverageComplement,
+                exposureLimitPrimary,
+                exposureLimitComplement,
+                pMin,
+                qMin
+            )).wait()
+
+            await (await controller.finalizePool(
+                1,
+                '1000000000000000000',
+                leveragePrimary,
+                '1000000000000000000',
+                leverageComplement,
+                exposureLimitPrimary,
+                exposureLimitComplement,
+                pMin,
+                qMin
+            )).wait()
+            await (await controller2.finalizePool(
+                0,
+                '1000000000000000000',
+                leveragePrimary,
+                '1000000000000000000',
+                leverageComplement,
+                exposureLimitPrimary,
+                exposureLimitComplement,
+                pMin,
+                qMin
+            )).wait()
+
+            await (await controller2.finalizePool(
+                1,
+                '1000000000000000000',
+                leveragePrimary,
+                '1000000000000000000',
+                leverageComplement,
+                exposureLimitPrimary,
+                exposureLimitComplement,
+                pMin,
+                qMin
+            )).wait()
             poolView = await upgrades.deployProxy(poolViewFactory, []);
             await poolView.deployed();
         });
