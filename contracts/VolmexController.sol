@@ -231,6 +231,44 @@ contract VolmexController is
     }
 
     /**
+     * @notice Finalizes the pool
+     *
+     * @param _primaryBalance Balance amount of primary token
+     * @param _primaryLeverage Leverage value of primary token
+     * @param _complementBalance  Balance amount of complement token
+     * @param _complementLeverage  Leverage value of complement token
+     * @param _exposureLimitPrimary Primary to complement swap difference limit
+     * @param _exposureLimitComplement Complement to primary swap difference limit
+     * @param _pMin Minimum amount of tokens in the pool
+     * @param _qMin Minimum amount of token required for swap
+     */
+    function finalizePool(
+        uint256 _poolIndex,
+        uint256 _primaryBalance,
+        uint256 _primaryLeverage,
+        uint256 _complementBalance,
+        uint256 _complementLeverage,
+        uint256 _exposureLimitPrimary,
+        uint256 _exposureLimitComplement,
+        uint256 _pMin,
+        uint256 _qMin
+    ) external onlyOwner {
+        IVolmexPool _pool = pools[_poolIndex];
+
+        _pool.finalize(
+            _primaryBalance,
+            _primaryLeverage,
+            _complementBalance,
+            _complementLeverage,
+            _exposureLimitPrimary,
+            _exposureLimitComplement,
+            _pMin,
+            _qMin,
+            msg.sender
+        );
+    }
+
+    /**
      * @notice Used to swap collateral token to a type of volatility token
      *
      * @param _amounts Amount of collateral token and minimum expected volatility token
