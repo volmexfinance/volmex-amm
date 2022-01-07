@@ -109,6 +109,7 @@ interface IVolmexPool is IERC20 {
         uint256 _exposureLimitPrimary,
         uint256 _exposureLimitComplement,
         uint256 _pMin,
-        uint256 _qMin
+        uint256 _qMin,
+        address _receiver
     ) external;
 }
