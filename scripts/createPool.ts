@@ -91,6 +91,7 @@ const createPool = async () => {
     StableCoins,
     [poolETH.address, poolBTC.address],
     Protocols,
+    oracle.address
   ]);
   await controller.deployed();
   console.log('VolmexController deployed :', controller.address);
@@ -103,12 +104,12 @@ const createPool = async () => {
   const joinAmount = '1000000000000000000';
 
   console.log('Approve volatility to pool ETH');
-  await ethv.approve(poolETH.address, joinAmount);
-  await iethv.approve(poolETH.address, joinAmount);
+  await ethv.approve(controller.address, joinAmount);
+  await iethv.approve(controller.address, joinAmount);
 
   console.log('Approve volatility to pool BTC');
-  await btcv.approve(poolBTC.address, joinAmount);
-  await ibtcv.approve(poolBTC.address, joinAmount);
+  await btcv.approve(controller.address, joinAmount);
+  await ibtcv.approve(controller.address, joinAmount);
 
   console.log('Finalize Pools');
   await (
@@ -137,14 +138,14 @@ const createPool = async () => {
       qMin
     )
   ).wait();
-  console.log('Pools finalised!');
+  console.log('Pools finalized!');
 
   console.log('Deploying Pool view ...');
   const poolView = await upgrades.deployProxy(VolmexPoolView, []);
   await poolView.deployed();
   console.log('VolmexPoolView deployed', poolView.address);
 
-  console.log('\n Deployment History');
+  console.log('\nDeployment History');
   console.log('VolmexPool ETH: ', poolETH.address);
   console.log('VolmexPool BTC: ', poolBTC.address);
   console.log('VolmexRepricer: ', repricer.address);
