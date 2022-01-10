@@ -20,3 +20,4 @@ contracts/deprecated/
 contracts/test/
 audits/
 dump/
+.openzeppelin/unknown-31337.json
