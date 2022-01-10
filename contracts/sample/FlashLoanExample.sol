@@ -2,12 +2,12 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts/utils/introspection/ERC165Storage.sol';
+import "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
 
-import '../interfaces/IFlashLoanReceiver.sol';
-import '../maths/Num.sol';
-import '../interfaces/IVolmexPool.sol';
-import '../interfaces/IVolmexController.sol';
+import "../interfaces/IFlashLoanReceiver.sol";
+import "../maths/Num.sol";
+import "../interfaces/IVolmexPool.sol";
+import "../interfaces/IVolmexController.sol";
 
 contract FlashLoanExample is Num, ERC165Storage, IFlashLoanReceiver {
     // Interface ID of FlashLoanExample constract, hashId = 0xee872558
@@ -50,7 +50,7 @@ contract FlashLoanExample is Num, ERC165Storage, IFlashLoanReceiver {
     }
 
     function flashLoan(address _assetToken) external {
-        bytes memory data = '0x10';
+        bytes memory data = "0x10";
         uint256 amount = 10 ether;
 
         IVolmexPool(pool).flashLoan(address(this), _assetToken, amount, data);
@@ -60,7 +60,7 @@ contract FlashLoanExample is Num, ERC165Storage, IFlashLoanReceiver {
      * Used from VolmexController
      */
     function makeFlashLoan(address _assetToken, uint256 _poolIndex) external {
-        bytes memory data = '0x10';
+        bytes memory data = "0x10";
         uint256 amount = 10 ether;
 
         IVolmexController(controller).makeFlashLoan(

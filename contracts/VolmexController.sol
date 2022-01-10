@@ -2,19 +2,19 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol";
 
-import './interfaces/IVolmexPool.sol';
-import './interfaces/IVolmexProtocol.sol';
-import './interfaces/IERC20Modified.sol';
-import './interfaces/IVolmexOracle.sol';
-import './interfaces/IPausablePool.sol';
-import './interfaces/IVolmexController.sol';
-import './interfaces/IFlashLoanReceiver.sol';
-import './maths/Const.sol';
+import "./interfaces/IVolmexPool.sol";
+import "./interfaces/IVolmexProtocol.sol";
+import "./interfaces/IERC20Modified.sol";
+import "./interfaces/IVolmexOracle.sol";
+import "./interfaces/IPausablePool.sol";
+import "./interfaces/IVolmexController.sol";
+import "./interfaces/IFlashLoanReceiver.sol";
+import "./maths/Const.sol";
 
 /**
  * @title Volmex Controller contract
@@ -89,7 +89,7 @@ contract VolmexController is
     ) external initializer {
         require(
             IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
-            'VolmexController: Oracle does not supports interface'
+            "VolmexController: Oracle does not supports interface"
         );
 
         uint256 protocolCount;
@@ -97,7 +97,7 @@ contract VolmexController is
         for (uint256 i; i < 2; i++) {
             require(
                 IERC165Upgradeable(address(_pools[i])).supportsInterface(_IVOLMEX_POOL_ID),
-                'VolmexController: Pool does not supports interface'
+                "VolmexController: Pool does not supports interface"
             );
             require(
                 address(_stableCoins[i]) != address(0),
@@ -110,13 +110,12 @@ contract VolmexController is
             allPools.push(address(_pools[i]));
             for (uint256 j; j < 2; j++) {
                 require(
-                    _pools[i].tokens(0) ==
-                        address(_protocols[protocolCount].volatilityToken()),
-                    'VolmexController: Incorrect pool for add protocol'
+                    _pools[i].tokens(0) == address(_protocols[protocolCount].volatilityToken()),
+                    "VolmexController: Incorrect pool for add protocol"
                 );
                 require(
                     _stableCoins[j] == _protocols[protocolCount].collateral(),
-                    'VolmexController: Incorrect stableCoin for add protocol'
+                    "VolmexController: Incorrect stableCoin for add protocol"
                 );
                 protocols[i][j] = _protocols[protocolCount];
                 try protocols[i][j].precisionRatio() returns (uint256 ratio) {
@@ -145,7 +144,7 @@ contract VolmexController is
     function addPool(IVolmexPool _pool) external onlyOwner {
         require(
             IERC165Upgradeable(address(_pool)).supportsInterface(_IVOLMEX_POOL_ID),
-            'VolmexController: Pool does not supports interface'
+            "VolmexController: Pool does not supports interface"
         );
         poolIndex++;
         pools[poolIndex] = _pool;
@@ -176,7 +175,7 @@ contract VolmexController is
      * @notice Used to add the protocol on a particular pool and stableCoin index
      *
      * @param _protocol Address of the Protocol contract
-     * @param _stableCoinIndex index of stable coin 
+     * @param _stableCoinIndex index of stable coin
      */
     function addProtocol(
         uint256 _poolIndex,
@@ -185,12 +184,11 @@ contract VolmexController is
     ) external onlyOwner {
         require(
             stableCoins[_stableCoinIndex] == _protocol.collateral(),
-            'VolmexController: Incorrect stableCoin for add protocol'
+            "VolmexController: Incorrect stableCoin for add protocol"
         );
         require(
-            pools[_poolIndex].tokens(0) ==
-                address(_protocol.volatilityToken()),
-            'VolmexController: Incorrect pool for add protocol'
+            pools[_poolIndex].tokens(0) == address(_protocol.volatilityToken()),
+            "VolmexController: Incorrect pool for add protocol"
         );
 
         protocols[_poolIndex][_stableCoinIndex] = _protocol;
@@ -226,7 +224,7 @@ contract VolmexController is
     function collect(IVolmexPool _pool) external onlyOwner {
         uint256 collected = IERC20(_pool).balanceOf(address(this));
         bool xfer = _pool.transfer(owner(), collected);
-        require(xfer, 'ERC20_FAILED');
+        require(xfer, "ERC20_FAILED");
         emit PoolTokensCollected(owner(), collected);
     }
 
@@ -309,24 +307,18 @@ contract VolmexController is
         _pool.reprice();
         uint256 tokenAmountOut;
         (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
-            isInverse
-                ? _pool.tokens(0)
-                : _pool.tokens(1),
+            isInverse ? _pool.tokens(0) : _pool.tokens(1),
             volatilityAmount
         );
 
         _approveAssets(
-            isInverse
-                ? IERC20Modified(_pool.tokens(0))
-                : IERC20Modified(_pool.tokens(1)),
+            isInverse ? IERC20Modified(_pool.tokens(0)) : IERC20Modified(_pool.tokens(1)),
             volatilityAmount,
             address(this),
             address(this)
         );
         (tokenAmountOut, ) = _pool.swapExactAmountIn(
-            isInverse
-                ? _pool.tokens(0)
-                : _pool.tokens(1),
+            isInverse ? _pool.tokens(0) : _pool.tokens(1),
             volatilityAmount,
             _tokenOut,
             tokenAmountOut,
@@ -338,7 +330,7 @@ contract VolmexController is
 
         require(
             totalVolatilityAmount >= _amounts[1],
-            'VolmexController: Insufficient expected volatility amount'
+            "VolmexController: Insufficient expected volatility amount"
         );
 
         _transferAsset(
@@ -388,9 +380,7 @@ contract VolmexController is
         (swapAmounts[1], fees[0]) = _pool.swapExactAmountIn(
             address(_tokenIn),
             swapAmounts[0],
-            isInverse
-                ? _pool.tokens(0)
-                : _pool.tokens(1),
+            isInverse ? _pool.tokens(0) : _pool.tokens(1),
             swapAmounts[1],
             msg.sender,
             true
@@ -398,7 +388,7 @@ contract VolmexController is
 
         require(
             swapAmounts[1] <= _amounts[0] - swapAmounts[0],
-            'VolmexController: Amount out limit exploit'
+            "VolmexController: Amount out limit exploit"
         );
 
         uint256 collateralAmount;
@@ -413,7 +403,7 @@ contract VolmexController is
 
         require(
             collateralAmount >= _amounts[1],
-            'VolmexController: Insufficient expected collateral amount'
+            "VolmexController: Insufficient expected collateral amount"
         );
 
         _tokenIn.transferFrom(msg.sender, address(this), swapAmounts[1]);
@@ -464,9 +454,7 @@ contract VolmexController is
         (tokenAmounts[1], fees[0]) = _pool.swapExactAmountIn(
             _tokens[0],
             tokenAmounts[0],
-            isInverse
-                ? _pool.tokens(0)
-                : _pool.tokens(1),
+            isInverse ? _pool.tokens(0) : _pool.tokens(1),
             tokenAmounts[1],
             msg.sender,
             true
@@ -474,7 +462,7 @@ contract VolmexController is
 
         require(
             tokenAmounts[1] <= _amounts[0] - tokenAmounts[0],
-            'VolmexController: Amount out limit exploit'
+            "VolmexController: Amount out limit exploit"
         );
 
         IERC20Modified(_tokens[0]).transferFrom(msg.sender, address(this), tokenAmounts[1]);
@@ -513,15 +501,10 @@ contract VolmexController is
         _pool = pools[_indices[1]];
 
         isInverse = _pool.tokens(0) != _tokens[1];
-        address poolOutTokenIn = isInverse
-            ? _pool.tokens(0)
-            : _pool.tokens(1);
+        address poolOutTokenIn = isInverse ? _pool.tokens(0) : _pool.tokens(1);
 
         _pool.reprice();
-        (tokenAmounts[1], ) = _pool.getTokenAmountOut(
-            poolOutTokenIn,
-            protocolAmounts[1]
-        );
+        (tokenAmounts[1], ) = _pool.getTokenAmountOut(poolOutTokenIn, protocolAmounts[1]);
 
         _approveAssets(
             IERC20Modified(poolOutTokenIn),
@@ -540,7 +523,7 @@ contract VolmexController is
 
         require(
             protocolAmounts[1] + tokenAmounts[1] >= _amounts[1],
-            'VolmexController: Insufficient expected volatility amount'
+            "VolmexController: Insufficient expected volatility amount"
         );
 
         _transferAsset(
@@ -614,7 +597,7 @@ contract VolmexController is
     ) external whenNotPaused {
         require(
             IERC165Upgradeable(_receiver).supportsInterface(_IFlashLoan_Receiver_ID),
-            'VolmexPool: Repricer does not supports interface'
+            "VolmexPool: Repricer does not supports interface"
         );
 
         IVolmexPool _pool = pools[_poolIndex];
@@ -654,7 +637,7 @@ contract VolmexController is
         address _account,
         uint256 _amount
     ) external {
-        require(isPool[msg.sender], 'VolmexController: Caller is not pool');
+        require(isPool[msg.sender], "VolmexController: Caller is not pool");
         _token.transferFrom(_account, msg.sender, _amount);
     }
 
@@ -686,9 +669,7 @@ contract VolmexController is
 
         uint256 tokenAmountOut;
         (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
-            isInverse
-                ? _pool.tokens(0)
-                : _pool.tokens(1),
+            isInverse ? _pool.tokens(0) : _pool.tokens(1),
             volatilityAmount
         );
 
@@ -786,9 +767,7 @@ contract VolmexController is
         _pool = pools[_indices[1]];
 
         (tokenAmountOut, fee) = _pool.getTokenAmountOut(
-            _pool.tokens(0) != _tokens[1]
-                ? _pool.tokens(0)
-                : _pool.tokens(1),
+            _pool.tokens(0) != _tokens[1] ? _pool.tokens(0) : _pool.tokens(1),
             protocolAmount[1]
         );
         fees[1] += fee;
@@ -806,7 +785,9 @@ contract VolmexController is
         protocolFee = (_amount * _feePercent) / 10000;
         _amount = _amount - protocolFee;
 
-        amount = _isVolatility ? (_amount / _volatilityCapRatio) * _precisionRatio : _amount / _precisionRatio;
+        amount = _isVolatility
+            ? (_amount / _volatilityCapRatio) * _precisionRatio
+            : _amount / _precisionRatio;
     }
 
     function _transferAsset(
@@ -866,16 +847,10 @@ contract VolmexController is
     {
         swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, 0);
 
-        (, fee) = _pool.getTokenAmountOut(
-            _tokenIn,
-            swapAmount
-        );
+        (, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
 
         swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, fee);
 
-        (amountOut, fee) = _pool.getTokenAmountOut(
-            _tokenIn,
-            swapAmount
-        );
+        (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
     }
 }

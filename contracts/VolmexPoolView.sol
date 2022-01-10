@@ -3,13 +3,13 @@
 pragma solidity =0.8.11;
 pragma abicoder v2;
 
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
 
-import './maths/Math.sol';
-import './interfaces/IVolmexPool.sol';
-import './interfaces/IERC20Modified.sol';
-import './interfaces/IVolmexPoolView.sol';
-import './interfaces/IPausablePool.sol';
+import "./maths/Math.sol";
+import "./interfaces/IVolmexPool.sol";
+import "./interfaces/IERC20Modified.sol";
+import "./interfaces/IVolmexPoolView.sol";
+import "./interfaces/IPausablePool.sol";
 
 /**
  * @title Reading key data from specified derivative trading Pool
@@ -170,7 +170,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
         returns (uint256[2] memory _maxAmountsIn)
     {
         uint256 ratio = _div(_poolAmountOut, _pool.totalSupply());
-        require(ratio != 0, 'VolmexPoolView: Invalid math approximation in join');
+        require(ratio != 0, "VolmexPoolView: Invalid math approximation in join");
 
         for (uint256 i = 0; i < 2; i++) {
             uint256 bal = _pool.getBalance(_pool.tokens(i));
@@ -184,7 +184,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
         returns (uint256[2] memory _minAmountsOut)
     {
         uint256 ratio = _div(_poolAmountIn, _pool.totalSupply());
-        require(ratio != 0, 'VolmexPoolView: Invalid math approximation in exit');
+        require(ratio != 0, "VolmexPoolView: Invalid math approximation in exit");
 
         uint256 upperBoundary = _pool.upperBoundary();
         uint256 adminFee = _pool.adminFee();

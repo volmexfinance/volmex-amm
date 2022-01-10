@@ -2,7 +2,7 @@
 
 pragma solidity =0.8.11;
 
-import './IVolmexOracle.sol';
+import "./IVolmexOracle.sol";
 
 interface IVolmexRepricer {
     // Getter method

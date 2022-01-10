@@ -2,8 +2,8 @@
 
 pragma solidity =0.8.11;
 
-import '../../maths/Num.sol';
-import '../../interfaces/IERC20.sol';
+import "../../maths/Num.sol";
+import "../../interfaces/IERC20.sol";
 
 contract TokenBase is Num {
     mapping(address => uint256) internal _balance;
@@ -20,7 +20,7 @@ contract TokenBase is Num {
     }
 
     function _burn(uint256 _amt) internal {
-        require(_balance[address(this)] >= _amt, 'INSUFFICIENT_BAL');
+        require(_balance[address(this)] >= _amt, "INSUFFICIENT_BAL");
         _balance[address(this)] = _balance[address(this)] - _amt;
         _totalSupply = _totalSupply - _amt;
         emit Transfer(address(this), address(0), _amt);
@@ -31,7 +31,7 @@ contract TokenBase is Num {
         address _dst,
         uint256 _amt
     ) internal {
-        require(_balance[_src] >= _amt, 'INSUFFICIENT_BAL');
+        require(_balance[_src] >= _amt, "INSUFFICIENT_BAL");
         _balance[_src] = _balance[_src] - _amt;
         _balance[_dst] = _balance[_dst] + _amt;
         emit Transfer(_src, _dst, _amt);
@@ -85,7 +85,7 @@ contract Token is TokenBase, IERC20 {
         uint256 _amt
     ) external override returns (bool) {
         uint256 oldValue = _allowance[_src][msg.sender];
-        require(msg.sender == _src || _amt <= oldValue, 'TOKEN_BAD_CALLER');
+        require(msg.sender == _src || _amt <= oldValue, "TOKEN_BAD_CALLER");
         _move(_src, _dst, _amt);
         if (msg.sender != _src && oldValue != type(uint128).max) {
             _allowance[_src][msg.sender] = oldValue - _amt;
