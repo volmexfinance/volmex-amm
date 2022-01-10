@@ -2,7 +2,7 @@
 
 pragma solidity =0.8.11;
 
-import './IERC20Modified.sol';
+import "./IERC20Modified.sol";
 
 interface IVolmexProtocol {
     //getter methods

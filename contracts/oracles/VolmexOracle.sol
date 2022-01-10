@@ -2,10 +2,10 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
-import '../interfaces/IVolmexProtocol.sol';
-import '../interfaces/IVolmexOracle.sol';
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
+import "../interfaces/IVolmexProtocol.sol";
+import "../interfaces/IVolmexOracle.sol";
 
 /**
  * @title Volmex Oracle contract
@@ -34,15 +34,15 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
      */
     function initialize() external initializer {
         _volatilityTokenPriceByIndex[indexCount] = 125000000;
-        volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
-        volatilityIndexBySymbol['ETHV'] = indexCount;
+        volatilityTokenPriceProofHash[indexCount] = ""; // Add proof of hash bytes32 value
+        volatilityIndexBySymbol["ETHV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
 
         indexCount++;
 
         _volatilityTokenPriceByIndex[indexCount] = 125000000;
-        volatilityTokenPriceProofHash[indexCount] = ''; // Add proof of hash bytes32 value
-        volatilityIndexBySymbol['BTCV'] = indexCount;
+        volatilityTokenPriceProofHash[indexCount] = ""; // Add proof of hash bytes32 value
+        volatilityIndexBySymbol["BTCV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
 
         __Ownable_init();
@@ -72,12 +72,12 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
         require(
             _volatilityIndexes.length == _volatilityTokenPrices.length &&
                 _volatilityIndexes.length == _proofHashes.length,
-            'VolmexOracle: length of input arrays are not equal'
+            "VolmexOracle: length of input arrays are not equal"
         );
         for (uint256 i = 0; i < _volatilityIndexes.length; i++) {
             require(
                 _volatilityTokenPrices[i] <= volatilityCapRatioByIndex[_volatilityIndexes[i]],
-                'VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio'
+                "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
             );
             _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _volatilityTokenPrices[i];
             volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
@@ -117,11 +117,11 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio() * _VOLATILITY_PRICE_PRECISION;
         require(
             _volatilityCapRatio >= 1000000,
-            'VolmexOracle: volatility cap ratio should be greater than 1000000'
+            "VolmexOracle: volatility cap ratio should be greater than 1000000"
         );
         require(
             _volatilityTokenPrice <= _volatilityCapRatio,
-            'VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio'
+            "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
         );
         uint256 _index = ++indexCount;
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;

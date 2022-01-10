@@ -2,20 +2,20 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol';
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol";
 
-import './libs/tokens/TokenMetadataGenerator.sol';
-import './libs/tokens/Token.sol';
-import './maths/Math.sol';
-import './interfaces/IEIP20NonStandard.sol';
-import './interfaces/IVolmexRepricer.sol';
-import './interfaces/IVolmexProtocol.sol';
-import './interfaces/IVolmexPool.sol';
-import './interfaces/IFlashLoanReceiver.sol';
-import './interfaces/IVolmexController.sol';
+import "./libs/tokens/TokenMetadataGenerator.sol";
+import "./libs/tokens/Token.sol";
+import "./maths/Math.sol";
+import "./interfaces/IEIP20NonStandard.sol";
+import "./interfaces/IVolmexRepricer.sol";
+import "./interfaces/IVolmexProtocol.sol";
+import "./interfaces/IVolmexPool.sol";
+import "./interfaces/IFlashLoanReceiver.sol";
+import "./interfaces/IVolmexController.sol";
 
 /**
  * @title Volmex Pool Contract
@@ -96,7 +96,7 @@ contract VolmexPool is
      * @notice Used to prevent the re-entry
      */
     modifier lock() {
-        require(!_mutex, 'VolmexPool: REENTRY');
+        require(!_mutex, "VolmexPool: REENTRY");
         _mutex = true;
         _;
         _mutex = false;
@@ -106,7 +106,7 @@ contract VolmexPool is
      * @notice Used to prevent multiple call to view methods
      */
     modifier viewlock() {
-        require(!_mutex, 'VolmexPool: REENTRY');
+        require(!_mutex, "VolmexPool: REENTRY");
         _;
     }
 
@@ -114,7 +114,7 @@ contract VolmexPool is
      * @notice Used to check the pool is finalised
      */
     modifier onlyFinalized() {
-        require(finalized, 'VolmexPool: Pool is not finalized');
+        require(finalized, "VolmexPool: Pool is not finalized");
         _;
     }
 
@@ -122,7 +122,7 @@ contract VolmexPool is
      * @notice Used to check the protocol is not settled
      */
     modifier onlyNotSettled() {
-        require(!protocol.isSettled(), 'VolmexPool: Protocol is settled');
+        require(!protocol.isSettled(), "VolmexPool: Protocol is settled");
         _;
     }
 
@@ -130,7 +130,7 @@ contract VolmexPool is
      * @notice Used to check the caller is controller
      */
     modifier onlyController() {
-        require(msg.sender == address(controller), 'VolmexPool: Caller is not controller');
+        require(msg.sender == address(controller), "VolmexPool: Caller is not controller");
         _;
     }
 
@@ -163,7 +163,7 @@ contract VolmexPool is
     ) external initializer {
         require(
             IERC165Upgradeable(address(_repricer)).supportsInterface(_IVOLMEX_REPRICER_ID),
-            'VolmexPool: Repricer does not supports interface'
+            "VolmexPool: Repricer does not supports interface"
         );
         require(address(_protocol) != address(0), "VolmexPool: protocol address can't be zero");
 
@@ -198,7 +198,7 @@ contract VolmexPool is
     function setController(IVolmexController _controller) external onlyOwner {
         require(
             IERC165Upgradeable(address(_controller)).supportsInterface(_IVOLMEX_CONTROLLER_ID),
-            'VolmexPool: Not Controller'
+            "VolmexPool: Not Controller"
         );
         controller = _controller;
 
@@ -209,7 +209,7 @@ contract VolmexPool is
      * @notice Used to update the flash loan premium percent
      */
     function updateFlashLoanPremium(uint256 _premium) external onlyOwner {
-        require(_premium > 0 && _premium <= 10000, 'VolmexPool: _premium value not in range');
+        require(_premium > 0 && _premium <= 10000, "VolmexPool: _premium value not in range");
         flashLoanPremium = _premium;
 
         emit FlashLoanPremiumUpdated(flashLoanPremium);
@@ -243,14 +243,14 @@ contract VolmexPool is
         uint256 _qMin,
         address _receiver
     ) external logs lock onlyNotSettled onlyController {
-        require(!finalized, 'VolmexPool: Pool is finalized');
+        require(!finalized, "VolmexPool: Pool is finalized");
 
         require(
             _primaryBalance == _complementBalance,
-            'VolmexPool: Assets balance should be same'
+            "VolmexPool: Assets balance should be same"
         );
 
-        require(baseFee > 0, 'VolmexPool: baseFee should be larger than 0');
+        require(baseFee > 0, "VolmexPool: baseFee should be larger than 0");
 
         pMin = _pMin;
         qMin = _qMin;
@@ -259,12 +259,7 @@ contract VolmexPool is
 
         finalized = true;
 
-        _bind(
-            address(protocol.volatilityToken()),
-            _primaryBalance,
-            _primaryLeverage,
-            _receiver
-        );
+        _bind(address(protocol.volatilityToken()), _primaryBalance, _primaryLeverage, _receiver);
         _bind(
             address(protocol.inverseVolatilityToken()),
             _complementBalance,
@@ -311,7 +306,7 @@ contract VolmexPool is
 
         require(
             receiver.executeOperation(_assetToken, _amount, premium, _params),
-            'VolmexPool: Invalid flash loan executor'
+            "VolmexPool: Invalid flash loan executor"
         );
 
         uint256 amountWithPremium = _amount + premium;
@@ -342,7 +337,7 @@ contract VolmexPool is
     ) external logs lock onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = _div(_poolAmountOut, poolTotal);
-        require(ratio != 0, 'VolmexPool: Invalid math approximation');
+        require(ratio != 0, "VolmexPool: Invalid math approximation");
 
         for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
             address token = tokens[i];
@@ -350,9 +345,9 @@ contract VolmexPool is
             // This can't be tested, as the div method will fail, due to zero supply of lp token
             // The supply of lp token is greater than zero, means token reserve is greater than zero
             // Also, in the case of swap, there's some amount of tokens available pool more than qMin
-            require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
+            require(bal > 0, "VolmexPool: Insufficient balance in Pool");
             uint256 tokenAmountIn = _mul(ratio, bal);
-            require(tokenAmountIn <= _maxAmountsIn[i], 'VolmexPool: Amount in limit exploit');
+            require(tokenAmountIn <= _maxAmountsIn[i], "VolmexPool: Amount in limit exploit");
             records[token].balance = records[token].balance + tokenAmountIn;
             emit Joined(_receiver, token, tokenAmountIn);
             _pullUnderlying(token, _receiver, tokenAmountIn);
@@ -378,12 +373,12 @@ contract VolmexPool is
     ) external logs lock onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = _div(_poolAmountIn, poolTotal);
-        require(ratio != 0, 'VolmexPool: Invalid math approximation');
+        require(ratio != 0, "VolmexPool: Invalid math approximation");
 
         for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
             address token = tokens[i];
             uint256 bal = records[token].balance;
-            require(bal > 0, 'VolmexPool: Insufficient balance in Pool');
+            require(bal > 0, "VolmexPool: Insufficient balance in Pool");
             uint256 tokenAmountOut = _calculateAmountOut(
                 _poolAmountIn,
                 ratio,
@@ -391,7 +386,7 @@ contract VolmexPool is
                 upperBoundary,
                 adminFee
             );
-            require(tokenAmountOut >= _minAmountsOut[i], 'VolmexPool: Amount out limit exploit');
+            require(tokenAmountOut >= _minAmountsOut[i], "VolmexPool: Amount out limit exploit");
             records[token].balance = records[token].balance - tokenAmountOut;
             emit Exited(_receiver, token, tokenAmountOut);
             _pushUnderlying(token, _receiver, tokenAmountOut);
@@ -434,8 +429,8 @@ contract VolmexPool is
         onlyController
         returns (uint256 tokenAmountOut, uint256 spotPriceAfter)
     {
-        require(_tokenIn != _tokenOut, 'VolmexPool: Passed same token addresses');
-        require(_tokenAmountIn >= qMin, 'VolmexPool: Amount in quantity should be larger');
+        require(_tokenIn != _tokenOut, "VolmexPool: Passed same token addresses");
+        require(_tokenAmountIn >= qMin, "VolmexPool: Amount in quantity should be larger");
 
         reprice();
 
@@ -445,7 +440,7 @@ contract VolmexPool is
         require(
             _tokenAmountIn <=
                 _mul(_min(getLeveragedBalance(inRecord), inRecord.balance), MAX_IN_RATIO),
-            'VolmexPool: Amount in max ratio exploit'
+            "VolmexPool: Amount in max ratio exploit"
         );
 
         tokenAmountOut = _calcOutGivenIn(
@@ -469,7 +464,7 @@ contract VolmexPool is
             _tokenAmountIn,
             fee
         );
-        require(tokenAmountOut >= _minAmountOut, 'VolmexPool: Amount out limit exploit');
+        require(tokenAmountOut >= _minAmountOut, "VolmexPool: Amount out limit exploit");
 
         uint256 _spotPriceBefore = calcSpotPrice(
             getLeveragedBalance(inRecord),
@@ -649,11 +644,11 @@ contract VolmexPool is
                 revert(0, 0)
             }
         }
-        require(success, 'VolmexPool: Token transfer failed');
+        require(success, "VolmexPool: Token transfer failed");
 
         // Calculate the amount that was *actually* transferred
         uint256 balanceAfter = IERC20(_erc20).balanceOf(address(this));
-        require(balanceAfter >= balanceBefore, 'VolmexPool: Token transfer overflow met');
+        require(balanceAfter >= balanceBefore, "VolmexPool: Token transfer overflow met");
         return balanceAfter - balanceBefore; // underflow already checked above, just subtract
     }
 
@@ -706,7 +701,7 @@ contract VolmexPool is
             int256(_feeAmp),
             int256(maxFee)
         );
-        require(ifee > 0, 'VolmexPool: Fee should be greater than 0');
+        require(ifee > 0, "VolmexPool: Fee should be greater than 0");
         fee = uint256(ifee);
     }
 
@@ -768,12 +763,12 @@ contract VolmexPool is
 
         // spotPriceAfter will remain larger, becasue after swap, the out token
         // balance will decrease. equation -> leverageBalance(_inToken) / leverageBalance(outToken)
-        require(spotPriceAfter >= _spotPriceBefore, 'VolmexPool: Amount max in ratio exploit');
+        require(spotPriceAfter >= _spotPriceBefore, "VolmexPool: Amount max in ratio exploit");
         // _spotPriceBefore will remain smaller, because _tokenAmountOut will be smaller than _tokenAmountIn
         // because of the fee and oracle price.
         require(
             _spotPriceBefore <= _div(_tokenAmountIn, _tokenAmountOut),
-            'VolmexPool: Amount in max in ratio exploit other'
+            "VolmexPool: Amount in max in ratio exploit other"
         );
 
         emit Swapped(
@@ -805,11 +800,11 @@ contract VolmexPool is
     ) private view {
         require(
             getLeveragedBalance(_outToken) - _tokenAmountOut > qMin,
-            'VolmexPool: Leverage boundary exploit'
+            "VolmexPool: Leverage boundary exploit"
         );
         require(
             _outToken.balance - _tokenAmountOut > qMin,
-            'VolmexPool: Non leverage boundary exploit'
+            "VolmexPool: Non leverage boundary exploit"
         );
 
         uint256 lowerBound = _div(pMin, upperBoundary - pMin);
@@ -819,8 +814,8 @@ contract VolmexPool is
             getLeveragedBalance(_outToken) - _tokenAmountOut
         );
 
-        require(lowerBound < value, 'VolmexPool: Lower boundary');
-        require(value < upperBound, 'VolmexPool: Upper boundary');
+        require(lowerBound < value, "VolmexPool: Lower boundary");
+        require(value < upperBound, "VolmexPool: Upper boundary");
 
         (uint256 numerator, bool sign) = _subSign(
             _inToken.balance + _tokenAmountIn + _tokenAmountOut,
@@ -831,7 +826,10 @@ contract VolmexPool is
             uint256 denominator = (_inToken.balance + _tokenAmountIn + _outToken.balance) -
                 _tokenAmountOut;
 
-            require(_div(numerator, denominator) < _exposureLimit, 'VolmexPool: Exposure boundary');
+            require(
+                _div(numerator, denominator) < _exposureLimit,
+                "VolmexPool: Exposure boundary"
+            );
         }
     }
 
@@ -845,13 +843,13 @@ contract VolmexPool is
             getLeveragedBalance(_outToken) - _tokenAmountOut,
             _outToken.balance - _tokenAmountOut
         );
-        require(_outToken.leverage > 0, 'VolmexPool: Out token leverage can not be zero');
+        require(_outToken.leverage > 0, "VolmexPool: Out token leverage can not be zero");
 
         _inToken.leverage = _div(
             getLeveragedBalance(_inToken) + _tokenAmountIn,
             _inToken.balance + _tokenAmountIn
         );
-        require(_inToken.leverage > 0, 'VolmexPool: In token leverage can not be zero');
+        require(_inToken.leverage > 0, "VolmexPool: In token leverage can not be zero");
     }
 
     /**
@@ -887,7 +885,7 @@ contract VolmexPool is
                 revert(0, 0)
             }
         }
-        require(success, 'VolmexPool: Token out transfer failed');
+        require(success, "VolmexPool: Token out transfer failed");
     }
 
     /**
@@ -901,8 +899,8 @@ contract VolmexPool is
         uint256 _leverage,
         address _receiver
     ) private {
-        require(_balance >= qMin, 'VolmexPool: Unsatisfied min balance supplied');
-        require(_leverage > 0, 'VolmexPool: Token leverage should be greater than 0');
+        require(_balance >= qMin, "VolmexPool: Unsatisfied min balance supplied");
+        require(_leverage > 0, "VolmexPool: Token leverage should be greater than 0");
 
         records[_token] = Record({ leverage: _leverage, balance: _balance });
 

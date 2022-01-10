@@ -2,10 +2,10 @@
 
 pragma solidity =0.8.11;
 
-import '@openzeppelin/contracts/utils/introspection/ERC165Storage.sol';
+import "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
 
-import '../interfaces/IFlashLoanReceiver.sol';
-import '../interfaces/IVolmexPool.sol';
+import "../interfaces/IFlashLoanReceiver.sol";
+import "../interfaces/IVolmexPool.sol";
 
 contract FlashLoanMock is ERC165Storage, IFlashLoanReceiver {
     bytes4 private constant _IFlashLoan_Receiver_ID = type(IFlashLoanReceiver).interfaceId;
@@ -17,8 +17,9 @@ contract FlashLoanMock is ERC165Storage, IFlashLoanReceiver {
 
         _registerInterface(_IFlashLoan_Receiver_ID);
     }
+
     /**
-        This function is called after your contract has received the flash loaned amount
+     * This function is called after your contract has received the flash loaned amount
      */
     function executeOperation(
         address asset,

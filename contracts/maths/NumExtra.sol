@@ -2,11 +2,10 @@
 
 pragma solidity =0.8.11;
 
-import 'abdk-libraries-solidity/ABDKMathQuad.sol';
-import './Const.sol';
+import "abdk-libraries-solidity/ABDKMathQuad.sol";
+import "./Const.sol";
 
 contract NumExtra is Const {
-
     function sqrt(int256 _x) public pure returns (int256) {
         return toIntMultiplied(ABDKMathQuad.sqrt(fromIntMultiplied(_x, BONE)), BONE);
     }

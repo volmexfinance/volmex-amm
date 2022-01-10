@@ -9,4 +9,3 @@ contract Const {
 
     uint256 public constant MAX_IN_RATIO = BONE / 2;
 }
-
