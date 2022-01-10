@@ -917,8 +917,6 @@ describe("VolmexPool", function () {
     });
 
     it("Approve the assets", async () => {
-      console.log(await pool.balanceOf(owner));
-
       const beforeAllowance = await pool.allowance(owner, pool.address);
       await (await pool.approve(pool.address, setAmount)).wait();
       const afterAllowance = await pool.allowance(owner, pool.address);
