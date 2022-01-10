@@ -1,9 +1,4 @@
-const {
-  BN,
-  constants,
-  expectEvent,
-  expectRevert,
-} = require("@openzeppelin/test-helpers");
+const { BN, constants, expectEvent, expectRevert } = require("@openzeppelin/test-helpers");
 const { expect } = require("chai");
 const { ZERO_ADDRESS } = constants;
 
@@ -41,13 +36,7 @@ contract("VolmexPositionToken", function (accounts) {
     expect(await this.token.decimals()).to.be.bignumber.equal("18");
   });
 
-  shouldBehaveLikeERC20(
-    "ERC20",
-    initialSupply,
-    initialHolder,
-    recipient,
-    anotherAccount
-  );
+  shouldBehaveLikeERC20("ERC20", initialSupply, initialHolder, recipient, anotherAccount);
 
   describe("decrease allowance", function () {
     describe("when the spender is not the zero address", function () {
@@ -69,19 +58,15 @@ contract("VolmexPositionToken", function (accounts) {
           const approvedAmount = amount;
 
           beforeEach(async function () {
-            ({ logs: this.logs } = await this.token.approve(
-              spender,
-              approvedAmount,
-              { from: initialHolder }
-            ));
+            ({ logs: this.logs } = await this.token.approve(spender, approvedAmount, {
+              from: initialHolder,
+            }));
           });
 
           it("emits an approval event", async function () {
-            const { logs } = await this.token.decreaseAllowance(
-              spender,
-              approvedAmount,
-              { from: initialHolder }
-            );
+            const { logs } = await this.token.decreaseAllowance(spender, approvedAmount, {
+              from: initialHolder,
+            });
 
             expectEvent.inLogs(logs, "Approval", {
               owner: initialHolder,
@@ -91,24 +76,18 @@ contract("VolmexPositionToken", function (accounts) {
           });
 
           it("decreases the spender allowance subtracting the requested amount", async function () {
-            await this.token.decreaseAllowance(
-              spender,
-              approvedAmount.subn(1),
-              { from: initialHolder }
-            );
+            await this.token.decreaseAllowance(spender, approvedAmount.subn(1), {
+              from: initialHolder,
+            });
 
-            expect(
-              await this.token.allowance(initialHolder, spender)
-            ).to.be.bignumber.equal("1");
+            expect(await this.token.allowance(initialHolder, spender)).to.be.bignumber.equal("1");
           });
 
           it("sets the allowance to zero when all allowance is removed", async function () {
             await this.token.decreaseAllowance(spender, approvedAmount, {
               from: initialHolder,
             });
-            expect(
-              await this.token.allowance(initialHolder, spender)
-            ).to.be.bignumber.equal("0");
+            expect(await this.token.allowance(initialHolder, spender)).to.be.bignumber.equal("0");
           });
 
           it("reverts when more than the full allowance is removed", async function () {
@@ -175,9 +154,9 @@ contract("VolmexPositionToken", function (accounts) {
               from: initialHolder,
             });
 
-            expect(
-              await this.token.allowance(initialHolder, spender)
-            ).to.be.bignumber.equal(amount);
+            expect(await this.token.allowance(initialHolder, spender)).to.be.bignumber.equal(
+              amount
+            );
           });
         });
 
@@ -193,9 +172,9 @@ contract("VolmexPositionToken", function (accounts) {
               from: initialHolder,
             });
 
-            expect(
-              await this.token.allowance(initialHolder, spender)
-            ).to.be.bignumber.equal(amount.addn(1));
+            expect(await this.token.allowance(initialHolder, spender)).to.be.bignumber.equal(
+              amount.addn(1)
+            );
           });
         });
       });
@@ -221,9 +200,9 @@ contract("VolmexPositionToken", function (accounts) {
               from: initialHolder,
             });
 
-            expect(
-              await this.token.allowance(initialHolder, spender)
-            ).to.be.bignumber.equal(amount);
+            expect(await this.token.allowance(initialHolder, spender)).to.be.bignumber.equal(
+              amount
+            );
           });
         });
 
@@ -239,9 +218,9 @@ contract("VolmexPositionToken", function (accounts) {
               from: initialHolder,
             });
 
-            expect(
-              await this.token.allowance(initialHolder, spender)
-            ).to.be.bignumber.equal(amount.addn(1));
+            expect(await this.token.allowance(initialHolder, spender)).to.be.bignumber.equal(
+              amount.addn(1)
+            );
           });
         });
       });
@@ -264,10 +243,7 @@ contract("VolmexPositionToken", function (accounts) {
   describe("_mint", function () {
     const amount = new BN(50);
     it("rejects a null account", async function () {
-      await expectRevert(
-        this.token.mint(ZERO_ADDRESS, amount),
-        "ERC20: mint to the zero address"
-      );
+      await expectRevert(this.token.mint(ZERO_ADDRESS, amount), "ERC20: mint to the zero address");
     });
 
     describe("for a non zero account", function () {
@@ -278,15 +254,11 @@ contract("VolmexPositionToken", function (accounts) {
 
       it("increments totalSupply", async function () {
         const expectedSupply = initialSupply.add(amount);
-        expect(await this.token.totalSupply()).to.be.bignumber.equal(
-          expectedSupply
-        );
+        expect(await this.token.totalSupply()).to.be.bignumber.equal(expectedSupply);
       });
 
       it("increments recipient balance", async function () {
-        expect(await this.token.balanceOf(recipient)).to.be.bignumber.equal(
-          amount
-        );
+        expect(await this.token.balanceOf(recipient)).to.be.bignumber.equal(amount);
       });
 
       it("emits Transfer event", async function () {
@@ -325,16 +297,14 @@ contract("VolmexPositionToken", function (accounts) {
 
           it("decrements totalSupply", async function () {
             const expectedSupply = initialSupply.sub(amount);
-            expect(await this.token.totalSupply()).to.be.bignumber.equal(
-              expectedSupply
-            );
+            expect(await this.token.totalSupply()).to.be.bignumber.equal(expectedSupply);
           });
 
           it("decrements initialHolder balance", async function () {
             const expectedBalance = initialSupply.sub(amount);
-            expect(
-              await this.token.balanceOf(initialHolder)
-            ).to.be.bignumber.equal(expectedBalance);
+            expect(await this.token.balanceOf(initialHolder)).to.be.bignumber.equal(
+              expectedBalance
+            );
           });
 
           it("emits Transfer event", async function () {

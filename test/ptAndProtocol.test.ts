@@ -1,4 +1,4 @@
-export = { }
+export = {};
 const { expect, assert } = require("chai");
 const { expectRevert } = require("@openzeppelin/test-helpers");
 const { ethers, upgrades } = require("hardhat");
@@ -48,9 +48,7 @@ describe("Position Token contract", function () {
 
   before(async function () {
     [this.owner, this.account2, this.account3] = await ethers.getSigners();
-    this.PositionTokenContract = await ethers.getContractFactory(
-      "VolmexPositionToken"
-    );
+    this.PositionTokenContract = await ethers.getContractFactory("VolmexPositionToken");
     this.tokenName = "Ethereum Volatility Index Token";
     this.tokenSymbol = "ETHV";
   });
@@ -59,7 +57,7 @@ describe("Position Token contract", function () {
   beforeEach(async function () {
     this.ptc = await this.PositionTokenContract.deploy();
     await this.ptc.deployed();
-    await this.ptc.initialize(this.tokenName, this.tokenSymbol)
+    await this.ptc.initialize(this.tokenName, this.tokenSymbol);
   });
 
   it("contract is successfully deployed", async function () {
@@ -87,8 +85,7 @@ describe("Position Token contract", function () {
     );
     // minting tokens from owner account, expecting success
     const receipt = await this.ptc.mint(toWhom, value);
-    expect(await checkEvent(receipt, "Transfer", "from", "to", "value")).to.be
-      .true;
+    expect(await checkEvent(receipt, "Transfer", "from", "to", "value")).to.be.true;
     /// double confirming on the basis of the balance
     const account2Balance = await this.ptc.balanceOf(toWhom);
     const totalSupply = await this.ptc.totalSupply();
@@ -101,8 +98,7 @@ describe("Position Token contract", function () {
     const value = await ethers.BigNumber.from("100");
     const toWhom = this.account2.address;
     const mintReceipt = await this.ptc.mint(toWhom, value);
-    expect(await checkEvent(mintReceipt, "Transfer", "from", "to", "value")).to
-      .be.true;
+    expect(await checkEvent(mintReceipt, "Transfer", "from", "to", "value")).to.be.true;
     // burning tokens from non-owner account, expecting revert
     await expectRevert(
       this.ptc.connect(this.account2).burn(toWhom, value),
@@ -110,8 +106,7 @@ describe("Position Token contract", function () {
     );
     // burning tokens from owner account, expecting success
     const burnReceipt = await this.ptc.burn(toWhom, value);
-    expect(await checkEvent(burnReceipt, "Transfer", "from", "to", "value")).to
-      .be.true;
+    expect(await checkEvent(burnReceipt, "Transfer", "from", "to", "value")).to.be.true;
   });
 
   it("only the owner of the contract is able to pause the contract", async function () {
@@ -132,18 +127,14 @@ describe("Position Token contract", function () {
     const transferee = this.account3.address;
 
     /// minting tokens
-    const mintTeceipt = await this.ptc
-      .connect(this.owner)
-      .mint(toWhom, mintValue);
-    expect(await checkEvent(mintTeceipt, "Transfer", "from", "to", "value")).to
-      .be.true;
+    const mintTeceipt = await this.ptc.connect(this.owner).mint(toWhom, mintValue);
+    expect(await checkEvent(mintTeceipt, "Transfer", "from", "to", "value")).to.be.true;
 
     //Transfer token to confirm that transfer fx is working fine
     const transferReceipt = await this.ptc
       .connect(this.account2)
       .transfer(transferee, transferValue);
-    expect(await checkEvent(transferReceipt, "Transfer", "from", "to", "value"))
-      .to.be.true;
+    expect(await checkEvent(transferReceipt, "Transfer", "from", "to", "value")).to.be.true;
 
     //pause contract
     const pauseReceipt = await this.ptc.pause();
@@ -163,11 +154,8 @@ describe("Position Token contract", function () {
     const toWhom = this.account2.address;
 
     /// minting tokens
-    const mintTeceipt = await this.ptc
-      .connect(this.owner)
-      .mint(toWhom, mintValue);
-    expect(await checkEvent(mintTeceipt, "Transfer", "from", "to", "value")).to
-      .be.true;
+    const mintTeceipt = await this.ptc.connect(this.owner).mint(toWhom, mintValue);
+    expect(await checkEvent(mintTeceipt, "Transfer", "from", "to", "value")).to.be.true;
 
     //pause contract
     const pauseReceipt = await this.ptc.pause();
@@ -188,8 +176,7 @@ describe("Position Token contract", function () {
 
     /// minting tokens
     const mintTeceipt = await this.ptc.mint(toWhom, mintValue);
-    expect(await checkEvent(mintTeceipt, "Transfer", "from", "to", "value")).to
-      .be.true;
+    expect(await checkEvent(mintTeceipt, "Transfer", "from", "to", "value")).to.be.true;
 
     //pause contract
     const pauseReceipt = await this.ptc.pause();
@@ -237,12 +224,8 @@ describe("Protocol contract", function () {
 
   before(async function () {
     [this.owner, this.account2, this.account3] = await ethers.getSigners();
-    this.VolmexProtocolFactory = await ethers.getContractFactory(
-      "VolmexProtocol"
-    );
-    this.PositionTokenContract = await ethers.getContractFactory(
-      "VolmexPositionToken"
-    );
+    this.VolmexProtocolFactory = await ethers.getContractFactory("VolmexProtocol");
+    this.PositionTokenContract = await ethers.getContractFactory("VolmexPositionToken");
     this.DummyERC20Contract = await ethers.getContractFactory("TestCollateralToken");
     this.token = await ethers.getContractFactory("NonCollateral");
     this.ethVLongName = "Ethereum Volatility Index Token";
@@ -253,7 +236,11 @@ describe("Protocol contract", function () {
 
   // deploying a fresh PTContract before each test
   beforeEach(async function () {
-    this.DummyERC20Instance = await this.DummyERC20Contract.deploy('VUSD', '100000000000000000000000000000000', 18);
+    this.DummyERC20Instance = await this.DummyERC20Contract.deploy(
+      "VUSD",
+      "100000000000000000000000000000000",
+      18
+    );
     await this.DummyERC20Instance.deployed();
     this.ethVLongInstance = await this.PositionTokenContract.deploy();
     await this.ethVLongInstance.deployed();
@@ -263,16 +250,13 @@ describe("Protocol contract", function () {
     await this.ethVShortInstance.deployed();
     this.ethVShortInstance.initialize(this.ethVShortName, this.ethVShortSymbol);
 
-    this.protcolInstance = await upgrades.deployProxy(
-      this.VolmexProtocolFactory,
-      [
-        this.DummyERC20Instance.address,
-        this.ethVLongInstance.address,
-        this.ethVShortInstance.address,
-        "20000000000000000000",
-        "200",
-      ]
-    );
+    this.protcolInstance = await upgrades.deployProxy(this.VolmexProtocolFactory, [
+      this.DummyERC20Instance.address,
+      this.ethVLongInstance.address,
+      this.ethVShortInstance.address,
+      "20000000000000000000",
+      "200",
+    ]);
 
     this.tokenInstance = await this.token.deploy("NonCollateral", "TKN");
     await this.tokenInstance.deployed();
@@ -319,73 +303,45 @@ describe("Protocol contract", function () {
 
   it("only the owner can change the minimum collateral qty", async function () {
     await expectRevert(
-      this.protcolInstance
-        .connect(this.account2)
-        .updateMinimumCollQty("20000000000000000000"),
+      this.protcolInstance.connect(this.account2).updateMinimumCollQty("20000000000000000000"),
       "Ownable: caller is not the owner"
     );
     await expectRevert(
       this.protcolInstance.updateMinimumCollQty("0"),
       "Volmex: Minimum collateral quantity should be greater than 0"
     );
-    const receipt = await this.protcolInstance.updateMinimumCollQty(
-      "20000000000000000001"
-    );
-    expect(
-      await checkEvent(
-        receipt,
-        "UpdatedMinimumCollateral",
-        "newMinimumCollateralQty"
-      )
-    ).to.be.true;
+    const receipt = await this.protcolInstance.updateMinimumCollQty("20000000000000000001");
+    expect(await checkEvent(receipt, "UpdatedMinimumCollateral", "newMinimumCollateralQty")).to.be
+      .true;
   });
 
   it("only the owner can change the positionTokenContractAddress", async function () {
     let wallet = ethers.Wallet.createRandom();
     await expectRevert(
-      this.protcolInstance
-        .connect(this.account2)
-        .updateVolatilityToken(wallet.address, true),
+      this.protcolInstance.connect(this.account2).updateVolatilityToken(wallet.address, true),
       "Ownable: caller is not the owner"
     );
-    const receipt = await this.protcolInstance.updateVolatilityToken(
-      wallet.address,
-      true
-    );
-    expect(
-      await checkEvent(
-        receipt,
-        "UpdatedVolatilityToken",
-        "positionToken",
-        "isLong"
-      )
-    ).to.be.true;
+    const receipt = await this.protcolInstance.updateVolatilityToken(wallet.address, true);
+    expect(await checkEvent(receipt, "UpdatedVolatilityToken", "positionToken", "isLong")).to.be
+      .true;
   });
 
   it("anyone can collateral to the protocol", async function () {
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
       "200000000000000000000"
     );
     // collaterilzing the position
-    await this.protcolInstance
-      .connect(this.account2)
-      .collateralize("20000000000000000000");
+    await this.protcolInstance.connect(this.account2).collateralize("20000000000000000000");
     // expect(receipt.confirmations).to.be.above(0);
   });
 
   it("collateralize function can only be called when the contract is active", async function () {
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -395,19 +351,14 @@ describe("Protocol contract", function () {
     await this.protcolInstance.toggleActive();
     // collaterilzing the position and expective revert
     await expectRevert(
-      this.protcolInstance
-        .connect(this.account2)
-        .collateralize("20000000000000000000"),
+      this.protcolInstance.connect(this.account2).collateralize("20000000000000000000"),
       "Volmex: Protocol not active"
     );
   });
 
   it("for calling the collateral function the minimum collateral quantity is required", async function () {
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -415,22 +366,21 @@ describe("Protocol contract", function () {
     );
     // collaterilzing the position with less than minimum qty and expeciting revert
     await expectRevert(
-      this.protcolInstance
-        .connect(this.account2)
-        .collateralize("200000000000000"),
+      this.protcolInstance.connect(this.account2).collateralize("200000000000000"),
       "Volmex: CollateralQty > minimum qty required"
     );
   });
 
   it("only the acceptableCollateralCoin is used in the collateralize function", async function () {
     // deploying another version of the TestCollateralToken for this test
-    this.DummyERC20InstanceV2 = await this.DummyERC20Contract.deploy('VUSD', '100000000000000000000000000000000', 18);
+    this.DummyERC20InstanceV2 = await this.DummyERC20Contract.deploy(
+      "VUSD",
+      "100000000000000000000000000000000",
+      18
+    );
     await this.DummyERC20InstanceV2.deployed();
     // minting dummryERC20 token to account 2
-    await this.DummyERC20InstanceV2.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20InstanceV2.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20InstanceV2.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -438,9 +388,7 @@ describe("Protocol contract", function () {
     );
     // collaterilzing the position with less than minimum qty and expeciting revert
     await expectRevert.unspecified(
-      this.protcolInstance
-        .connect(this.account2)
-        .collateralize("200000000000000000000")
+      this.protcolInstance.connect(this.account2).collateralize("200000000000000000000")
     );
   });
 
@@ -457,10 +405,7 @@ describe("Protocol contract", function () {
       "Account2 already holds some iETHV"
     );
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -471,12 +416,8 @@ describe("Protocol contract", function () {
       .connect(this.account2)
       .collateralize("20000000000000000000");
     expect(receipt.confirmations).to.be.above(0);
-    const ethvlBalance = await this.ethVLongInstance.balanceOf(
-      this.account2.address
-    );
-    const ethvsBalance = await this.ethVShortInstance.balanceOf(
-      this.account2.address
-    );
+    const ethvlBalance = await this.ethVLongInstance.balanceOf(this.account2.address);
+    const ethvsBalance = await this.ethVShortInstance.balanceOf(this.account2.address);
     expect(ethvlBalance).to.be.above(0);
     expect(ethvsBalance).to.be.above(0);
   });
@@ -493,10 +434,7 @@ describe("Protocol contract", function () {
       "Account2 already holds some iETHV"
     );
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -507,12 +445,8 @@ describe("Protocol contract", function () {
       .connect(this.account2)
       .collateralize("20000000000000000000");
     expect(receipt.confirmations).to.be.above(0);
-    const ethvlBalance = await this.ethVLongInstance.balanceOf(
-      this.account2.address
-    );
-    const ethvsBalance = await this.ethVShortInstance.balanceOf(
-      this.account2.address
-    );
+    const ethvlBalance = await this.ethVLongInstance.balanceOf(this.account2.address);
+    const ethvsBalance = await this.ethVShortInstance.balanceOf(this.account2.address);
     expect(ethvlBalance).to.be.equal("100000000000000000");
     expect(ethvsBalance).to.be.equal("100000000000000000");
     // redeeming the ethvl and ethvs
@@ -524,9 +458,7 @@ describe("Protocol contract", function () {
       .connect(this.account2)
       .approve(this.protcolInstance.address, ethvsBalance);
     /// calling the redeem function
-    const receipt2 = await this.protcolInstance
-      .connect(this.account2)
-      .redeem(ethvlBalance);
+    const receipt2 = await this.protcolInstance.connect(this.account2).redeem(ethvlBalance);
     expect(receipt2.confirmations).to.be.above(0);
   });
 
@@ -543,10 +475,7 @@ describe("Protocol contract", function () {
       "Account2 already holds some iETHV"
     );
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "400000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "400000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -559,12 +488,8 @@ describe("Protocol contract", function () {
       .connect(this.account2)
       .collateralize("400000000000000000000");
     expect(receipt.confirmations).to.be.above(0);
-    const ethvlBalance = await this.ethVLongInstance.balanceOf(
-      this.account2.address
-    );
-    const ethvsBalance = await this.ethVShortInstance.balanceOf(
-      this.account2.address
-    );
+    const ethvlBalance = await this.ethVLongInstance.balanceOf(this.account2.address);
+    const ethvsBalance = await this.ethVShortInstance.balanceOf(this.account2.address);
     expect(ethvlBalance.toString()).to.be.equal("1990000000000000000");
     expect(ethvsBalance.toString()).to.be.equal("1990000000000000000");
     await expectRevert(
@@ -585,10 +510,7 @@ describe("Protocol contract", function () {
       "Account2 already holds some iETHV"
     );
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "400000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "400000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -601,12 +523,8 @@ describe("Protocol contract", function () {
       .connect(this.account2)
       .collateralize("400000000000000000000");
     expect(receipt.confirmations).to.be.above(0);
-    const ethvlBalance = await this.ethVLongInstance.balanceOf(
-      this.account2.address
-    );
-    const ethvsBalance = await this.ethVShortInstance.balanceOf(
-      this.account2.address
-    );
+    const ethvlBalance = await this.ethVLongInstance.balanceOf(this.account2.address);
+    const ethvsBalance = await this.ethVShortInstance.balanceOf(this.account2.address);
     expect(ethvlBalance.toString()).to.be.equal("1990000000000000000");
     expect(ethvsBalance.toString()).to.be.equal("1990000000000000000");
     const feeWithdrawalReceipt = await this.protcolInstance.claimAccumulatedFees();
@@ -630,10 +548,7 @@ describe("Protocol contract", function () {
       "Account2 already holds some TestCollateralToken Tokens"
     );
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -644,12 +559,8 @@ describe("Protocol contract", function () {
       .connect(this.account2)
       .collateralize("200000000000000000000");
     expect(receipt.confirmations).to.be.above(0);
-    const ethvlBalance = await this.ethVLongInstance.balanceOf(
-      this.account2.address
-    );
-    const ethvsBalance = await this.ethVShortInstance.balanceOf(
-      this.account2.address
-    );
+    const ethvlBalance = await this.ethVLongInstance.balanceOf(this.account2.address);
+    const ethvsBalance = await this.ethVShortInstance.balanceOf(this.account2.address);
     expect(ethvlBalance).to.be.equal("1000000000000000000");
     expect(ethvsBalance).to.be.equal("1000000000000000000");
     // redeeming the ethvl and ethvs
@@ -694,10 +605,7 @@ describe("Protocol contract", function () {
       "Account2 already holds some TestCollateralToken Tokens"
     );
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -708,12 +616,8 @@ describe("Protocol contract", function () {
       .connect(this.account2)
       .collateralize("200000000000000000000");
     expect(receipt.confirmations).to.be.above(0);
-    const ethvlBalance = await this.ethVLongInstance.balanceOf(
-      this.account2.address
-    );
-    const ethvsBalance = await this.ethVShortInstance.balanceOf(
-      this.account2.address
-    );
+    const ethvlBalance = await this.ethVLongInstance.balanceOf(this.account2.address);
+    const ethvsBalance = await this.ethVShortInstance.balanceOf(this.account2.address);
     expect(ethvlBalance).to.be.equal("1000000000000000000");
     expect(ethvsBalance).to.be.equal("1000000000000000000");
     // redeeming the ethvl and ethvs
@@ -761,10 +665,7 @@ describe("Protocol contract", function () {
       "Account2 already holds some TestCollateralToken Tokens"
     );
     // minting dummryERC20 token to account 2
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
@@ -775,12 +676,8 @@ describe("Protocol contract", function () {
       .connect(this.account2)
       .collateralize("200000000000000000000");
     expect(receipt.confirmations).to.be.above(0);
-    const ethvlBalance = await this.ethVLongInstance.balanceOf(
-      this.account2.address
-    );
-    const ethvsBalance = await this.ethVShortInstance.balanceOf(
-      this.account2.address
-    );
+    const ethvlBalance = await this.ethVLongInstance.balanceOf(this.account2.address);
+    const ethvsBalance = await this.ethVShortInstance.balanceOf(this.account2.address);
     expect(ethvlBalance).to.be.equal("1000000000000000000");
     expect(ethvsBalance).to.be.equal("1000000000000000000");
   });
@@ -791,12 +688,10 @@ describe("Protocol contract", function () {
       "Ownable: caller is not the owner"
     );
     let receipt = await this.protcolInstance.togglePause(true);
-    expect(await checkEvent(receipt, "ToggledPositionTokenPause", "isPause")).to
-      .be.false;
+    expect(await checkEvent(receipt, "ToggledPositionTokenPause", "isPause")).to.be.false;
 
     receipt = await this.protcolInstance.togglePause(false);
-    expect(await checkEvent(receipt, "ToggledPositionTokenPause", "isPause")).to
-      .be.false;
+    expect(await checkEvent(receipt, "ToggledPositionTokenPause", "isPause")).to.be.false;
   });
 
   it("only the owner can transfer the recovery tokens", async function () {
@@ -826,9 +721,7 @@ describe("Protocol contract", function () {
     await this.protcolInstance.settle("10");
 
     await expectRevert(
-      this.protcolInstance
-        .connect(this.account2)
-        .collateralize("20000000000000000000"),
+      this.protcolInstance.connect(this.account2).collateralize("20000000000000000000"),
       "Volmex: Protocol settled"
     );
 
@@ -839,19 +732,14 @@ describe("Protocol contract", function () {
   });
 
   it("On settle, call to redeemSettled should be successful", async function () {
-    await this.DummyERC20Instance.mint(
-      this.account2.address,
-      "200000000000000000000"
-    );
+    await this.DummyERC20Instance.mint(this.account2.address, "200000000000000000000");
     // approving the protocol contract to use the dummry erc20 token held by account 2
     await this.DummyERC20Instance.connect(this.account2).approve(
       this.protcolInstance.address,
       "200000000000000000000"
     );
     // collaterilzing the position
-    await this.protcolInstance
-      .connect(this.account2)
-      .collateralize("200000000000000000000");
+    await this.protcolInstance.connect(this.account2).collateralize("200000000000000000000");
 
     await this.protcolInstance.connect(this.owner).settle("10");
 

@@ -11,7 +11,7 @@ const verify = async () => {
       /**
        * Place constructor arguments here
        */
-    ]
+    ],
   });
 };
 

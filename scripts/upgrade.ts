@@ -1,4 +1,4 @@
-import { ethers, upgrades, run } from 'hardhat';
+import { ethers, upgrades, run } from "hardhat";
 
 const createPool = async () => {
   const [owner] = await ethers.getSigners();
@@ -19,6 +19,6 @@ const createPool = async () => {
 createPool()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error('Error: ', error);
+    console.error("Error: ", error);
     process.exit(1);
   });
