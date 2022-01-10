@@ -15,7 +15,7 @@ import './interfaces/IPausablePool.sol';
  * @title Reading key data from specified derivative trading Pool
  */
 contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
-    // Interface ID of VolmexPoolView contract
+    // Interface ID of VolmexPoolView contract, hashId = 0x45ea1e36
     bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
 
     function initialize() external initializer {
