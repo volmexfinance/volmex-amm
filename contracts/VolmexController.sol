@@ -85,7 +85,8 @@ contract VolmexController is
         IERC20Modified[2] memory _stableCoins,
         IVolmexPool[2] memory _pools,
         IVolmexProtocol[4] memory _protocols,
-        IVolmexOracle _oracle
+        IVolmexOracle _oracle,
+        address _owner
     ) external initializer {
         require(
             IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
@@ -131,9 +132,10 @@ contract VolmexController is
         stableCoinIndex++;
 
         __Ownable_init();
-        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
+        __Pausable_init_unchained();
         __ERC165Storage_init();
         _registerInterface(_IVOLMEX_CONTROLLER_ID);
+        _transferOwnership(_owner);
     }
 
     /**

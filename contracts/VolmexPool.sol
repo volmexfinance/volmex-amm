@@ -159,7 +159,8 @@ contract VolmexPool is
         uint256 _baseFee,
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
-        uint256 _feeAmpComplement
+        uint256 _feeAmpComplement,
+        address _owner
     ) external initializer {
         require(
             IERC165Upgradeable(address(_repricer)).supportsInterface(_IVOLMEX_REPRICER_ID),
@@ -185,9 +186,10 @@ contract VolmexPool is
         _setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
 
         __Ownable_init();
-        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
+        __Pausable_init_unchained();
         __ERC165Storage_init();
         _registerInterface(_IVOLMEX_POOL_ID);
+        _transferOwnership(_owner);
     }
 
     /**
