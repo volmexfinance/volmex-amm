@@ -52,6 +52,8 @@ interface IVolmexPool is IERC20 {
         uint256 feeAmpPrimary,
         uint256 feeAmpComplement
     );
+    event AdminFeeUpdated(uint256 fee);
+    event VolatilityIndexUpdated(uint256 newIndex);
 
     // Getter methods
     function repricingBlock() external view returns (uint256);
