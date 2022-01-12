@@ -24,7 +24,7 @@ interface IVolmexPool is IERC20 {
         uint256 tokenLeverageIn,
         uint256 tokenLeverageOut
     );
-    event Joined(address indexed caller, address indexed tokenIn, uint256 tokenAmountIn);
+    event Joined(address indexed caller, address[2] indexed tokenIn, uint256[2] tokenAmountIn, uint256 lpAmountOut);
     event Exited(address indexed caller, address indexed tokenOut, uint256 tokenAmountOut);
     event Repriced(
         uint256 repricingBlock,

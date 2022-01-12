@@ -52,7 +52,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      allowUnlimitedContractSize: false,
+      allowUnlimitedContractSize: true,
     },
     localhost: {
       url: "http://127.0.0.1:8545", // same address and port for both Buidler and Ganache node
@@ -100,8 +100,12 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   gasReporter: {
+    enabled: false,
     currency: 'USD',
     gasPrice: 21
+  },
+  typechain: {
+    outDir: './typechain',
   }
 };
 

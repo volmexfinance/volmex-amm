@@ -337,8 +337,9 @@ contract VolmexPool is
     ) external logs lock onlyFinalized onlyController {
         uint256 poolTotal = totalSupply();
         uint256 ratio = _div(_poolAmountOut, poolTotal);
-        require(ratio != 0, "VolmexPool: Invalid math approximation");
-
+        require(ratio != 0, 'VolmexPool: Invalid math approximation');
+        uint256[2] memory amountsIn;
+        address[2] memory tokensIn;
         for (uint256 i = 0; i < _BOUND_TOKENS; i++) {
             address token = tokens[i];
             uint256 bal = records[token].balance;
@@ -349,12 +350,12 @@ contract VolmexPool is
             uint256 tokenAmountIn = _mul(ratio, bal);
             require(tokenAmountIn <= _maxAmountsIn[i], "VolmexPool: Amount in limit exploit");
             records[token].balance = records[token].balance + tokenAmountIn;
-            emit Joined(_receiver, token, tokenAmountIn);
-            _pullUnderlying(token, _receiver, tokenAmountIn);
+            uint256 lpAmountOut = _pullUnderlying(token, _receiver, tokenAmountIn);
+            amountsIn[i] = tokenAmountIn;
         }
-
         _mintPoolShare(_poolAmountOut);
         _pushPoolShare(_receiver, _poolAmountOut);
+        emit Joined(_receiver, tokensIn, amountsIn, _poolAmountOut);
     }
 
     /**
