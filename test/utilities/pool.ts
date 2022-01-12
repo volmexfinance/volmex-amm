@@ -4,6 +4,7 @@ import { JoinedEvent } from '../../typechain/VolmexPool';
 import { VolmexController } from '../../typechain/VolmexController';
 import { IVolatility } from '../Slippage.test';
 import { decodeEvents } from './events';
+import { expect } from './expects'
 
 export type AddLiquidityContractParam = { controller: VolmexController, poolView: VolmexPoolView, pools: IVolatility }
 export type AddLiquidityDetails = [
@@ -16,7 +17,7 @@ export type ParsedAddLiquidityDetails = {
     amountOut: BigNumberish,
     tx: ContractTransaction,
     receipt: ContractReceipt,
-    events: Array<Event>
+    events: Array<JoinedEvent>
 }
 
 export const addLiquidity = async (contracts: AddLiquidityContractParam, asset: 'ETH' | 'BTC', amountOut: BigNumberish) => {
@@ -45,7 +46,7 @@ export const addLiquidityAndReport = async (contracts: AddLiquidityContractParam
 
 export const addMultipleLiquidity = async (contracts: AddLiquidityContractParam, asset: 'ETH' | 'BTC', count: number, minMax: [number, number]): Promise<Array<AddLiquidityDetails>> => {
     const liquidityDetails: Array<AddLiquidityDetails> = []
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count - 1; i++) {
         const addLiquidityDetails = await addLiquidityAndReport(contracts, asset, getRandomAmount(...minMax))
         liquidityDetails.push(addLiquidityDetails)
     }
@@ -67,8 +68,6 @@ export const formatToParsedAddLiquidityDetails = (contracts: AddLiquidityContrac
     return addLiquidityReceipts.map((receipt: ResolvedAddLiquidityDetails): ParsedAddLiquidityDetails => {
         const events = decodeEvents(contracts.pools['ETH'], receipt[3].events as Event[], 'Joined') as unknown as Array<JoinedEvent>
         
-        console.log("🚀 ~ file: pool.ts ~ line 68 ~ returnaddLiquidityReceipts.map ~ events", events)
-
         return {
             events: events,
             amountIn: receipt[0],
@@ -77,6 +76,14 @@ export const formatToParsedAddLiquidityDetails = (contracts: AddLiquidityContrac
             receipt: receipt[3]
         }
     })
+}
+
+export const checkAddLiquidityRecievedLPTokens = (transactions: Array<ParsedAddLiquidityDetails>) => {
+    for(const transaction of transactions) {
+        expect(transaction.amountIn[0]).equals(transaction.amountIn[1])
+        //@ts-ignore
+        expect(transaction.amountOut).equals(transaction.events[0].lpAmountOut)
+    }
 }
 
 const getRandomAmount = (min: number, max: number) => {

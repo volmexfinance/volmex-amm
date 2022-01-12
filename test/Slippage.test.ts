@@ -7,7 +7,7 @@ import {addLiquidityAndReport, approveToken, mineBlock, setMiningMode} from './u
 import { VolmexController } from '../typechain/VolmexController';
 import { VolmexPool } from '../typechain/VolmexPool';
 import { decodeEvents, filterEvents } from './utilities/events';
-import {addMultipleLiquidity, retrieveLiquidityTransactionRecpeipt, ResolvedAddLiquidityDetails, formatToParsedAddLiquidityDetails} from './utilities/pool';
+import {addMultipleLiquidity, retrieveLiquidityTransactionRecpeipt, checkAddLiquidityRecievedLPTokens, formatToParsedAddLiquidityDetails} from './utilities/pool';
 
 export interface IProtocols {
   ETHVDAI: string | any;
@@ -348,8 +348,6 @@ describe('VolmexController', function () {
     });
   });
 
-
-
   describe('Swaps, liquidity - add & remove', function () {
     it('Should swap volatility tokens', async () => {
 
@@ -366,48 +364,17 @@ describe('VolmexController', function () {
 
       setMiningMode(false);
 
-      const liquidityDetials = await addMultipleLiquidity(addLiquiditySupprtingContracts, 'ETH', 3, [1, 1000000])
+      const liquidityDetials = await addMultipleLiquidity(addLiquiditySupprtingContracts, 'ETH', 5, [1, 1000])
 
       await mineBlock();
 
       const addLiquidityReceipts = await retrieveLiquidityTransactionRecpeipt(liquidityDetials)
 
-      const parsedData = formatToParsedAddLiquidityDetails(addLiquiditySupprtingContracts, addLiquidityReceipts)
-      
-      console.log("🚀 ~ file: Slippage.test.ts ~ line 353 ~ it ~ parsedData", parsedData)
-      
-      
-      // const joinPoolEvents = decodeEvents(addLiquiditySupprtingContracts.pools['ETH'], addLiqTx.events, 'Joined') as Array<JoinedEvent>
+      const parsedTransactions = formatToParsedAddLiquidityDetails(addLiquiditySupprtingContracts, addLiquidityReceipts)
         
-      
-      await checkAddLiquidityWithSlippage()
-      
-      mineBlock();
+      await checkAddLiquidityRecievedLPTokens(parsedTransactions)
 
       setMiningMode(true);
-
-      const amountOut = await pools['ETH'].getTokenAmountOut(
-        volatilities['ETH'].address,
-        '20000000000000000000'
-      );
-
-      await (await volatilities['ETH'].approve(controller.address, '20000000000000000000')).wait();
-
-      const balanceBefore = await inverseVolatilities['ETH'].balanceOf(owner);
-      const swap = await controller.swap(
-        0,
-        volatilities['ETH'].address,
-        '20000000000000000000',
-        inverseVolatilities['ETH'].address,
-        amountOut[0].toString()
-      );
-      await swap.wait();
-
-      const balanceAfter = await inverseVolatilities['ETH'].balanceOf(owner);
-
-      const changedBalance = balanceAfter.sub(balanceBefore);
-
-      expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
     });
 
     // it('Should swap collateral to volatility', async () => {
