@@ -29,6 +29,10 @@ const createPool = async () => {
   const VolmexOracle = await ethers.getContractFactory("VolmexOracle");
   const ControllerFactory = await ethers.getContractFactory("VolmexController");
   const VolmexPoolView = await ethers.getContractFactory("VolmexPoolView");
+  let governor = await accounts[0].getAddress();
+  if (process.env.GOVERNOR) {
+    governor = `${process.env.GOVERNOR}`;
+  }
 
   const BigNumber = require("bignumber.js");
   const bn = (num: number) => new BigNumber(num);
@@ -46,7 +50,7 @@ const createPool = async () => {
 
   console.log("Deploying Oracle...");
 
-  const oracle = await upgrades.deployProxy(VolmexOracle, []);
+  const oracle = await upgrades.deployProxy(VolmexOracle, [governor]);
   await oracle.deployed();
   console.log("VolmexOracle deployed ", oracle.address);
 
@@ -64,6 +68,7 @@ const createPool = async () => {
     maxFee,
     feeAmpPrimary,
     feeAmpComplement,
+    governor
   ]);
   await poolETH.deployed();
   console.log("ETH Pool deployed ", poolETH.address);
@@ -76,6 +81,7 @@ const createPool = async () => {
     maxFee,
     feeAmpPrimary,
     feeAmpComplement,
+    governor
   ]);
   await poolBTC.deployed();
   console.log("BTC Pool deployed ", poolBTC.address);
@@ -92,6 +98,7 @@ const createPool = async () => {
     [poolETH.address, poolBTC.address],
     Protocols,
     oracle.address,
+    governor
   ]);
   await controller.deployed();
   console.log("VolmexController deployed :", controller.address);
@@ -160,10 +167,6 @@ const createPool = async () => {
   });
 
   await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(poolBTC.address),
-  });
-
-  await run("verify:verify", {
     address: await proxyAdmin.getProxyImplementation(repricer.address),
   });
 
@@ -177,6 +180,10 @@ const createPool = async () => {
 
   await run("verify:verify", {
     address: await proxyAdmin.getProxyImplementation(poolView.address),
+  });
+
+  await run("verify:verify", {
+    address: await proxyAdmin.getProxyImplementation(poolBTC.address),
   });
 };
 
