@@ -103,6 +103,14 @@ contract VolmexPool is
     }
 
     /**
+     * @notice Used to prevent multiple call to view methods
+     */
+    modifier viewlock() {
+        require(!_mutex, "VolmexPool: REENTRY");
+        _;
+    }
+
+    /**
      * @notice Used to check the pool is finalised
      */
     modifier onlyFinalized() {
@@ -500,15 +508,8 @@ contract VolmexPool is
     /**
      * @notice Used to pause the contract
      */
-    function pause() external onlyController {
-        _pause();
-    }
-
-    /**
-     * @notice Used to unpause the contract, if paused
-     */
-    function unpause() external onlyController {
-        _unpause();
+    function pause(bool _isPause) external onlyController {
+        _isPause ? _pause() : _unpause();
     }
 
     /**
@@ -555,7 +556,7 @@ contract VolmexPool is
      * Can't remove this method, because struct of this contract can't be fetched in controller contract.
      * We will need to unpack the struct.
      */
-    function getLeverage(address _token) external view returns (uint256) {
+    function getLeverage(address _token) external view viewlock returns (uint256) {
         return records[_token].leverage;
     }
 
@@ -564,7 +565,7 @@ contract VolmexPool is
      *
      * @param _token Address of the token. either primary or complement
      */
-    function getBalance(address _token) external view returns (uint256) {
+    function getBalance(address _token) external view viewlock returns (uint256) {
         return records[_token].balance;
     }
 
