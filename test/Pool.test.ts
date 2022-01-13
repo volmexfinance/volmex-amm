@@ -524,10 +524,10 @@ describe("VolmexPool", function () {
     });
 
     it("Should pause/unpause the tokens", async () => {
-      let receipt = await pool.pause();
+      let receipt = await pool.pause(true);
       expect(receipt.confirmations).equal(1);
 
-      receipt = await pool.unpause();
+      receipt = await pool.pause(false);
       expect(receipt.confirmations).equal(1);
     });
 
