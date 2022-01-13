@@ -221,15 +221,15 @@ contract VolmexController is
     /**
      * @notice Used to pause the pool
      */
-    function pausePool(IPausablePool _pool) external onlyOwner {
-        _pool.pause();
+    function pausePool(IVolmexPool _pool) external onlyOwner {
+        _pool.pause(true);
     }
 
     /**
      * @notice Used to un-pause the pool
      */
-    function unpausePool(IPausablePool _pool) external onlyOwner {
-        _pool.unpause();
+    function unpausePool(IVolmexPool _pool) external onlyOwner {
+        _pool.pause(false);
     }
 
     /**
