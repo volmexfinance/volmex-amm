@@ -176,8 +176,9 @@ describe("VolmexController", function () {
         )
       ).wait();
     }
+    owner = await accounts[0].getAddress();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);
@@ -213,6 +214,7 @@ describe("VolmexController", function () {
           maxFee,
           feeAmpPrimary,
           feeAmpComplement,
+          owner
         ],
         {
           initializer: "initialize",
@@ -245,6 +247,7 @@ describe("VolmexController", function () {
       controllerParam.pools,
       controllerParam.protocols,
       volmexOracle.address,
+      owner
     ]);
     await controller.deployed();
 
@@ -884,6 +887,7 @@ describe("VolmexController", function () {
           maxFee,
           feeAmpPrimary,
           feeAmpComplement,
+          owner
         ],
         {
           initializer: "initialize",
@@ -1055,6 +1059,7 @@ describe("VolmexController", function () {
             controllerParam.pools,
             controllerParam.protocols,
             controllerParam.collaterals[0],
+            owner
           ]),
           "VolmexController: Oracle does not supports interface"
         );
@@ -1068,6 +1073,7 @@ describe("VolmexController", function () {
             controllerParam.pools,
             controllerParam.protocols,
             volmexOracle.address,
+            owner
           ]),
           "VolmexController: Pool does not supports interface"
         );
@@ -1081,6 +1087,7 @@ describe("VolmexController", function () {
             controllerParam.pools,
             controllerParam.protocols,
             volmexOracle.address,
+            owner
           ]),
           "VolmexController: address of stable coin can't be zero"
         );
@@ -1094,6 +1101,7 @@ describe("VolmexController", function () {
             controllerParam.pools,
             controllerParam.protocols,
             volmexOracle.address,
+            owner
           ]),
           "VolmexController: Incorrect pool for add protocol"
         );
@@ -1107,6 +1115,7 @@ describe("VolmexController", function () {
             controllerParam.pools,
             controllerParam.protocols,
             volmexOracle.address,
+            owner
           ]),
           "VolmexController: Incorrect stableCoin for add protocol"
         );
