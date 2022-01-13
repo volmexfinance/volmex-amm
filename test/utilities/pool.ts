@@ -33,20 +33,20 @@ export const addLiquidity = async (contracts: AddLiquidityContractParam, asset: 
 
 export const addLiquidityAndReport = async (contracts: AddLiquidityContractParam, asset: 'ETH' | 'BTC', amountOut: BigNumberish): Promise<AddLiquidityDetails> => {
 
-    const amountIn = await contracts.poolView.getTokensToJoin(contracts.pools[asset].address, amountOut)
-
+    let maxAmountsIn = await contracts.poolView.getTokensToJoin(contracts.pools[asset].address, amountOut)
+    maxAmountsIn = [(maxAmountsIn[0].mul(1005)).div(1000), (maxAmountsIn[1].mul(1005)).div(1000)];  // Providing 0.5% slippage
     const addLiquidityTransaction = await contracts.controller.addLiquidity(
         amountOut,
-        amountIn,
+        maxAmountsIn,
         asset == 'ETH' ? '0' : '1'
     );
 
-    return [amountIn, amountOut, addLiquidityTransaction]
+    return [maxAmountsIn, amountOut, addLiquidityTransaction]
 }
 
 export const addMultipleLiquidity = async (contracts: AddLiquidityContractParam, asset: 'ETH' | 'BTC', count: number, minMax: [number, number]): Promise<Array<AddLiquidityDetails>> => {
     const liquidityDetails: Array<AddLiquidityDetails> = []
-    for (let i = 0; i < count - 1; i++) {
+    for (let i = 0; i < count; i++) {
         const addLiquidityDetails = await addLiquidityAndReport(contracts, asset, getRandomAmount(...minMax))
         liquidityDetails.push(addLiquidityDetails)
     }
