@@ -46,7 +46,7 @@ export const addLiquidityAndReport = async (contracts: AddLiquidityContractParam
 
 export const addMultipleLiquidity = async (contracts: AddLiquidityContractParam, asset: 'ETH' | 'BTC', count: number, minMax: [number, number]): Promise<Array<AddLiquidityDetails>> => {
     const liquidityDetails: Array<AddLiquidityDetails> = []
-    for (let i = 0; i < count - 1; i++) {
+    for (let i = 0; i < count; i++) {
         const addLiquidityDetails = await addLiquidityAndReport(contracts, asset, getRandomAmount(...minMax))
         liquidityDetails.push(addLiquidityDetails)
     }

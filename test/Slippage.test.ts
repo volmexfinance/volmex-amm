@@ -364,7 +364,7 @@ describe('VolmexController', function () {
 
       setMiningMode(false);
 
-      const liquidityDetials = await addMultipleLiquidity(addLiquiditySupprtingContracts, 'ETH', 5, [1, 1000])
+      const liquidityDetials = await addMultipleLiquidity(addLiquiditySupprtingContracts, 'ETH', 10, [1, 1000])
 
       await mineBlock();
 
