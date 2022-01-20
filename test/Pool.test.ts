@@ -311,6 +311,16 @@ describe("VolmexPool", function () {
       );
     });
 
+    it("Should update the admin fee", async () => {
+      await (await pool.updateAdminFee(70)).wait();
+      expect(await pool.adminFee()).to.equal(70);
+    });
+
+    it("Should update volatility index", async () => {
+      await (await pool.updateVolatilityIndex(2)).wait();
+      expect(await pool.volatilityIndex()).to.equal(2);
+    });
+
     it("Should add liquidity", async () => {
       await (await volatility.approve(pool.address, "30000000000000000000")).wait();
       await (await inverseVolatility.approve(pool.address, "30000000000000000000")).wait();
@@ -524,10 +534,10 @@ describe("VolmexPool", function () {
     });
 
     it("Should pause/unpause the tokens", async () => {
-      let receipt = await pool.pause(true);
+      let receipt = await pool.togglePause(true);
       expect(receipt.confirmations).equal(1);
 
-      receipt = await pool.pause(false);
+      receipt = await pool.togglePause(false);
       expect(receipt.confirmations).equal(1);
     });
 

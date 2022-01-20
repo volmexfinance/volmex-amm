@@ -46,10 +46,7 @@ interface IVolmexController {
     // Setter methods
     function addPool(IVolmexPool _pool) external;
     function addStableCoin(IERC20Modified _stableCoin) external;
-    function pause() external;
-    function unpause() external;
-    function pausePool(IVolmexPool _pool) external;
-    function unpausePool(IVolmexPool _pool) external;
+    function togglePause(bool _isPause) external;
     function collect(IVolmexPool _pool) external;
     function addProtocol(
         uint256 _poolIndex,

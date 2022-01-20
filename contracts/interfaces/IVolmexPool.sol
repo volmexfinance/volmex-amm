@@ -86,7 +86,7 @@ interface IVolmexPool is IERC20 {
     function updateFlashLoanPremium(uint256 _premium) external;
     function joinPool(uint256 _poolAmountOut, uint256[2] calldata _maxAmountsIn, address _receiver) external;
     function exitPool(uint256 _poolAmountIn, uint256[2] calldata _minAmountsOut, address _receiver) external;
-    function pause(bool _isPause) external;
+    function togglePause(bool _isPause) external;
     function reprice() external;
     function swapExactAmountIn(
         address _tokenIn,

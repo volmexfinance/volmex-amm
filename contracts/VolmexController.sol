@@ -205,31 +205,21 @@ contract VolmexController is
     }
 
     /**
-     * @notice Used to pause controller
+     * @notice Pause/unpause volmex controller contract
+     *
+     * @param _isPause Boolean value to pause or unpause the position token { true = pause, false = unpause }
      */
-    function pause() external onlyOwner {
-        _pause();
+    function togglePause(bool _isPause) external virtual onlyOwner {
+        _isPause ? _pause() : _unpause();
     }
 
     /**
-     * @notice Used to unpause controller
+     * @notice Pause/unpause volmex pool contract
+     *
+     * @param _isPause Boolean value to pause or unpause the position token { true = pause, false = unpause }
      */
-    function unpause() external onlyOwner {
-        _unpause();
-    }
-
-    /**
-     * @notice Used to pause the pool
-     */
-    function pausePool(IVolmexPool _pool) external onlyOwner {
-        _pool.pause(true);
-    }
-
-    /**
-     * @notice Used to un-pause the pool
-     */
-    function unpausePool(IVolmexPool _pool) external onlyOwner {
-        _pool.pause(false);
+    function togglePoolPause(IVolmexPool _pool, bool _isPause) external virtual onlyOwner {
+        _pool.togglePause(_isPause);
     }
 
     /**

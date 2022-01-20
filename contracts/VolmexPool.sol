@@ -507,8 +507,10 @@ contract VolmexPool is
 
     /**
      * @notice Used to pause the contract
+     *
+     * @param _isPause Boolean value to pause or unpause the position token { true = pause, false = unpause }
      */
-    function pause(bool _isPause) external onlyController {
+    function togglePause(bool _isPause) external onlyController {
         _isPause ? _pause() : _unpause();
     }
 

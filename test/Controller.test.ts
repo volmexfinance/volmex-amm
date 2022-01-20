@@ -1003,16 +1003,31 @@ describe("VolmexController", function () {
     });
   });
 
+  describe("Controller pause and unpause", () => {
+    it("Should pause the pool", async () => {
+      await (await controller.togglePause(true)).wait();
+
+      expect(await controller.paused()).to.be.true;
+    });
+
+    it("Should un-pause the pool", async () => {
+      await (await controller.togglePause(true)).wait();
+      await (await controller.togglePause(false)).wait();
+
+      expect(await controller.paused()).to.be.false;
+    });
+  });
+
   describe("Pool pause and unpause", () => {
     it("Should pause the pool", async () => {
-      await (await controller.pausePool(pools["ETH"].address)).wait();
+      await (await controller.togglePoolPause(pools["ETH"].address, true)).wait();
 
       expect(await pools["ETH"].paused()).to.be.true;
     });
 
     it("Should un-pause the pool", async () => {
-      await (await controller.pausePool(pools["ETH"].address)).wait();
-      await (await controller.unpausePool(pools["ETH"].address)).wait();
+      await (await controller.togglePoolPause(pools["ETH"].address, true)).wait();
+      await (await controller.togglePoolPause(pools["ETH"].address, false)).wait();
 
       expect(await pools["ETH"].paused()).to.be.false;
     });
