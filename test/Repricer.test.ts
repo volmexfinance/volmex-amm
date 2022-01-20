@@ -33,6 +33,7 @@ describe("Repricer", function () {
   });
 
   this.beforeEach(async function () {
+    const owner = await accounts[0].getAddress();
     collateral = await collateralFactory.deploy("VUSD", "100000000000000000000000000000000", 18);
     await collateral.deployed();
 
@@ -64,7 +65,7 @@ describe("Repricer", function () {
     volReciept = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volReciept.wait();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);

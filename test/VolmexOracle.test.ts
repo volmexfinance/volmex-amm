@@ -5,6 +5,7 @@ import { Signer, ContractReceipt, ContractTransaction } from "ethers";
 const { expectRevert, expectEvent } = require("@openzeppelin/test-helpers");
 
 describe("Volmex Oracle", function () {
+  let owner: string;
   let accounts: Signer[];
   let volmexOracleFactory: any;
   let volmexOracle: any;
@@ -33,6 +34,7 @@ describe("Volmex Oracle", function () {
   });
 
   this.beforeEach(async function () {
+    owner = await accounts[0].getAddress();
     collateral = await collateralFactory.deploy("VUSD", "100000000000000000000000000000000", 18);
     await collateral.deployed();
 
@@ -54,7 +56,7 @@ describe("Volmex Oracle", function () {
       "250",
     ]);
     await protocol.deployed();
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
 
     await volmexOracle.deployed();
   });
@@ -162,7 +164,7 @@ describe("Volmex Oracle", function () {
       "0",
     ]);
     await protocol.deployed();
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
     assert.equal(await protocol.collateral(), collateral.address);
     assert.equal(await protocol.volatilityToken(), volatility.address);
     assert.equal(await protocol.inverseVolatilityToken(), inverseVolatility.address);
