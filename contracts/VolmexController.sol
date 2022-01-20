@@ -617,18 +617,18 @@ contract VolmexController is
      * @param _tokenIn Address of the token in
      * @param _amountIn Value of token amount in to swap
      * @param _tokenOut Address of the token out
-     * @param _amountOut Minimum expected value of token amount out
+     * @param _minAmountOut Minimum expected value of token amount out
      */
     function swap(
         uint256 _poolIndex,
         address _tokenIn,
         uint256 _amountIn,
         address _tokenOut,
-        uint256 _amountOut
+        uint256 _minAmountOut
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
-        _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
+        _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _minAmountOut, msg.sender, false);
     }
 
     /**

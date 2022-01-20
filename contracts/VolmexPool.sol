@@ -523,11 +523,11 @@ contract VolmexPool is
     function getTokenAmountOut(address _tokenIn, uint256 _tokenAmountIn)
         external
         view
-        returns (uint256 tokenAmountOut, uint256 fee)
+        returns (uint256 minAmountOut, uint256 fee)
     {
         (Record memory inRecord, Record memory outRecord) = _getRepriced(_tokenIn);
 
-        tokenAmountOut = _calcOutGivenIn(
+        minAmountOut = _calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             _tokenAmountIn,
@@ -538,11 +538,11 @@ contract VolmexPool is
             inRecord,
             _tokenAmountIn,
             outRecord,
-            tokenAmountOut,
+            minAmountOut,
             tokens[0] == _tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
-        tokenAmountOut = _calcOutGivenIn(
+        minAmountOut = _calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             _tokenAmountIn,
