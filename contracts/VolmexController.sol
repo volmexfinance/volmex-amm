@@ -658,12 +658,12 @@ contract VolmexController is
         uint256 _collateralAmount,
         address _tokenOut,
         uint256[2] calldata _indices
-    ) external view returns (uint256 volatilityAmount, uint256[2] memory fees) {
+    ) external view returns (uint256 minVolatilityAmount, uint256[2] memory fees) {
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (volatilityAmount, fees[1]) = _calculateAssetQuantity(
+        (minVolatilityAmount, fees[1]) = _calculateAssetQuantity(
             _collateralAmount,
             _protocol.issuanceFees(),
             true,
@@ -676,10 +676,10 @@ contract VolmexController is
         uint256 tokenAmountOut;
         (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
             isInverse ? _pool.tokens(0) : _pool.tokens(1),
-            volatilityAmount
+            minVolatilityAmount
         );
 
-        volatilityAmount += tokenAmountOut;
+        minVolatilityAmount += tokenAmountOut;
     }
 
     /**
@@ -696,7 +696,7 @@ contract VolmexController is
         uint256 _amount,
         uint256[2] calldata _indices,
         bool _isInverse
-    ) external view returns (uint256 collateralAmount, uint256[2] memory fees) {
+    ) external view returns (uint256 minCollateralAmount, uint256[2] memory fees) {
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
@@ -709,7 +709,7 @@ contract VolmexController is
             _isInverse
         );
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (collateralAmount, fee[1]) = _calculateAssetQuantity(
+        (minCollateralAmount, fee[1]) = _calculateAssetQuantity(
             amounts[1] * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
