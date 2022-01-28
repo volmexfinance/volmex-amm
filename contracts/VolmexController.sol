@@ -358,7 +358,7 @@ contract VolmexController is
     /**
      * @notice Used to swap a type of volatility token to collateral token
      *
-     * @param _amounts Amounts array of volatility token and expected collateral
+     * @param _amounts Amounts array of maximum volatility token and minimum expected collateral
      * @param _indices Indices of the pool and stablecoin to operate { 0: ETHV, 1: BTCV } { 0: DAI, 1: USDC }
      * @param _tokenIn Address of in token
      */
