@@ -359,11 +359,6 @@ contract VolmexProtocol is
         emit ToggledVolatilityTokenPause(_isPause);
     }
 
-    function upgradeTo(address newImplementation) external virtual {
-        // _authorizeUpgrade(newImplementation);
-        // _upgradeToAndCallSecure(newImplementation, bytes(""), false);
-    }
-
     function _redeem(
         uint256 _collateralQtyRedeemed,
         uint256 _volatilityIndexTokenQty,
