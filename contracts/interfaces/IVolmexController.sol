@@ -100,8 +100,7 @@ interface IVolmexController {
     function getVolatilityToCollateral(
         address _tokenIn,
         uint256 _amount,
-        uint256[2] calldata _indices,
-        bool _isInverse
+        uint256[2] calldata _indices
     ) external view returns (uint256, uint256[2] memory);
     function getSwapAmountBetweenPools(
         address[2] calldata _tokens,

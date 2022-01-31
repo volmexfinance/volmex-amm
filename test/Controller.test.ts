@@ -528,22 +528,21 @@ describe("VolmexController", function () {
         .connect(swapper1)
         .getVolatilityToCollateral(
           volatilities["ETH"].address,
-          "20000000000000000000",
-          [0, 0],
-          false
+          "10000000000000000000",
+          [0, 0]
         );
 
       await (
         await volatilities["ETH"]
           .connect(swapper1)
-          .approve(controller.address, "20000000000000000000")
+          .approve(controller.address, "10000000000000000000")
       ).wait();
       const collateralBefore = await collateral["DAI"].balanceOf(swap1);
 
       const swap = await controller
         .connect(swapper1)
         .swapVolatilityToCollateral(
-          ["20000000000000000000", colAmount[0].toString()],
+          ["10000000000000000000", colAmount[0].toString()],
           ["0", "0"],
           volatilities["ETH"].address
         );
@@ -783,8 +782,7 @@ describe("VolmexController", function () {
       const colAmount = await controller.getVolatilityToCollateral(
         volatilities["ETH"].address,
         "20000000000000000000",
-        [0, 1],
-        false
+        [0, 1]
       );
 
       await (await volatilities["ETH"].approve(controller.address, "20000000000000000000")).wait();
