@@ -829,11 +829,11 @@ contract VolmexController is
         uint256 leverage = _pool.getLeverage(_pool.tokens(0));
         uint256 iLeverage = _pool.getLeverage(_pool.tokens(1));
 
-        volatilityAmount = !_isInverse
-            ? ((_amount * iPrice * iLeverage) * BONE) /
-                (price * leverage * (BONE - _fee) + iPrice * iLeverage * BONE)
-            : ((_amount * price * leverage) * BONE) /
-                (iPrice * iLeverage * (BONE - _fee) + price * leverage * BONE);
+        volatilityAmount = _isInverse
+            ? ((_amount * iLeverage) * BONE) /
+                (leverage * (BONE - _fee) + iLeverage * BONE)
+            : ((_amount * leverage) * BONE) /
+                (iLeverage * (BONE - _fee) + leverage * BONE);
     }
 
     function _getSwappedAssetAmount(
