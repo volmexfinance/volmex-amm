@@ -603,7 +603,7 @@ describe("VolmexController", function () {
       const volAmountOut = await controller
         .connect(swapper1)
         .getSwapAmountBetweenPools(
-          [volatilities["ETH"].address, volatilities["BTC"].address],
+          [volatilities["ETH"].address, inverseVolatilities["BTC"].address],
           "20000000000000000000",
           [0, 1, 0]
         );
@@ -614,11 +614,11 @@ describe("VolmexController", function () {
           .approve(controller.address, "20000000000000000000")
       ).wait();
 
-      const balanceBefore = await volatilities["BTC"].balanceOf(swap1);
+      const balanceBefore = await inverseVolatilities["BTC"].balanceOf(swap1);
       const swap = await controller
         .connect(swapper1)
         .swapBetweenPools(
-          [volatilities["ETH"].address, volatilities["BTC"].address],
+          [volatilities["ETH"].address, inverseVolatilities["BTC"].address],
           ["20000000000000000000", volAmountOut[0].toString()],
           [0, 1, 0]
         );
@@ -630,7 +630,7 @@ describe("VolmexController", function () {
         "uint256",
         "address",
       ]);
-      const balanceAfter = await volatilities["BTC"].balanceOf(swap1);
+      const balanceAfter = await inverseVolatilities["BTC"].balanceOf(swap1);
 
       const changedBalance = balanceAfter.sub(balanceBefore);
 
@@ -691,7 +691,7 @@ describe("VolmexController", function () {
 
       const removeEth = await controller.removeLiquidity(
         poolAmountIn,
-        [amountsOut[0].toString(), amountsOut[1].toString()],
+        [amountsOut[0][0].toString(), amountsOut[0][1].toString()],
         0
       );
       await removeEth.wait();
@@ -702,8 +702,8 @@ describe("VolmexController", function () {
       const changedBalance = balanceAfter.sub(balanceBefore);
       const iChangedBalance = iBalanceAfter.sub(iBalanceBefore);
 
-      expect(Number(changedBalance.toString())).to.equal(Number(amountsOut[0].toString()));
-      expect(Number(iChangedBalance.toString())).to.equal(Number(amountsOut[1].toString()));
+      expect(Number(changedBalance.toString())).to.equal(Number(amountsOut[0][0].toString()));
+      expect(Number(iChangedBalance.toString())).to.equal(Number(amountsOut[0][1].toString()));
     });
   });
 
