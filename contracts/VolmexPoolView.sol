@@ -181,7 +181,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
     function getTokensToExit(IVolmexPool _pool, uint256 _poolAmountIn)
         external
         view
-        returns (uint256[2] memory _minAmountsOut)
+        returns (uint256[2] memory _minAmountsOut, uint256 _adminFee)
     {
         uint256 ratio = _div(_poolAmountIn, _pool.totalSupply());
         require(ratio != 0, "VolmexPoolView: Invalid math approximation in exit");
@@ -190,7 +190,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
         uint256 adminFee = _pool.adminFee();
         for (uint256 i = 0; i < 2; i++) {
             uint256 bal = _pool.getBalance(_pool.tokens(i));
-            _minAmountsOut[i] = _calculateAmountOut(
+            (_minAmountsOut[i], _adminFee) = _calculateAmountOut(
                 _poolAmountIn,
                 ratio,
                 bal,

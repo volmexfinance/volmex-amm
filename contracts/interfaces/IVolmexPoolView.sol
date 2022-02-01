@@ -37,7 +37,7 @@ interface IVolmexPoolView {
     }
 
     function getTokensToJoin(IVolmexPool _pool, uint256 _poolAmountOut) external view returns (uint256[2] memory);
-    function getTokensToExit(IVolmexPool _pool, uint256 _poolAmountIn) external view returns (uint256[2] memory);
+    function getTokensToExit(IVolmexPool _pool, uint256 _poolAmountIn) external view returns (uint256[2] memory, uint256);
     function getPoolInfo(address _pool, address _sender)
         external
         view
