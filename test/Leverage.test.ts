@@ -565,8 +565,7 @@ describe('VolmexController', function () {
             const colAmount = await controller.getVolatilityToCollateral(
                 volatilities['ETH2x'].address,
                 '20000000000000000000',
-                [0, 0],
-                false
+                [0, 0]
             );
 
             await (await volatilities['ETH2x'].approve(controller.address, '20000000000000000000')).wait();
@@ -750,8 +749,7 @@ describe('VolmexController', function () {
             const colAmount = await controller2.getVolatilityToCollateral(
                 volatilities2['ETH5x'].address,
                 '20000000000000000000',
-                [0, 0],
-                false
+                [0, 0]
             );
 
             await (await volatilities2['ETH5x'].approve(controller2.address, '20000000000000000000')).wait();

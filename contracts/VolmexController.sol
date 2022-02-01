@@ -689,17 +689,16 @@ contract VolmexController is
      * @param _tokenIn Address of token in
      * @param _amount Value of amount wants to swap
      * @param _indices Index of pool and stableCoin
-     * @param _isInverse Bool value of passed token in type
      */
     function getVolatilityToCollateral(
         address _tokenIn,
         uint256 _amount,
-        uint256[2] calldata _indices,
-        bool _isInverse
+        uint256[2] calldata _indices
     ) external view returns (uint256 minCollateralAmount, uint256[2] memory fees) {
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
+        bool _isInverse = _pool.tokens(1) == _tokenIn;
         uint256[2] memory amounts;
         uint256[2] memory fee; // 0: Pool fee, 1: Protocol fee
         (amounts[0], amounts[1], fee[0]) = _getSwappedAssetAmount(
@@ -830,11 +829,11 @@ contract VolmexController is
         uint256 leverage = _pool.getLeverage(_pool.tokens(0));
         uint256 iLeverage = _pool.getLeverage(_pool.tokens(1));
 
-        volatilityAmount = !_isInverse
-            ? ((_amount * iPrice * iLeverage) * BONE) /
-                (price * leverage * (BONE - _fee) + iPrice * iLeverage * BONE)
-            : ((_amount * price * leverage) * BONE) /
-                (iPrice * iLeverage * (BONE - _fee) + price * leverage * BONE);
+        volatilityAmount = _isInverse
+            ? ((_amount * iLeverage) * BONE) /
+                (leverage * (BONE - _fee) + iLeverage * BONE)
+            : ((_amount * leverage) * BONE) /
+                (iLeverage * (BONE - _fee) + leverage * BONE);
     }
 
     function _getSwappedAssetAmount(
