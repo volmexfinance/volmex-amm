@@ -400,7 +400,7 @@ contract VolmexPool is
             address token = tokens[i];
             uint256 bal = records[token].balance;
             require(bal > 0, "VolmexPool: Insufficient balance in Pool");
-            uint256 tokenAmountOut = _calculateAmountOut(
+            (uint256 tokenAmountOut,) = _calculateAmountOut(
                 _poolAmountIn,
                 ratio,
                 bal,
