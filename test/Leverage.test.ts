@@ -274,8 +274,8 @@ describe('VolmexController', function () {
                 ).wait();
             }
 
-
-            volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
+            owner = await accounts[0].getAddress();
+            volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
             await volmexOracle.deployed();
 
             repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);
@@ -285,7 +285,6 @@ describe('VolmexController', function () {
             const maxFee = (0.4 * Math.pow(10, 18)).toString();
             const feeAmpPrimary = 10;
             const feeAmpComplement = 10;
-            owner = await accounts[0].getAddress();
 
             const qMin = (1 * Math.pow(10, 6)).toString();
             const pMin = (0.01 * Math.pow(10, 18)).toString();
@@ -308,6 +307,7 @@ describe('VolmexController', function () {
                         maxFee,
                         feeAmpPrimary,
                         feeAmpComplement,
+                        owner
                     ],
                     {
                         initializer: 'initialize',
@@ -333,6 +333,7 @@ describe('VolmexController', function () {
                         maxFee,
                         feeAmpPrimary,
                         feeAmpComplement,
+                        owner
                     ],
                     {
                         initializer: 'initialize',
@@ -367,6 +368,7 @@ describe('VolmexController', function () {
                 controllerParam.pools,
                 controllerParam.protocols,
                 volmexOracle.address,
+                owner
             ]);
             await controller.deployed();
             await (await pools['ETH2x'].setController(controller.address)).wait();
@@ -391,6 +393,7 @@ describe('VolmexController', function () {
                 controllerParam.pools2,
                 controllerParam.protocols2,
                 volmexOracle.address,
+                owner
             ]);
             await controller2.deployed();
             await (await pools2['ETH5x'].setController(controller2.address)).wait();
@@ -474,6 +477,8 @@ describe('VolmexController', function () {
                 '0'
             );
             await add.wait();
+            console.log('add liquidity')
+            await (await pools["ETH2x"].reprice()).wait();
             const amountOut = await pools['ETH2x'].getTokenAmountOut(
                 volatilities['ETH2x'].address,
                 '20000000000000000000'

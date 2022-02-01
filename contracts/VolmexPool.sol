@@ -159,7 +159,8 @@ contract VolmexPool is
         uint256 _baseFee,
         uint256 _maxFee,
         uint256 _feeAmpPrimary,
-        uint256 _feeAmpComplement
+        uint256 _feeAmpComplement,
+        address _owner
     ) external initializer {
         require(
             IERC165Upgradeable(address(_repricer)).supportsInterface(_IVOLMEX_REPRICER_ID),
@@ -185,9 +186,10 @@ contract VolmexPool is
         _setFeeParams(_baseFee, _maxFee, _feeAmpPrimary, _feeAmpComplement);
 
         __Ownable_init();
-        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
+        __Pausable_init_unchained();
         __ERC165Storage_init();
         _registerInterface(_IVOLMEX_POOL_ID);
+        _transferOwnership(_owner);
     }
 
     /**
@@ -213,6 +215,25 @@ contract VolmexPool is
         flashLoanPremium = _premium;
 
         emit FlashLoanPremiumUpdated(flashLoanPremium);
+    }
+
+    /**
+     * @notice Used to update the admin fee
+     */
+    function updateAdminFee(uint256 _fee) external onlyOwner {
+        require(_fee <= 10000, "VolmexPool: _fee should be smaller than 10000");
+        adminFee = _fee;
+
+        emit AdminFeeUpdated(_fee);
+    }
+
+    /**
+     * @notice Used to update the volatility index for oracle price tracking
+     */
+    function updateVolatilityIndex(uint256 _newIndex) external onlyOwner {
+        volatilityIndex = _newIndex;
+
+        emit VolatilityIndexUpdated(_newIndex);
     }
 
     /**
@@ -486,16 +507,11 @@ contract VolmexPool is
 
     /**
      * @notice Used to pause the contract
+     *
+     * @param _isPause Boolean value to pause or unpause the position token { true = pause, false = unpause }
      */
-    function pause() external onlyController {
-        _pause();
-    }
-
-    /**
-     * @notice Used to unpause the contract, if paused
-     */
-    function unpause() external onlyController {
-        _unpause();
+    function togglePause(bool _isPause) external onlyController {
+        _isPause ? _pause() : _unpause();
     }
 
     /**
@@ -507,11 +523,11 @@ contract VolmexPool is
     function getTokenAmountOut(address _tokenIn, uint256 _tokenAmountIn)
         external
         view
-        returns (uint256 tokenAmountOut, uint256 fee)
+        returns (uint256 minAmountOut, uint256 fee)
     {
         (Record memory inRecord, Record memory outRecord) = _getRepriced(_tokenIn);
 
-        tokenAmountOut = _calcOutGivenIn(
+        minAmountOut = _calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             _tokenAmountIn,
@@ -522,11 +538,11 @@ contract VolmexPool is
             inRecord,
             _tokenAmountIn,
             outRecord,
-            tokenAmountOut,
+            minAmountOut,
             tokens[0] == _tokenIn ? feeAmpPrimary : feeAmpComplement
         );
 
-        tokenAmountOut = _calcOutGivenIn(
+        minAmountOut = _calcOutGivenIn(
             getLeveragedBalance(inRecord),
             getLeveragedBalance(outRecord),
             _tokenAmountIn,

@@ -85,7 +85,8 @@ contract VolmexController is
         IERC20Modified[2] memory _stableCoins,
         IVolmexPool[2] memory _pools,
         IVolmexProtocol[4] memory _protocols,
-        IVolmexOracle _oracle
+        IVolmexOracle _oracle,
+        address _owner
     ) external initializer {
         require(
             IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
@@ -131,9 +132,10 @@ contract VolmexController is
         stableCoinIndex++;
 
         __Ownable_init();
-        __Pausable_init_unchained(); // Used this, because ownable init is calling context init
+        __Pausable_init_unchained();
         __ERC165Storage_init();
         _registerInterface(_IVOLMEX_CONTROLLER_ID);
+        _transferOwnership(_owner);
     }
 
     /**
@@ -203,17 +205,21 @@ contract VolmexController is
     }
 
     /**
-     * @notice Used to pause the pool
+     * @notice Pause/unpause volmex controller contract
+     *
+     * @param _isPause Boolean value to pause or unpause the position token { true = pause, false = unpause }
      */
-    function pausePool(IPausablePool _pool) external onlyOwner {
-        _pool.pause();
+    function togglePause(bool _isPause) external virtual onlyOwner {
+        _isPause ? _pause() : _unpause();
     }
 
     /**
-     * @notice Used to un-pause the pool
+     * @notice Pause/unpause volmex pool contract
+     *
+     * @param _isPause Boolean value to pause or unpause the position token { true = pause, false = unpause }
      */
-    function unpausePool(IPausablePool _pool) external onlyOwner {
-        _pool.unpause();
+    function togglePoolPause(IVolmexPool _pool, bool _isPause) external virtual onlyOwner {
+        _pool.togglePause(_isPause);
     }
 
     /**
@@ -352,7 +358,7 @@ contract VolmexController is
     /**
      * @notice Used to swap a type of volatility token to collateral token
      *
-     * @param _amounts Amounts array of volatility token and expected collateral
+     * @param _amounts Amounts array of maximum volatility token and minimum expected collateral
      * @param _indices Indices of the pool and stablecoin to operate { 0: ETHV, 1: BTCV } { 0: DAI, 1: USDC }
      * @param _tokenIn Address of in token
      */
@@ -611,18 +617,18 @@ contract VolmexController is
      * @param _tokenIn Address of the token in
      * @param _amountIn Value of token amount in to swap
      * @param _tokenOut Address of the token out
-     * @param _amountOut Minimum expected value of token amount out
+     * @param _minAmountOut Minimum expected value of token amount out
      */
     function swap(
         uint256 _poolIndex,
         address _tokenIn,
         uint256 _amountIn,
         address _tokenOut,
-        uint256 _amountOut
+        uint256 _minAmountOut
     ) external whenNotPaused {
         IVolmexPool _pool = pools[_poolIndex];
 
-        _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _amountOut, msg.sender, false);
+        _pool.swapExactAmountIn(_tokenIn, _amountIn, _tokenOut, _minAmountOut, msg.sender, false);
     }
 
     /**
@@ -652,12 +658,12 @@ contract VolmexController is
         uint256 _collateralAmount,
         address _tokenOut,
         uint256[2] calldata _indices
-    ) external view returns (uint256 volatilityAmount, uint256[2] memory fees) {
+    ) external view returns (uint256 minVolatilityAmount, uint256[2] memory fees) {
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (volatilityAmount, fees[1]) = _calculateAssetQuantity(
+        (minVolatilityAmount, fees[1]) = _calculateAssetQuantity(
             _collateralAmount,
             _protocol.issuanceFees(),
             true,
@@ -670,10 +676,10 @@ contract VolmexController is
         uint256 tokenAmountOut;
         (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
             isInverse ? _pool.tokens(0) : _pool.tokens(1),
-            volatilityAmount
+            minVolatilityAmount
         );
 
-        volatilityAmount += tokenAmountOut;
+        minVolatilityAmount += tokenAmountOut;
     }
 
     /**
@@ -690,7 +696,7 @@ contract VolmexController is
         uint256 _amount,
         uint256[2] calldata _indices,
         bool _isInverse
-    ) external view returns (uint256 collateralAmount, uint256[2] memory fees) {
+    ) external view returns (uint256 minCollateralAmount, uint256[2] memory fees) {
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
         IVolmexPool _pool = pools[_indices[0]];
 
@@ -703,7 +709,7 @@ contract VolmexController is
             _isInverse
         );
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (collateralAmount, fee[1]) = _calculateAssetQuantity(
+        (minCollateralAmount, fee[1]) = _calculateAssetQuantity(
             amounts[1] * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,

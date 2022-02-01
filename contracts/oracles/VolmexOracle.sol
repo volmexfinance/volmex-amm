@@ -32,7 +32,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
      */
-    function initialize() external initializer {
+    function initialize(address _owner) external initializer {
         _volatilityTokenPriceByIndex[indexCount] = 125000000;
         volatilityTokenPriceProofHash[indexCount] = ""; // Add proof of hash bytes32 value
         volatilityIndexBySymbol["ETHV"] = indexCount;
@@ -48,6 +48,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
         __Ownable_init();
         __ERC165Storage_init();
         _registerInterface(_IVOLMEX_ORACLE_ID);
+        _transferOwnership(_owner);
     }
 
     /**

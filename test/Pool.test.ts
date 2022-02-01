@@ -49,6 +49,7 @@ describe("VolmexPool", function () {
   });
 
   this.beforeEach(async function () {
+    owner = await accounts[0].getAddress();
     await upgrades.silenceWarnings();
     collateral = await collateralFactory.deploy("VUSD", "100000000000000000000000000000000", 18);
     await collateral.deployed();
@@ -82,7 +83,7 @@ describe("VolmexPool", function () {
     volreceipt = await inverseVolatility.grantRole(VOLMEX_PROTOCOL_ROLE, `${protocol.address}`);
     await volreceipt.wait();
 
-    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, []);
+    volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
     await volmexOracle.deployed();
 
     repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);
@@ -93,7 +94,6 @@ describe("VolmexPool", function () {
     const feeAmpPrimary = 10;
     const feeAmpComplement = 10;
 
-    owner = await accounts[0].getAddress();
     pool = await upgrades.deployProxy(poolFactory, [
       repricer.address,
       protocol.address,
@@ -102,6 +102,7 @@ describe("VolmexPool", function () {
       maxFee,
       feeAmpPrimary,
       feeAmpComplement,
+      owner
     ]);
     await pool.deployed();
     await (await pool.setControllerWithoutCheck(owner)).wait();
@@ -186,6 +187,7 @@ describe("VolmexPool", function () {
           maxFee,
           feeAmpPrimary,
           feeAmpComplement,
+          owner
         ]),
         "VolmexPool: Repricer does not supports interface"
       );
@@ -201,6 +203,7 @@ describe("VolmexPool", function () {
           maxFee,
           feeAmpPrimary,
           feeAmpComplement,
+          owner
         ]),
         "VolmexPool: protocol address can't be zero"
       );
@@ -215,6 +218,7 @@ describe("VolmexPool", function () {
         maxFee,
         feeAmpPrimary,
         feeAmpComplement,
+        owner
       ]);
       await pool.deployed();
       await (await pool.setControllerWithoutCheck(owner)).wait();
@@ -262,6 +266,7 @@ describe("VolmexPool", function () {
         maxFee,
         feeAmpPrimary,
         feeAmpComplement,
+        owner
       ]);
       await pool.deployed();
       await (await pool.setControllerWithoutCheck(owner)).wait();
@@ -304,6 +309,16 @@ describe("VolmexPool", function () {
         pool.updateFlashLoanPremium("100000"),
         "VolmexPool: _premium value not in range"
       );
+    });
+
+    it("Should update the admin fee", async () => {
+      await (await pool.updateAdminFee(70)).wait();
+      expect(await pool.adminFee()).to.equal(70);
+    });
+
+    it("Should update volatility index", async () => {
+      await (await pool.updateVolatilityIndex(2)).wait();
+      expect(await pool.volatilityIndex()).to.equal(2);
     });
 
     it("Should add liquidity", async () => {
@@ -519,10 +534,10 @@ describe("VolmexPool", function () {
     });
 
     it("Should pause/unpause the tokens", async () => {
-      let receipt = await pool.pause();
+      let receipt = await pool.togglePause(true);
       expect(receipt.confirmations).equal(1);
 
-      receipt = await pool.unpause();
+      receipt = await pool.togglePause(false);
       expect(receipt.confirmations).equal(1);
     });
 
@@ -673,6 +688,7 @@ describe("VolmexPool", function () {
         maxFee,
         feeAmpPrimary,
         feeAmpComplement,
+        owner
       ]);
       await pool.deployed();
       await (await volatility.approve(pool.address, "20000000000000000000")).wait();

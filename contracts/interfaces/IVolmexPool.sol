@@ -52,6 +52,8 @@ interface IVolmexPool is IERC20 {
         uint256 feeAmpPrimary,
         uint256 feeAmpComplement
     );
+    event AdminFeeUpdated(uint256 fee);
+    event VolatilityIndexUpdated(uint256 newIndex);
 
     // Getter methods
     function repricingBlock() external view returns (uint256);
@@ -84,8 +86,7 @@ interface IVolmexPool is IERC20 {
     function updateFlashLoanPremium(uint256 _premium) external;
     function joinPool(uint256 _poolAmountOut, uint256[2] calldata _maxAmountsIn, address _receiver) external;
     function exitPool(uint256 _poolAmountIn, uint256[2] calldata _minAmountsOut, address _receiver) external;
-    function pause() external;
-    function unpause() external;
+    function togglePause(bool _isPause) external;
     function reprice() external;
     function swapExactAmountIn(
         address _tokenIn,
