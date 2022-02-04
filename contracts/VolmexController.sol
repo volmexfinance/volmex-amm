@@ -14,7 +14,7 @@ import "./interfaces/IVolmexOracle.sol";
 import "./interfaces/IPausablePool.sol";
 import "./interfaces/IVolmexController.sol";
 import "./interfaces/IFlashLoanReceiver.sol";
-import "./maths/Const.sol";
+import "./maths/Num.sol";
 
 /**
  * @title Volmex Controller contract
@@ -24,7 +24,7 @@ contract VolmexController is
     OwnableUpgradeable,
     PausableUpgradeable,
     ERC165StorageUpgradeable,
-    Const,
+    Num,
     IVolmexController
 {
     // Interface ID of VolmexController contract, hashId  = 0xe8f8535b
@@ -822,8 +822,8 @@ contract VolmexController is
         bool _isInverse,
         uint256 _fee
     ) private view returns (uint256 volatilityAmount) {
-        uint256 leverage = _pool.getLeverage(_pool.tokens(0));
-        uint256 iLeverage = _pool.getLeverage(_pool.tokens(1));
+        uint256 leverage = _mul(_pool.getLeverage(_pool.tokens(0)), _pool.getBalance(_pool.tokens(0)));
+        uint256 iLeverage = _mul(_pool.getLeverage(_pool.tokens(1)), _pool.getBalance(_pool.tokens(1)));
 
         volatilityAmount = _isInverse
             ? ((_amount * iLeverage) * BONE) /
