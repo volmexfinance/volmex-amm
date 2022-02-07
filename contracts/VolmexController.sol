@@ -854,4 +854,27 @@ contract VolmexController is
 
         (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
     }
+
+    function getSwapAmounts(uint256 _poolIndex, uint256 _maxAmountIn)
+        external
+        view
+        returns (uint256 amountIn, uint256 amountOut)
+    {
+        IVolmexPool _pool = pools[_poolIndex];
+        uint256 leverageBalance = _mul(
+            _pool.getLeverage(_pool.tokens(0)),
+            _pool.getBalance(_pool.tokens(0))
+        );
+        uint256 iLeverageBalance = _mul(
+            _pool.getLeverage(_pool.tokens(1)),
+            _pool.getBalance(_pool.tokens(1))
+        );
+
+        uint256 B = leverageBalance + iLeverageBalance - _maxAmountIn;
+        uint256 numerator = uint256(
+            _pool.repricer().sqrtWrapped(int256((B * B) / BONE + (4 * leverageBalance * _maxAmountIn) / BONE))
+        ) - B;
+        amountIn = numerator / 2;
+        (amountOut, ) = _pool.getTokenAmountOut(_pool.tokens(0), amountIn);
+    }
 }
