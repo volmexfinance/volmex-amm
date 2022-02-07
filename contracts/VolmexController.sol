@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol";
+import "abdk-libraries-solidity/ABDKMathQuad.sol";
 
 import "./interfaces/IVolmexPool.sol";
 import "./interfaces/IVolmexProtocol.sol";
@@ -822,19 +823,23 @@ contract VolmexController is
         bool _isInverse,
         uint256 _fee
     ) private view returns (uint256 volatilityAmount) {
-        uint256 leverage = _mul(_pool.getLeverage(_pool.tokens(0)), _pool.getBalance(_pool.tokens(0)));
-        uint256 iLeverage = _mul(_pool.getLeverage(_pool.tokens(1)), _pool.getBalance(_pool.tokens(1)));
+        uint256 leverage = _mul(
+            _pool.getLeverage(_pool.tokens(0)),
+            _pool.getBalance(_pool.tokens(0))
+        );
+        uint256 iLeverage = _mul(
+            _pool.getLeverage(_pool.tokens(1)),
+            _pool.getBalance(_pool.tokens(1))
+        );
 
         volatilityAmount = _isInverse
-            ? ((_amount * iLeverage) * BONE) /
-                (leverage * (BONE - _fee) + iLeverage * BONE)
-            : ((_amount * leverage) * BONE) /
-                (iLeverage * (BONE - _fee) + leverage * BONE);
+            ? ((_amount * iLeverage) * BONE) / (leverage * (BONE - _fee) + iLeverage * BONE)
+            : ((_amount * leverage) * BONE) / (iLeverage * (BONE - _fee) + leverage * BONE);
     }
 
     function _getSwappedAssetAmount(
         address _tokenIn,
-        uint256 _amount,
+        uint256 _maxAmountIn,
         IVolmexPool _pool,
         bool _isInverse
     )
@@ -846,21 +851,6 @@ contract VolmexController is
             uint256 fee
         )
     {
-        swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, 0);
-
-        (, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
-
-        swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, fee);
-
-        (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
-    }
-
-    function getSwapAmounts(uint256 _poolIndex, uint256 _maxAmountIn)
-        external
-        view
-        returns (uint256 amountIn, uint256 amountOut)
-    {
-        IVolmexPool _pool = pools[_poolIndex];
         uint256 leverageBalance = _mul(
             _pool.getLeverage(_pool.tokens(0)),
             _pool.getBalance(_pool.tokens(0))
@@ -870,11 +860,17 @@ contract VolmexController is
             _pool.getBalance(_pool.tokens(1))
         );
 
-        uint256 B = leverageBalance + iLeverageBalance - _maxAmountIn;
-        uint256 numerator = uint256(
-            _pool.repricer().sqrtWrapped(int256((B * B) / BONE + (4 * leverageBalance * _maxAmountIn) / BONE))
+        uint256 B = (leverageBalance + iLeverageBalance - _maxAmountIn);
+        uint256 numerator = ABDKMathQuad.toUInt(
+            ABDKMathQuad.sqrt(
+                ABDKMathQuad.fromUInt(
+                    B * B + 4 * (_isInverse ? iLeverageBalance : leverageBalance) * _maxAmountIn
+                )
+            )
         ) - B;
-        amountIn = numerator / 2;
-        (amountOut, ) = _pool.getTokenAmountOut(_pool.tokens(0), amountIn);
+        swapAmount = numerator / 2;
+        (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
+        swapAmount = (numerator * BONE) / (2 * (BONE - fee));
+        (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
     }
 }
