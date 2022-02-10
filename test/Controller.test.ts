@@ -214,7 +214,7 @@ describe("VolmexController", function () {
           maxFee,
           feeAmpPrimary,
           feeAmpComplement,
-          owner
+          owner,
         ],
         {
           initializer: "initialize",
@@ -247,7 +247,7 @@ describe("VolmexController", function () {
       controllerParam.pools,
       controllerParam.protocols,
       volmexOracle.address,
-      owner
+      owner,
     ]);
     await controller.deployed();
 
@@ -293,6 +293,17 @@ describe("VolmexController", function () {
 
     poolView = await upgrades.deployProxy(poolViewFactory, []);
     await poolView.deployed();
+
+    const volatilityIndexes = ["0"];
+    const volatilityTokenPrices = ["80000000"];
+    const proofHashes = ["0x6c00000000000000000000000000000000000000000000000000000000000000"];
+    await (
+      await volmexOracle.updateBatchVolatilityTokenPrice(
+        volatilityIndexes,
+        volatilityTokenPrices,
+        proofHashes
+      )
+    ).wait();
   });
 
   it("should deploy controller", async () => {
