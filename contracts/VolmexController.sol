@@ -840,17 +840,24 @@ contract VolmexController is
             _pool.getBalance(_pool.tokens(1))
         );
 
-        uint256 B = (leverageBalance + iLeverageBalance - _maxAmountIn);
+        uint256 B = (leverageBalance + iLeverageBalance - _maxAmountIn) * POWER_12;
+
         uint256 numerator = ABDKMathQuad.toUInt(
             ABDKMathQuad.sqrt(
                 ABDKMathQuad.fromUInt(
-                    B * B + 4 * (_isInverse ? iLeverageBalance : leverageBalance) * _maxAmountIn
+                    (B * B) +
+                        4 *
+                        (_isInverse ? iLeverageBalance : leverageBalance) *
+                        _maxAmountIn *
+                        POWER_12 *
+                        POWER_12
                 )
             )
         ) - B;
-        swapAmount = numerator / 2;
+
+        swapAmount = numerator / (2 * POWER_12);
         (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
-        swapAmount = (numerator * BONE) / (2 * (BONE - fee));
+        swapAmount = numerator / (2 * (POWER_12 - (fee / 10**7))); // Should be 10**6, but swapAmount is out of limit
         (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
     }
 }
