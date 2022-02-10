@@ -817,26 +817,6 @@ contract VolmexController is
         _token.approve(_spender, _amount);
     }
 
-    function _volatilityAmountToSwap(
-        uint256 _amount,
-        IVolmexPool _pool,
-        bool _isInverse,
-        uint256 _fee
-    ) private view returns (uint256 volatilityAmount) {
-        uint256 leverage = _mul(
-            _pool.getLeverage(_pool.tokens(0)),
-            _pool.getBalance(_pool.tokens(0))
-        );
-        uint256 iLeverage = _mul(
-            _pool.getLeverage(_pool.tokens(1)),
-            _pool.getBalance(_pool.tokens(1))
-        );
-
-        volatilityAmount = _isInverse
-            ? ((_amount * iLeverage) * BONE) / (leverage * (BONE - _fee) + iLeverage * BONE)
-            : ((_amount * leverage) * BONE) / (iLeverage * (BONE - _fee) + leverage * BONE);
-    }
-
     function _getSwappedAssetAmount(
         address _tokenIn,
         uint256 _maxAmountIn,
