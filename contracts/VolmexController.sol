@@ -840,8 +840,7 @@ contract VolmexController is
             _pool.getBalance(_pool.tokens(1))
         );
 
-        uint256 B = (leverageBalance + iLeverageBalance - _maxAmountIn) * POWER_12;
-
+        uint256 B = (leverageBalance + iLeverageBalance - _maxAmountIn) * POWER_12; // POWER_12 = 10**12
         uint256 numerator = ABDKMathQuad.toUInt(
             ABDKMathQuad.sqrt(
                 ABDKMathQuad.fromUInt(
