@@ -246,7 +246,6 @@ describe("VolmexController", function () {
       controllerParam.collaterals,
       controllerParam.pools,
       controllerParam.protocols,
-      volmexOracle.address,
       owner,
     ]);
     await controller.deployed();
@@ -1076,19 +1075,6 @@ describe("VolmexController", function () {
         });
       });
 
-      it("Not oracle", async () => {
-        await expectRevert(
-          upgrades.deployProxy(controllerFactory, [
-            controllerParam.collaterals,
-            controllerParam.pools,
-            controllerParam.protocols,
-            controllerParam.collaterals[0],
-            owner
-          ]),
-          "VolmexController: Oracle does not supports interface"
-        );
-      });
-
       it("Not pool", async () => {
         controllerParam.pools[0] = controllerParam.collaterals[0];
         await expectRevert(
@@ -1096,7 +1082,6 @@ describe("VolmexController", function () {
             controllerParam.collaterals,
             controllerParam.pools,
             controllerParam.protocols,
-            volmexOracle.address,
             owner
           ]),
           "VolmexController: Pool does not supports interface"
@@ -1110,7 +1095,6 @@ describe("VolmexController", function () {
             controllerParam.collaterals,
             controllerParam.pools,
             controllerParam.protocols,
-            volmexOracle.address,
             owner
           ]),
           "VolmexController: address of stable coin can't be zero"
@@ -1124,7 +1108,6 @@ describe("VolmexController", function () {
             controllerParam.collaterals,
             controllerParam.pools,
             controllerParam.protocols,
-            volmexOracle.address,
             owner
           ]),
           "VolmexController: Incorrect pool for add protocol"
@@ -1138,7 +1121,6 @@ describe("VolmexController", function () {
             controllerParam.collaterals,
             controllerParam.pools,
             controllerParam.protocols,
-            volmexOracle.address,
             owner
           ]),
           "VolmexController: Incorrect stableCoin for add protocol"

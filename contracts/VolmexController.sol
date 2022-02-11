@@ -29,8 +29,6 @@ contract VolmexController is
 {
     // Interface ID of VolmexController contract, hashId  = 0xe8f8535b
     bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
-    // Interface ID of VolmexOracle contract, hashId = 0xf9fffc9f
-    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
     // Interface ID of VolmexPool contract, hashId = 0x71e45f88
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
 
@@ -40,8 +38,6 @@ contract VolmexController is
     uint256 public poolIndex;
     // Used to store the pools
     address[] public allPools;
-    // Address of the oracle
-    IVolmexOracle public oracle;
 
     /**
      * Indices for Pool, Stablecoin and Protocol mappings
@@ -83,14 +79,8 @@ contract VolmexController is
         IERC20Modified[2] memory _stableCoins,
         IVolmexPool[2] memory _pools,
         IVolmexProtocol[4] memory _protocols,
-        IVolmexOracle _oracle,
         address _owner
     ) external initializer {
-        require(
-            IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
-            "VolmexController: Oracle does not supports interface"
-        );
-
         uint256 protocolCount;
         // Note: Since loop size is very small so nested loop won't be a problem
         for (uint256 i; i < 2; i++) {
@@ -125,7 +115,6 @@ contract VolmexController is
                 protocolCount++;
             }
         }
-        oracle = _oracle;
         poolIndex++;
         stableCoinIndex++;
 

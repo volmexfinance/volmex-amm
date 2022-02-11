@@ -367,7 +367,6 @@ describe('VolmexController', function () {
                 controllerParam.collaterals,
                 controllerParam.pools,
                 controllerParam.protocols,
-                volmexOracle.address,
                 owner
             ]);
             await controller.deployed();
@@ -392,7 +391,6 @@ describe('VolmexController', function () {
                 controllerParam.collaterals,
                 controllerParam.pools2,
                 controllerParam.protocols2,
-                volmexOracle.address,
                 owner
             ]);
             await controller2.deployed();
