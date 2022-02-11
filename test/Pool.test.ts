@@ -19,8 +19,6 @@ describe("VolmexPool", function () {
   let volatilityFactory: any;
   let volatility: any;
   let inverseVolatility: any;
-  let controllerFactory: any;
-  let controller: any;
   let zeroAddress: any;
   let flashLoanFactory: any;
   let flashLoanInstance: any;
@@ -42,8 +40,6 @@ describe("VolmexPool", function () {
     protocolFactory = await ethers.getContractFactory("VolmexProtocol");
 
     protocolFactoryPrecision = await ethers.getContractFactory("VolmexProtocolWithPrecision");
-
-    controllerFactory = await ethers.getContractFactory("VolmexController");
 
     flashLoanFactory = await ethers.getContractFactory("FlashLoanExample");
   });
