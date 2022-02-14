@@ -374,8 +374,8 @@ contract VolmexController is
         bool isInverse = _pool.tokens(1) == address(_tokenIn);
 
         _pool.reprice();
-        uint256[2] memory swapAmounts; // 0: tokenAmountIn, 1: tokenAmountOut
-        (swapAmounts[0], swapAmounts[1], ) = _getSwappedAssetAmount(
+        uint256[3] memory tokenAmounts; // 0: tokenAmountIn, 1: tokenAmountOut, 3: redeemAmount
+        (tokenAmounts[0], tokenAmounts[1], ) = _getSwappedAssetAmount(
             address(_tokenIn),
             _amounts[0],
             _pool,
@@ -384,33 +384,29 @@ contract VolmexController is
 
         // Pool and Protocol fee array { 0: Pool, 1: Protocol }
         uint256[2] memory fees;
-        (swapAmounts[1], fees[0]) = _pool.swapExactAmountIn(
+        (tokenAmounts[1], fees[0]) = _pool.swapExactAmountIn(
             address(_tokenIn),
-            swapAmounts[0],
+            tokenAmounts[0],
             isInverse ? _pool.tokens(0) : _pool.tokens(1),
-            swapAmounts[1],
+            tokenAmounts[1],
             msg.sender,
             true
         );
 
-        if(!(swapAmounts[1] <= _amounts[0] - swapAmounts[0])) {
-            uint256 redeemAmount = _amounts[0] - swapAmounts[0];
+        if (tokenAmounts[1] <= _amounts[0] - tokenAmounts[0]) {
+            tokenAmounts[2] = tokenAmounts[1];
+        } else {
+            tokenAmounts[2] = _amounts[0] - tokenAmounts[0];
             require(
-                BONE > swapAmounts[1] - redeemAmount,
-                "VolmexController: Amount out limit exploit"
+                BONE > tokenAmounts[1] - tokenAmounts[2],
+                "VolmexController: Deviation too large"
             );
-            _transferAsset(
-                IERC20Modified(isInverse ? _pool.tokens(0) : _pool.tokens(1)),
-                swapAmounts[1] - redeemAmount,
-                msg.sender
-            );
-            swapAmounts[1] = redeemAmount;
         }
 
         uint256 collateralAmount;
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
         (collateralAmount, fees[1]) = _calculateAssetQuantity(
-            swapAmounts[1] * _volatilityCapRatio,
+            tokenAmounts[2] * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
             _volatilityCapRatio,
@@ -422,14 +418,21 @@ contract VolmexController is
             "VolmexController: Insufficient expected collateral amount"
         );
 
-        _tokenIn.transferFrom(msg.sender, address(this), swapAmounts[1]);
-        _protocol.redeem(swapAmounts[1]);
+        _tokenIn.transferFrom(msg.sender, address(this), tokenAmounts[2]);
+        _protocol.redeem(tokenAmounts[2]);
 
         IERC20Modified stableCoin = stableCoins[_indices[1]];
         _transferAsset(stableCoin, collateralAmount, msg.sender);
+        if (tokenAmounts[1] - tokenAmounts[2] > 0) {
+            _transferAsset(
+                IERC20Modified(isInverse ? _pool.tokens(0) : _pool.tokens(1)),
+                tokenAmounts[1] - tokenAmounts[2],
+                msg.sender
+            );
+        }
 
         emit CollateralSwapped(
-            _amounts[0],
+            tokenAmounts[0] + tokenAmounts[2],
             collateralAmount,
             fees[1],
             fees[0],
@@ -456,8 +459,8 @@ contract VolmexController is
         bool isInverse = _pool.tokens(1) == _tokens[0];
 
         _pool.reprice();
-        // Array of swapAmount {0} and tokenAmountOut {1}
-        uint256[2] memory tokenAmounts;
+        // Array of swapAmount {0}, tokenAmountOut {1}, redeemAmount {2} adn leftOverAmount {3}
+        uint256[4] memory tokenAmounts;
         (tokenAmounts[0], tokenAmounts[1], ) = _getSwappedAssetAmount(
             _tokens[0],
             _amounts[0],
@@ -476,29 +479,26 @@ contract VolmexController is
             true
         );
 
-        if(!(tokenAmounts[1] <= _amounts[0] - tokenAmounts[0])) {
-            uint256 redeemAmount = _amounts[0] - tokenAmounts[0];
+        if (tokenAmounts[1] <= _amounts[0] - tokenAmounts[0]) {
+            tokenAmounts[2] = tokenAmounts[1];
+        } else {
+            tokenAmounts[2] = _amounts[0] - tokenAmounts[0];
             require(
-                BONE > tokenAmounts[1] - redeemAmount,
-                "VolmexController: Amount out limit exploit"
+                BONE > tokenAmounts[1] - tokenAmounts[2],
+                "VolmexController: Deviation too large"
             );
-            _transferAsset(
-                IERC20Modified(isInverse ? _pool.tokens(0) : _pool.tokens(1)),
-                tokenAmounts[1] - redeemAmount,
-                msg.sender
-            );
-            tokenAmounts[1] = redeemAmount;
+            tokenAmounts[3] = tokenAmounts[1] - tokenAmounts[2];
         }
 
-        IERC20Modified(_tokens[0]).transferFrom(msg.sender, address(this), tokenAmounts[1]);
+        IERC20Modified(_tokens[0]).transferFrom(msg.sender, address(this), tokenAmounts[2]);
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[2]];
-        _protocol.redeem(tokenAmounts[1]);
+        _protocol.redeem(tokenAmounts[2]);
 
         // Array of collateralAmount {0} and volatilityAmount {1}
         uint256[3] memory protocolAmounts;
         protocolAmounts[2] = _protocol.volatilityCapRatio();
         (protocolAmounts[0], fees[2]) = _calculateAssetQuantity(
-            tokenAmounts[1] * protocolAmounts[2],
+            tokenAmounts[2] * protocolAmounts[2],
             _protocol.redeemFees(),
             false,
             protocolAmounts[2],
@@ -556,6 +556,14 @@ contract VolmexController is
             protocolAmounts[1] + tokenAmounts[1],
             msg.sender
         );
+        if (tokenAmounts[3] > 0) {
+            _pool = pools[_indices[0]];
+            _transferAsset(
+                IERC20Modified(_pool.tokens(1) == _tokens[0] ? _pool.tokens(0) : _pool.tokens(1)),
+                tokenAmounts[3],
+                msg.sender
+            );
+        }
 
         emit PoolSwapped(
             _amounts[0],
@@ -718,7 +726,7 @@ contract VolmexController is
         IVolmexPool _pool = pools[_indices[0]];
 
         bool _isInverse = _pool.tokens(1) == _tokenIn;
-        uint256[2] memory amounts;
+        uint256[3] memory amounts;
         uint256[2] memory fee; // 0: Pool fee, 1: Protocol fee
         (amounts[0], amounts[1], fee[0]) = _getSwappedAssetAmount(
             _tokenIn,
@@ -727,18 +735,16 @@ contract VolmexController is
             _isInverse
         );
 
-        if(!(amounts[1] <= _amount - amounts[0])) {
-            uint256 redeemAmount = _amount - amounts[0];
-            require(
-                BONE > amounts[1] - redeemAmount,
-                "VolmexController: Amount out limit exploit"
-            );
-            amounts[1] = redeemAmount;
+        if (amounts[1] <= _amount - amounts[0]) {
+            amounts[2] = amounts[1];
+        } else {
+            amounts[2] = _amount - amounts[0];
+            require(BONE > amounts[1] - amounts[2], "VolmexController: Deviation too large");
         }
 
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
         (minCollateralAmount, fee[1]) = _calculateAssetQuantity(
-            amounts[1] * _volatilityCapRatio,
+            amounts[2] * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
             _volatilityCapRatio,
@@ -764,7 +770,7 @@ contract VolmexController is
     ) external view returns (uint256 amountOut, uint256[3] memory fees) {
         IVolmexPool _pool = IVolmexPool(pools[_indices[0]]);
 
-        uint256[2] memory tokenAmounts;
+        uint256[3] memory tokenAmounts;
         uint256 fee;
         (tokenAmounts[0], tokenAmounts[1], fee) = _getSwappedAssetAmount(
             _tokens[0],
@@ -774,20 +780,21 @@ contract VolmexController is
         );
         fees[0] = fee;
 
-        if(!(tokenAmounts[1] <= _amountIn - tokenAmounts[0])) {
-            uint256 redeemAmount = _amountIn - tokenAmounts[0];
+        if (tokenAmounts[1] <= _amountIn - tokenAmounts[0]) {
+            tokenAmounts[2] = tokenAmounts[1];
+        } else {
+            tokenAmounts[2] = _amountIn - tokenAmounts[0];
             require(
-                BONE > tokenAmounts[1] - redeemAmount,
-                "VolmexController: Amount out limit exploit"
+                BONE > tokenAmounts[1] - tokenAmounts[2],
+                "VolmexController: Deviation too large"
             );
-            tokenAmounts[1] = redeemAmount;
         }
 
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[2]];
         uint256[3] memory protocolAmount;
         protocolAmount[2] = _protocol.volatilityCapRatio();
         (protocolAmount[0], fee) = _calculateAssetQuantity(
-            tokenAmounts[1] * protocolAmount[2],
+            tokenAmounts[2] * protocolAmount[2],
             _protocol.redeemFees(),
             false,
             protocolAmount[2],
@@ -854,6 +861,9 @@ contract VolmexController is
         _token.approve(_spender, _amount);
     }
 
+    /**
+     * Reference: https://excalidraw.com/#json=Rg2qV51HsIX2OoRZVQ-FK,9Y3xGthsEf1sXnB_H4V7Zw
+     */
     function _volatililtyAmountToSwap(
         uint256 _maxAmount,
         uint256 _leverageBalanceOfIn,
@@ -873,7 +883,7 @@ contract VolmexController is
             )
         ) - B;
 
-        swapAmount = numerator / (2 * R / 10**6);
+        swapAmount = numerator / ((2 * R) / 10**6);
     }
 
     function _getSwappedAssetAmount(

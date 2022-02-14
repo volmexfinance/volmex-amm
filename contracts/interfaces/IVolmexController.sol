@@ -11,7 +11,7 @@ import "./IVolmexOracle.sol";
 interface IVolmexController {
     event AdminFeeUpdated(uint256 adminFee);
     event CollateralSwapped(
-        uint256 volatilityInAmount,
+        uint256 volatilityAmountConsumed,
         uint256 collateralOutAmount,
         uint256 protocolFee,
         uint256 poolFee,
