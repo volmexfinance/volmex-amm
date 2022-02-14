@@ -817,6 +817,27 @@ contract VolmexController is
         _token.approve(_spender, _amount);
     }
 
+    function _volatililtyAmountToSwap(
+        uint256 _maxAmount,
+        uint256 _leverageBalanceOfIn,
+        uint256 _leverageBalanceOfOut,
+        uint256 _fee
+    ) private pure returns (uint256 swapAmount) {
+        uint256 B = ((_leverageBalanceOfIn * BONE) +
+            (_leverageBalanceOfOut * (BONE - _fee)) -
+            (_maxAmount * (BONE - _fee))) / 10**6;
+
+        uint256 numerator = ABDKMathQuad.toUInt(
+            ABDKMathQuad.sqrt(
+                ABDKMathQuad.fromUInt(
+                    (B * B) + (4 * (BONE - _fee) * _leverageBalanceOfIn * _maxAmount) * (10**6)
+                )
+            )
+        ) - B;
+
+        swapAmount = numerator / (2 * (POWER_12 - (_fee / 10**6)));
+    }
+
     function _getSwappedAssetAmount(
         address _tokenIn,
         uint256 _maxAmountIn,
@@ -840,23 +861,19 @@ contract VolmexController is
             _pool.getBalance(_pool.tokens(1))
         );
 
-        uint256 B = (leverageBalance + iLeverageBalance - _maxAmountIn) * POWER_12; // POWER_12 = 10**12
-        uint256 numerator = ABDKMathQuad.toUInt(
-            ABDKMathQuad.sqrt(
-                ABDKMathQuad.fromUInt(
-                    (B * B) +
-                        4 *
-                        (_isInverse ? iLeverageBalance : leverageBalance) *
-                        _maxAmountIn *
-                        POWER_12 *
-                        POWER_12
-                )
-            )
-        ) - B;
-
-        swapAmount = numerator / (2 * POWER_12);
+        swapAmount = _volatililtyAmountToSwap(
+            _maxAmountIn,
+            _isInverse ? iLeverageBalance : leverageBalance,
+            _isInverse ? leverageBalance : iLeverageBalance,
+            0
+        );
         (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
-        swapAmount = numerator / (2 * (POWER_12 - (fee / 10**7))); // Should be 10**6, but swapAmount is out of limit
+        swapAmount = _volatililtyAmountToSwap(
+            _maxAmountIn,
+            _isInverse ? iLeverageBalance : leverageBalance,
+            _isInverse ? leverageBalance : iLeverageBalance,
+            fee
+        );
         (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
     }
 }
