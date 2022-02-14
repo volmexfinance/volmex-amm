@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol";
 import "abdk-libraries-solidity/ABDKMathQuad.sol";
-import "hardhat/console.sol";
 
 import "./interfaces/IVolmexPool.sol";
 import "./interfaces/IVolmexProtocol.sol";
