@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol";
 import "abdk-libraries-solidity/ABDKMathQuad.sol";
+import "hardhat/console.sol";
 
 import "./interfaces/IVolmexPool.sol";
 import "./interfaces/IVolmexProtocol.sol";
@@ -393,10 +394,19 @@ contract VolmexController is
             true
         );
 
-        require(
-            swapAmounts[1] <= _amounts[0] - swapAmounts[0],
-            "VolmexController: Amount out limit exploit"
-        );
+        if(!(swapAmounts[1] <= _amounts[0] - swapAmounts[0])) {
+            uint256 redeemAmount = _amounts[0] - swapAmounts[0];
+            require(
+                BONE > swapAmounts[1] - redeemAmount,
+                "VolmexController: Amount out limit exploit"
+            );
+            _transferAsset(
+                IERC20Modified(isInverse ? _pool.tokens(0) : _pool.tokens(1)),
+                swapAmounts[1] - redeemAmount,
+                msg.sender
+            );
+            swapAmounts[1] = redeemAmount;
+        }
 
         uint256 collateralAmount;
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
@@ -467,10 +477,19 @@ contract VolmexController is
             true
         );
 
-        require(
-            tokenAmounts[1] <= _amounts[0] - tokenAmounts[0],
-            "VolmexController: Amount out limit exploit"
-        );
+        if(!(tokenAmounts[1] <= _amounts[0] - tokenAmounts[0])) {
+            uint256 redeemAmount = _amounts[0] - tokenAmounts[0];
+            require(
+                BONE > tokenAmounts[1] - redeemAmount,
+                "VolmexController: Amount out limit exploit"
+            );
+            _transferAsset(
+                IERC20Modified(isInverse ? _pool.tokens(0) : _pool.tokens(1)),
+                tokenAmounts[1] - redeemAmount,
+                msg.sender
+            );
+            tokenAmounts[1] = redeemAmount;
+        }
 
         IERC20Modified(_tokens[0]).transferFrom(msg.sender, address(this), tokenAmounts[1]);
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[2]];
@@ -708,6 +727,16 @@ contract VolmexController is
             _pool,
             _isInverse
         );
+
+        if(!(amounts[1] <= _amount - amounts[0])) {
+            uint256 redeemAmount = _amount - amounts[0];
+            require(
+                BONE > amounts[1] - redeemAmount,
+                "VolmexController: Amount out limit exploit"
+            );
+            amounts[1] = redeemAmount;
+        }
+
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
         (minCollateralAmount, fee[1]) = _calculateAssetQuantity(
             amounts[1] * _volatilityCapRatio,
@@ -736,9 +765,9 @@ contract VolmexController is
     ) external view returns (uint256 amountOut, uint256[3] memory fees) {
         IVolmexPool _pool = IVolmexPool(pools[_indices[0]]);
 
-        uint256 tokenAmountOut;
+        uint256[2] memory tokenAmounts;
         uint256 fee;
-        (, tokenAmountOut, fee) = _getSwappedAssetAmount(
+        (tokenAmounts[0], tokenAmounts[1], fee) = _getSwappedAssetAmount(
             _tokens[0],
             _amountIn,
             _pool,
@@ -746,11 +775,20 @@ contract VolmexController is
         );
         fees[0] = fee;
 
+        if(!(tokenAmounts[1] <= _amountIn - tokenAmounts[0])) {
+            uint256 redeemAmount = _amountIn - tokenAmounts[0];
+            require(
+                BONE > tokenAmounts[1] - redeemAmount,
+                "VolmexController: Amount out limit exploit"
+            );
+            tokenAmounts[1] = redeemAmount;
+        }
+
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[2]];
         uint256[3] memory protocolAmount;
         protocolAmount[2] = _protocol.volatilityCapRatio();
         (protocolAmount[0], fee) = _calculateAssetQuantity(
-            tokenAmountOut * protocolAmount[2],
+            tokenAmounts[1] * protocolAmount[2],
             _protocol.redeemFees(),
             false,
             protocolAmount[2],
@@ -772,13 +810,13 @@ contract VolmexController is
 
         _pool = pools[_indices[1]];
 
-        (tokenAmountOut, fee) = _pool.getTokenAmountOut(
+        (tokenAmounts[1], fee) = _pool.getTokenAmountOut(
             _pool.tokens(0) != _tokens[1] ? _pool.tokens(0) : _pool.tokens(1),
             protocolAmount[1]
         );
         fees[1] += fee;
 
-        amountOut = protocolAmount[1] + tokenAmountOut;
+        amountOut = protocolAmount[1] + tokenAmounts[1];
     }
 
     function _calculateAssetQuantity(
