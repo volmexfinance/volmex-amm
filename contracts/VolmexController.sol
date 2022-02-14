@@ -823,20 +823,20 @@ contract VolmexController is
         uint256 _leverageBalanceOfOut,
         uint256 _fee
     ) private pure returns (uint256 swapAmount) {
-        uint256 feeRemainder = BONE - _fee;
+        uint256 R = BONE - _fee;
         uint256 B = ((_leverageBalanceOfIn * BONE) +
-            (_leverageBalanceOfOut * feeRemainder) -
-            (_maxAmount * feeRemainder)) / 10**6;
+            (_leverageBalanceOfOut * R) -
+            (_maxAmount * R)) / 10**6;
 
         uint256 numerator = ABDKMathQuad.toUInt(
             ABDKMathQuad.sqrt(
                 ABDKMathQuad.fromUInt(
-                    (B * B) + (4 * feeRemainder * _leverageBalanceOfIn * _maxAmount) * (10**6)
+                    (B * B) + (4 * R * _leverageBalanceOfIn * _maxAmount) * (10**6)
                 )
             )
         ) - B;
 
-        swapAmount = numerator / (2 * feeRemainder / 10**6);
+        swapAmount = numerator / (2 * R / 10**6);
     }
 
     function _getSwappedAssetAmount(
