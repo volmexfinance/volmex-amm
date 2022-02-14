@@ -572,7 +572,7 @@ describe("VolmexController", function () {
       expect(Number(changedBalance.toString())).to.equal(Number(logData[1].toString()));
     });
 
-    it.only("Should swap between multiple pools", async () => {
+    it("Should swap between multiple pools", async () => {
       const poolAmountOut = "150000000000000000000000";
       const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
 
