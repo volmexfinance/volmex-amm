@@ -398,7 +398,7 @@ contract VolmexController is
         } else {
             tokenAmounts[2] = _amounts[0] - tokenAmounts[0];
             require(
-                BONE > tokenAmounts[1] - tokenAmounts[2],
+                (BONE/10) > tokenAmounts[1] - tokenAmounts[2],
                 "VolmexController: Deviation too large"
             );
         }
@@ -484,7 +484,7 @@ contract VolmexController is
         } else {
             tokenAmounts[2] = _amounts[0] - tokenAmounts[0];
             require(
-                BONE > tokenAmounts[1] - tokenAmounts[2],
+                (BONE/10) > tokenAmounts[1] - tokenAmounts[2],
                 "VolmexController: Deviation too large"
             );
             tokenAmounts[3] = tokenAmounts[1] - tokenAmounts[2];
@@ -739,7 +739,7 @@ contract VolmexController is
             amounts[2] = amounts[1];
         } else {
             amounts[2] = _amount - amounts[0];
-            require(BONE > amounts[1] - amounts[2], "VolmexController: Deviation too large");
+            require((BONE/10) > amounts[1] - amounts[2], "VolmexController: Deviation too large");
         }
 
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
@@ -785,7 +785,7 @@ contract VolmexController is
         } else {
             tokenAmounts[2] = _amountIn - tokenAmounts[0];
             require(
-                BONE > tokenAmounts[1] - tokenAmounts[2],
+                (BONE/10) > tokenAmounts[1] - tokenAmounts[2],
                 "VolmexController: Deviation too large"
             );
         }
