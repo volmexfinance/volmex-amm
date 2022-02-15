@@ -36,7 +36,6 @@ interface IVolmexController {
     function pools(uint256 _index) external view returns (IVolmexPool);
     function stableCoins(uint256 _index) external view returns (IERC20Modified);
     function isPool(address _pool) external view returns (bool);
-    function oracle() external view returns (IVolmexOracle);
     function precisionRatios(uint256 _index) external view returns (uint256);
     function protocols(
         uint256 _poolIndex,
