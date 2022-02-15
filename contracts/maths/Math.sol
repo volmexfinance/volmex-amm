@@ -2,7 +2,10 @@
 
 pragma solidity =0.8.11;
 
+import "abdk-libraries-solidity/ABDKMathQuad.sol";
+
 import "./Num.sol";
+import "../interfaces/IVolmexPool.sol";
 
 contract Math is Num {
     /**********************************************************************************************
@@ -59,5 +62,90 @@ contract Math is Num {
             feeAmount = _div(_mul(tokenAmount, _adminFee), 10000);
             amountOut = amountOut - feeAmount;
         }
+    }
+
+    /**
+     * @notice Used to calculate the collateral/volatility amount after interaction with VolmexProtocol
+     */
+    function _calculateAssetQuantity(
+        uint256 _amount,
+        uint256 _feePercent,
+        bool _isVolatility,
+        uint256 _volatilityCapRatio,
+        uint256 _precisionRatio
+    ) internal pure returns (uint256 amount, uint256 protocolFee) {
+        protocolFee = (_amount * _feePercent) / 10000;
+        _amount = _amount - protocolFee;
+
+        amount = _isVolatility
+            ? (_amount / _volatilityCapRatio) * _precisionRatio
+            : _amount / _precisionRatio;
+    }
+
+    /**
+     * @notice Used to calculate the amountIn and amountOut, provided max amount
+     */
+    function _getSwappedAssetAmount(
+        address _tokenIn,
+        uint256 _maxAmountIn,
+        IVolmexPool _pool,
+        bool _isInverse
+    )
+        internal
+        view
+        returns (
+            uint256 swapAmount,
+            uint256 amountOut,
+            uint256 fee
+        )
+    {
+        uint256 leverageBalance = _mul(
+            _pool.getLeverage(_pool.tokens(0)),
+            _pool.getBalance(_pool.tokens(0))
+        );
+        uint256 iLeverageBalance = _mul(
+            _pool.getLeverage(_pool.tokens(1)),
+            _pool.getBalance(_pool.tokens(1))
+        );
+
+        swapAmount = _volatililtyAmountToSwap(
+            _maxAmountIn,
+            _isInverse ? iLeverageBalance : leverageBalance,
+            _isInverse ? leverageBalance : iLeverageBalance,
+            0
+        );
+        (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
+        swapAmount = _volatililtyAmountToSwap(
+            _maxAmountIn,
+            _isInverse ? iLeverageBalance : leverageBalance,
+            _isInverse ? leverageBalance : iLeverageBalance,
+            fee
+        );
+        (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
+    }
+
+    /**
+     * Reference: https://excalidraw.com/#json=Rg2qV51HsIX2OoRZVQ-FK,9Y3xGthsEf1sXnB_H4V7Zw
+     */
+    function _volatililtyAmountToSwap(
+        uint256 _maxAmount,
+        uint256 _leverageBalanceOfIn,
+        uint256 _leverageBalanceOfOut,
+        uint256 _fee
+    ) private pure returns (uint256 swapAmount) {
+        uint256 R = BONE - _fee;
+        uint256 B = ((_leverageBalanceOfIn * BONE) +
+            (_leverageBalanceOfOut * R) -
+            (_maxAmount * R)) / 10**6;
+
+        uint256 numerator = ABDKMathQuad.toUInt(
+            ABDKMathQuad.sqrt(
+                ABDKMathQuad.fromUInt(
+                    (B * B) + (4 * R * _leverageBalanceOfIn * _maxAmount) * (10**6)
+                )
+            )
+        ) - B;
+
+        swapAmount = numerator / ((2 * R) / 10**6);
     }
 }
