@@ -296,6 +296,10 @@ describe("VolmexPool", function () {
     it("Should update the admin fee", async () => {
       await (await pool.updateAdminFee(70)).wait();
       expect(await pool.adminFee()).to.equal(70);
+      await expectRevert(
+        pool.updateAdminFee(10001),
+        "VolmexPool: _fee should be smaller than 10000"
+      );
     });
 
     it("Should update volatility index", async () => {
