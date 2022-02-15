@@ -291,7 +291,7 @@ describe("VolmexController", function () {
       )
     ).wait();
 
-    poolView = await upgrades.deployProxy(poolViewFactory, []);
+    poolView = await upgrades.deployProxy(poolViewFactory, [controller.address]);
     await poolView.deployed();
 
     const volatilityIndexes = ["0"];
@@ -481,7 +481,7 @@ describe("VolmexController", function () {
       await add.wait();
 
       await (await pools["ETH"].reprice()).wait();
-      const volAmount = await controller
+      const volAmount = await poolView
         .connect(swapper2)
         .getCollateralToVolatility("1500000000000000000000", volatilities["ETH"].address, [0, 0]);
 
@@ -535,7 +535,7 @@ describe("VolmexController", function () {
       await add.wait();
 
       await (await pools["ETH"].reprice()).wait();
-      const colAmount = await controller
+      const colAmount = await poolView
         .connect(swapper1)
         .getVolatilityToCollateral(
           volatilities["ETH"].address,
@@ -611,7 +611,7 @@ describe("VolmexController", function () {
 
       await (await pools["ETH"].reprice()).wait();
       await (await pools["BTC"].reprice()).wait();
-      const volAmountOut = await controller
+      const volAmountOut = await poolView
         .connect(swapper1)
         .getSwapAmountBetweenPools(
           [volatilities["ETH"].address, inverseVolatilities["BTC"].address],
@@ -745,7 +745,7 @@ describe("VolmexController", function () {
       );
       await add.wait();
 
-      const volAmount = await controller.getCollateralToVolatility(
+      const volAmount = await poolView.getCollateralToVolatility(
         "1500000000",
         volatilities["ETH"].address,
         [0, 1]
@@ -790,7 +790,7 @@ describe("VolmexController", function () {
       await add.wait();
 
       await (await pools["ETH"].reprice()).wait();
-      const colAmount = await controller.getVolatilityToCollateral(
+      const colAmount = await poolView.getVolatilityToCollateral(
         volatilities["ETH"].address,
         "20000000000000000000",
         [0, 1]
@@ -850,7 +850,7 @@ describe("VolmexController", function () {
 
       await (await pools["ETH"].reprice()).wait();
       await (await pools["BTC"].reprice()).wait();
-      const volAmountOut = await controller.getSwapAmountBetweenPools(
+      const volAmountOut = await poolView.getSwapAmountBetweenPools(
         [volatilities["ETH"].address, volatilities["BTC"].address],
         "20000000000000000000",
         [0, 1, 1]
