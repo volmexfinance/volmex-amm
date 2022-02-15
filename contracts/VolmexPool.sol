@@ -33,7 +33,7 @@ contract VolmexPool is
     bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
     // Interface ID of VolmexPool contract, hashId = 0x71e45f88
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
-    // Interface ID of VolmexController contract, hashId = 0xe8f8535b 
+    // Interface ID of VolmexController contract, hashId = 0xe8f8535b
     bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
     // Number of tokens the pool can hold
     uint256 private constant _BOUND_TOKENS = 2;
@@ -342,7 +342,7 @@ contract VolmexPool is
             address token = tokens[i];
             uint256 bal = records[token].balance;
             require(bal > 0, "VolmexPool: Insufficient balance in Pool");
-            (uint256 tokenAmountOut,) = _calculateAmountOut(
+            (uint256 tokenAmountOut, ) = _calculateAmountOut(
                 _poolAmountIn,
                 ratio,
                 bal,
