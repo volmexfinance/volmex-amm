@@ -13,7 +13,6 @@ import "./interfaces/IERC20Modified.sol";
 import "./interfaces/IVolmexOracle.sol";
 import "./interfaces/IPausablePool.sol";
 import "./interfaces/IVolmexController.sol";
-import "./interfaces/IFlashLoanReceiver.sol";
 import "./maths/Math.sol";
 
 /**
@@ -29,12 +28,8 @@ contract VolmexController is
 {
     // Interface ID of VolmexController contract, hashId  = 0xe8f8535b
     bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
-    // Interface ID of VolmexOracle contract, hashId = 0xf9fffc9f
-    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
     // Interface ID of VolmexPool contract, hashId = 0x71e45f88
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
-    // Interface ID of FlashLoanReceiver contract, hashId = 0xee872558
-    bytes4 private constant _IFlashLoan_Receiver_ID = type(IFlashLoanReceiver).interfaceId;
 
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
@@ -42,8 +37,6 @@ contract VolmexController is
     uint256 public poolIndex;
     // Used to store the pools
     address[] public allPools;
-    // Address of the oracle
-    IVolmexOracle public oracle;
 
     /**
      * Indices for Pool, Stablecoin and Protocol mappings
@@ -85,14 +78,8 @@ contract VolmexController is
         IERC20Modified[2] memory _stableCoins,
         IVolmexPool[2] memory _pools,
         IVolmexProtocol[4] memory _protocols,
-        IVolmexOracle _oracle,
         address _owner
     ) external initializer {
-        require(
-            IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
-            "VolmexController: Oracle does not supports interface"
-        );
-
         uint256 protocolCount;
         // Note: Since loop size is very small so nested loop won't be a problem
         for (uint256 i; i < 2; i++) {
@@ -127,7 +114,6 @@ contract VolmexController is
                 protocolCount++;
             }
         }
-        oracle = _oracle;
         poolIndex++;
         stableCoinIndex++;
 
@@ -606,34 +592,6 @@ contract VolmexController is
         IVolmexPool _pool = pools[_poolIndex];
 
         _pool.exitPool(_poolAmountIn, _minAmountsOut, msg.sender);
-    }
-
-    /**
-     * @notice Used to call flash loan on Pool
-     *
-     * @dev This method is for developers.
-     * Make sure you call this method from a contract with the implementation
-     * of IFlashLoanReceiver interface
-     *
-     * @param _assetToken Address of the token in need
-     * @param _amount Amount of token in need
-     * @param _params msg.data for verifying the loan
-     * @param _poolIndex Index of the Pool
-     */
-    function makeFlashLoan(
-        address _receiver,
-        address _assetToken,
-        uint256 _amount,
-        bytes calldata _params,
-        uint256 _poolIndex
-    ) external whenNotPaused {
-        require(
-            IERC165Upgradeable(_receiver).supportsInterface(_IFlashLoan_Receiver_ID),
-            "VolmexPool: Repricer does not supports interface"
-        );
-
-        IVolmexPool _pool = pools[_poolIndex];
-        _pool.flashLoan(_receiver, _assetToken, _amount, _params);
     }
 
     /**
