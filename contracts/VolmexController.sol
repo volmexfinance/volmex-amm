@@ -373,17 +373,18 @@ contract VolmexController is
         bool isInverse = _pool.tokens(1) == address(_tokenIn);
 
         _pool.reprice();
+        // Pool and Protocol fee array { 0: Pool, 1: Protocol }
+        uint256[2] memory fees;
         uint256[3] memory tokenAmounts; // 0: tokenAmountIn, 1: tokenAmountOut, 3: redeemAmount
-        (tokenAmounts[0], tokenAmounts[1], ) = _getSwappedAssetAmount(
+        // Assuming the getter will return exact fee, considering the call in same transaction
+        (tokenAmounts[0], tokenAmounts[1], fees[0]) = _getSwappedAssetAmount(
             address(_tokenIn),
             _amounts[0],
             _pool,
             isInverse
         );
 
-        // Pool and Protocol fee array { 0: Pool, 1: Protocol }
-        uint256[2] memory fees;
-        (tokenAmounts[1], fees[0]) = _pool.swapExactAmountIn(
+        (tokenAmounts[1], ) = _pool.swapExactAmountIn(
             address(_tokenIn),
             tokenAmounts[0],
             isInverse ? _pool.tokens(0) : _pool.tokens(1),
@@ -397,7 +398,7 @@ contract VolmexController is
         } else {
             tokenAmounts[2] = _amounts[0] - tokenAmounts[0];
             require(
-                (BONE/10) > tokenAmounts[1] - tokenAmounts[2],
+                (BONE / 10) > tokenAmounts[1] - tokenAmounts[2],
                 "VolmexController: Deviation too large"
             );
         }
@@ -460,16 +461,17 @@ contract VolmexController is
         _pool.reprice();
         // Array of swapAmount {0}, tokenAmountOut {1}, redeemAmount {2} adn leftOverAmount {3}
         uint256[4] memory tokenAmounts;
-        (tokenAmounts[0], tokenAmounts[1], ) = _getSwappedAssetAmount(
+        // Pool and Protocol fee array { 0: Pool In, 1: Pool Out, 2: Protocol In Redeem, 3: Protocol Out Collateralize }
+        uint256[4] memory fees;
+        // Assuming the getter will return exact fee, considering the call in same transaction
+        (tokenAmounts[0], tokenAmounts[1], fees[0]) = _getSwappedAssetAmount(
             _tokens[0],
             _amounts[0],
             _pool,
             isInverse
         );
 
-        // Pool and Protocol fee array { 0: Pool In, 1: Pool Out, 2: Protocol In Redeem, 3: Protocol Out Collateralize }
-        uint256[4] memory fees;
-        (tokenAmounts[1], fees[0]) = _pool.swapExactAmountIn(
+        (tokenAmounts[1], ) = _pool.swapExactAmountIn(
             _tokens[0],
             tokenAmounts[0],
             isInverse ? _pool.tokens(0) : _pool.tokens(1),
@@ -483,7 +485,7 @@ contract VolmexController is
         } else {
             tokenAmounts[2] = _amounts[0] - tokenAmounts[0];
             require(
-                (BONE/10) > tokenAmounts[1] - tokenAmounts[2],
+                (BONE / 10) > tokenAmounts[1] - tokenAmounts[2],
                 "VolmexController: Deviation too large"
             );
             tokenAmounts[3] = tokenAmounts[1] - tokenAmounts[2];
@@ -528,7 +530,7 @@ contract VolmexController is
         address poolOutTokenIn = isInverse ? _pool.tokens(0) : _pool.tokens(1);
 
         _pool.reprice();
-        (tokenAmounts[1], ) = _pool.getTokenAmountOut(poolOutTokenIn, protocolAmounts[1]);
+        (tokenAmounts[1], fees[1]) = _pool.getTokenAmountOut(poolOutTokenIn, protocolAmounts[1]);
 
         _approveAssets(
             IERC20Modified(poolOutTokenIn),
@@ -536,7 +538,7 @@ contract VolmexController is
             address(this),
             address(this)
         );
-        (tokenAmounts[1], fees[1]) = _pool.swapExactAmountIn(
+        (tokenAmounts[1], ) = _pool.swapExactAmountIn(
             poolOutTokenIn,
             protocolAmounts[1],
             _tokens[1],
