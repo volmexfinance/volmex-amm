@@ -38,6 +38,7 @@ interface IVolmexController {
     function stableCoins(uint256 _index) external view returns (IERC20Modified);
     function isPool(address _pool) external view returns (bool);
     function oracle() external view returns (IVolmexOracle);
+    function precisionRatios(uint256 _index) external view returns (uint256);
     function protocols(
         uint256 _poolIndex,
         uint256 _stableCoinIndex
@@ -92,21 +93,6 @@ interface IVolmexController {
         address _tokenOut,
         uint256 _amountOut
     ) external;
-    function getCollateralToVolatility(
-        uint256 _collateralAmount,
-        address _tokenOut,
-        uint256[2] calldata _indices
-    ) external view returns (uint256, uint256[2] memory);
-    function getVolatilityToCollateral(
-        address _tokenIn,
-        uint256 _amount,
-        uint256[2] calldata _indices
-    ) external view returns (uint256, uint256[2] memory);
-    function getSwapAmountBetweenPools(
-        address[2] calldata _tokens,
-        uint256 _amountIn,
-        uint256[3] calldata _indices
-    ) external view returns (uint256, uint256[3] memory);
     function transferAssetToPool(
         IERC20Modified _token,
         address _account,
