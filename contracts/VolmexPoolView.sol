@@ -269,7 +269,10 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
             amounts[2] = amounts[1];
         } else {
             amounts[2] = _amount - amounts[0];
-            require((BONE/10) > amounts[1] - amounts[2], "VolmexController: Deviation too large");
+            require(
+                (BONE / 10) > amounts[1] - amounts[2],
+                "VolmexController: Deviation too large"
+            );
         }
 
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
@@ -315,7 +318,7 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
         } else {
             tokenAmounts[2] = _amountIn - tokenAmounts[0];
             require(
-                (BONE/10) > tokenAmounts[1] - tokenAmounts[2],
+                (BONE / 10) > tokenAmounts[1] - tokenAmounts[2],
                 "VolmexController: Deviation too large"
             );
         }
