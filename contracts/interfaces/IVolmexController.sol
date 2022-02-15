@@ -6,7 +6,6 @@ import "./IERC20Modified.sol";
 import "./IVolmexPool.sol";
 import "./IPausablePool.sol";
 import "./IVolmexProtocol.sol";
-import "./IVolmexOracle.sol";
 
 interface IVolmexController {
     event AdminFeeUpdated(uint256 adminFee);
@@ -37,7 +36,6 @@ interface IVolmexController {
     function pools(uint256 _index) external view returns (IVolmexPool);
     function stableCoins(uint256 _index) external view returns (IERC20Modified);
     function isPool(address _pool) external view returns (bool);
-    function oracle() external view returns (IVolmexOracle);
     function precisionRatios(uint256 _index) external view returns (uint256);
     function protocols(
         uint256 _poolIndex,
@@ -77,13 +75,6 @@ interface IVolmexController {
     function removeLiquidity(
         uint256 _poolAmountIn,
         uint256[2] calldata _minAmountsOut,
-        uint256 _poolIndex
-    ) external;
-    function makeFlashLoan(
-        address _receiver,
-        address _assetToken,
-        uint256 _amount,
-        bytes calldata _params,
         uint256 _poolIndex
     ) external;
     function swap(
