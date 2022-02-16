@@ -822,10 +822,6 @@ contract VolmexController is
         bool _isInverse,
         uint256 _fee
     ) private view returns (uint256 volatilityAmount) {
-        (uint256 price, uint256 iPrice) = oracle.getVolatilityTokenPriceByIndex(
-            _pool.volatilityIndex()
-        );
-
         uint256 leverage = _pool.getLeverage(_pool.tokens(0));
         uint256 iLeverage = _pool.getLeverage(_pool.tokens(1));
 
