@@ -14,7 +14,6 @@ import "./interfaces/IEIP20NonStandard.sol";
 import "./interfaces/IVolmexRepricer.sol";
 import "./interfaces/IVolmexProtocol.sol";
 import "./interfaces/IVolmexPool.sol";
-import "./interfaces/IFlashLoanReceiver.sol";
 import "./interfaces/IVolmexController.sol";
 
 /**
@@ -34,7 +33,7 @@ contract VolmexPool is
     bytes4 private constant _IVOLMEX_REPRICER_ID = type(IVolmexRepricer).interfaceId;
     // Interface ID of VolmexPool contract, hashId = 0x71e45f88
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
-    // Interface ID of VolmexController contract, hashId = 0xe8f8535b 
+    // Interface ID of VolmexController contract, hashId = 0xe8f8535b
     bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
     // Number of tokens the pool can hold
     uint256 private constant _BOUND_TOKENS = 2;
@@ -81,8 +80,6 @@ contract VolmexPool is
     uint256 public volatilityIndex;
     // Percentage of fee deducted for admin
     uint256 public adminFee;
-    // Percentage of fee deducted for flash loan
-    uint256 public flashLoanPremium;
 
     /**
      * @notice Used to log the callee's sig, address and data
@@ -174,7 +171,6 @@ contract VolmexPool is
         volatilityIndex = _volatilityIndex;
         denomination = protocol.volatilityCapRatio();
         adminFee = 30;
-        flashLoanPremium = 9;
         tokens[0] = address(protocol.volatilityToken());
         tokens[1] = address(protocol.inverseVolatilityToken());
 
@@ -205,16 +201,6 @@ contract VolmexPool is
         controller = _controller;
 
         emit ControllerSet(address(controller));
-    }
-
-    /**
-     * @notice Used to update the flash loan premium percent
-     */
-    function updateFlashLoanPremium(uint256 _premium) external onlyOwner {
-        require(_premium > 0 && _premium <= 10000, "VolmexPool: _premium value not in range");
-        flashLoanPremium = _premium;
-
-        emit FlashLoanPremiumUpdated(flashLoanPremium);
     }
 
     /**
@@ -300,50 +286,6 @@ contract VolmexPool is
     }
 
     /**
-     * @notice Used to get flash loan
-     *
-     * @dev Decrease the token amount from the record before transfer
-     * @dev Calculate the premium (fee) on the flash loan
-     * @dev Check if executor is valid
-     * @dev Increase the token amount of the record after pulling
-     *
-     * @param _receiverAddress Address of the receiver contract
-     * @param _assetToken Address of the token required.
-     * NOTE: For invalid asset token the records balance subtraction will throw underflow
-     * @param _amount Amount of token required
-     * @param _params msg.data value passed in the method, eg `0x10`
-     */
-    function flashLoan(
-        address _receiverAddress,
-        address _assetToken,
-        uint256 _amount,
-        bytes calldata _params
-    ) external lock whenNotPaused onlyController {
-        records[_assetToken].balance = records[_assetToken].balance - _amount;
-        IERC20Modified(_assetToken).transfer(_receiverAddress, _amount);
-
-        IFlashLoanReceiver receiver = IFlashLoanReceiver(_receiverAddress);
-        uint256 premium = _div(_mul(_amount, flashLoanPremium), 10000);
-
-        require(
-            receiver.executeOperation(_assetToken, _amount, premium, _params),
-            "VolmexPool: Invalid flash loan executor"
-        );
-
-        uint256 amountWithPremium = _amount + premium;
-
-        IERC20Modified(_assetToken).transferFrom(
-            _receiverAddress,
-            address(this),
-            amountWithPremium
-        );
-
-        records[_assetToken].balance = records[_assetToken].balance + amountWithPremium;
-
-        emit Loaned(_receiverAddress, _assetToken, _amount, premium);
-    }
-
-    /**
      * @notice Used to add liquidity to the pool
      *
      * @dev The token amount in of the pool will be calculated and pulled from LP
@@ -400,7 +342,7 @@ contract VolmexPool is
             address token = tokens[i];
             uint256 bal = records[token].balance;
             require(bal > 0, "VolmexPool: Insufficient balance in Pool");
-            (uint256 tokenAmountOut,) = _calculateAmountOut(
+            (uint256 tokenAmountOut, ) = _calculateAmountOut(
                 _poolAmountIn,
                 ratio,
                 bal,

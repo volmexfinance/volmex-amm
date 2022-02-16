@@ -13,8 +13,7 @@ import "./interfaces/IERC20Modified.sol";
 import "./interfaces/IVolmexOracle.sol";
 import "./interfaces/IPausablePool.sol";
 import "./interfaces/IVolmexController.sol";
-import "./interfaces/IFlashLoanReceiver.sol";
-import "./maths/Const.sol";
+import "./maths/Math.sol";
 
 /**
  * @title Volmex Controller contract
@@ -24,17 +23,13 @@ contract VolmexController is
     OwnableUpgradeable,
     PausableUpgradeable,
     ERC165StorageUpgradeable,
-    Const,
+    Math,
     IVolmexController
 {
     // Interface ID of VolmexController contract, hashId  = 0xe8f8535b
     bytes4 private constant _IVOLMEX_CONTROLLER_ID = type(IVolmexController).interfaceId;
-    // Interface ID of VolmexOracle contract, hashId = 0xf9fffc9f
-    bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
     // Interface ID of VolmexPool contract, hashId = 0x71e45f88
     bytes4 private constant _IVOLMEX_POOL_ID = type(IVolmexPool).interfaceId;
-    // Interface ID of FlashLoanReceiver contract, hashId = 0xee872558
-    bytes4 private constant _IFlashLoan_Receiver_ID = type(IFlashLoanReceiver).interfaceId;
 
     // Used to set the index of stableCoin
     uint256 public stableCoinIndex;
@@ -42,8 +37,6 @@ contract VolmexController is
     uint256 public poolIndex;
     // Used to store the pools
     address[] public allPools;
-    // Address of the oracle
-    IVolmexOracle public oracle;
 
     /**
      * Indices for Pool, Stablecoin and Protocol mappings
@@ -85,14 +78,8 @@ contract VolmexController is
         IERC20Modified[2] memory _stableCoins,
         IVolmexPool[2] memory _pools,
         IVolmexProtocol[4] memory _protocols,
-        IVolmexOracle _oracle,
         address _owner
     ) external initializer {
-        require(
-            IERC165Upgradeable(address(_oracle)).supportsInterface(_IVOLMEX_ORACLE_ID),
-            "VolmexController: Oracle does not supports interface"
-        );
-
         uint256 protocolCount;
         // Note: Since loop size is very small so nested loop won't be a problem
         for (uint256 i; i < 2; i++) {
@@ -127,7 +114,6 @@ contract VolmexController is
                 protocolCount++;
             }
         }
-        oracle = _oracle;
         poolIndex++;
         stableCoinIndex++;
 
@@ -373,34 +359,40 @@ contract VolmexController is
         bool isInverse = _pool.tokens(1) == address(_tokenIn);
 
         _pool.reprice();
-        uint256[2] memory swapAmounts; // 0: tokenAmountIn, 1: tokenAmountOut
-        (swapAmounts[0], swapAmounts[1], ) = _getSwappedAssetAmount(
+        // Pool and Protocol fee array { 0: Pool, 1: Protocol }
+        uint256[2] memory fees;
+        uint256[3] memory tokenAmounts; // 0: tokenAmountIn, 1: tokenAmountOut, 3: redeemAmount
+        // Assuming the getter will return exact fee, considering the call in same transaction
+        (tokenAmounts[0], tokenAmounts[1], fees[0]) = _getSwappedAssetAmount(
             address(_tokenIn),
             _amounts[0],
             _pool,
             isInverse
         );
 
-        // Pool and Protocol fee array { 0: Pool, 1: Protocol }
-        uint256[2] memory fees;
-        (swapAmounts[1], fees[0]) = _pool.swapExactAmountIn(
+        (tokenAmounts[1], ) = _pool.swapExactAmountIn(
             address(_tokenIn),
-            swapAmounts[0],
+            tokenAmounts[0],
             isInverse ? _pool.tokens(0) : _pool.tokens(1),
-            swapAmounts[1],
+            tokenAmounts[1],
             msg.sender,
             true
         );
 
-        require(
-            swapAmounts[1] <= _amounts[0] - swapAmounts[0],
-            "VolmexController: Amount out limit exploit"
-        );
+        if (tokenAmounts[1] <= _amounts[0] - tokenAmounts[0]) {
+            tokenAmounts[2] = tokenAmounts[1];
+        } else {
+            tokenAmounts[2] = _amounts[0] - tokenAmounts[0];
+            require(
+                (BONE / 10) > tokenAmounts[1] - tokenAmounts[2],
+                "VolmexController: Deviation too large"
+            );
+        }
 
         uint256 collateralAmount;
         uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
         (collateralAmount, fees[1]) = _calculateAssetQuantity(
-            swapAmounts[1] * _volatilityCapRatio,
+            tokenAmounts[2] * _volatilityCapRatio,
             _protocol.redeemFees(),
             false,
             _volatilityCapRatio,
@@ -412,14 +404,21 @@ contract VolmexController is
             "VolmexController: Insufficient expected collateral amount"
         );
 
-        _tokenIn.transferFrom(msg.sender, address(this), swapAmounts[1]);
-        _protocol.redeem(swapAmounts[1]);
+        _tokenIn.transferFrom(msg.sender, address(this), tokenAmounts[2]);
+        _protocol.redeem(tokenAmounts[2]);
 
         IERC20Modified stableCoin = stableCoins[_indices[1]];
         _transferAsset(stableCoin, collateralAmount, msg.sender);
+        if (tokenAmounts[1] - tokenAmounts[2] > 0) {
+            _transferAsset(
+                IERC20Modified(isInverse ? _pool.tokens(0) : _pool.tokens(1)),
+                tokenAmounts[1] - tokenAmounts[2],
+                msg.sender
+            );
+        }
 
         emit CollateralSwapped(
-            _amounts[0],
+            tokenAmounts[0] + tokenAmounts[2],
             collateralAmount,
             fees[1],
             fees[0],
@@ -446,18 +445,19 @@ contract VolmexController is
         bool isInverse = _pool.tokens(1) == _tokens[0];
 
         _pool.reprice();
-        // Array of swapAmount {0} and tokenAmountOut {1}
-        uint256[2] memory tokenAmounts;
-        (tokenAmounts[0], tokenAmounts[1], ) = _getSwappedAssetAmount(
+        // Array of swapAmount {0}, tokenAmountOut {1}, redeemAmount {2} adn leftOverAmount {3}
+        uint256[4] memory tokenAmounts;
+        // Pool and Protocol fee array { 0: Pool In, 1: Pool Out, 2: Protocol In Redeem, 3: Protocol Out Collateralize }
+        uint256[4] memory fees;
+        // Assuming the getter will return exact fee, considering the call in same transaction
+        (tokenAmounts[0], tokenAmounts[1], fees[0]) = _getSwappedAssetAmount(
             _tokens[0],
             _amounts[0],
             _pool,
             isInverse
         );
 
-        // Pool and Protocol fee array { 0: Pool In, 1: Pool Out, 2: Protocol In Redeem, 3: Protocol Out Collateralize }
-        uint256[4] memory fees;
-        (tokenAmounts[1], fees[0]) = _pool.swapExactAmountIn(
+        (tokenAmounts[1], ) = _pool.swapExactAmountIn(
             _tokens[0],
             tokenAmounts[0],
             isInverse ? _pool.tokens(0) : _pool.tokens(1),
@@ -466,20 +466,26 @@ contract VolmexController is
             true
         );
 
-        require(
-            tokenAmounts[1] <= _amounts[0] - tokenAmounts[0],
-            "VolmexController: Amount out limit exploit"
-        );
+        if (tokenAmounts[1] <= _amounts[0] - tokenAmounts[0]) {
+            tokenAmounts[2] = tokenAmounts[1];
+        } else {
+            tokenAmounts[2] = _amounts[0] - tokenAmounts[0];
+            require(
+                (BONE / 10) > tokenAmounts[1] - tokenAmounts[2],
+                "VolmexController: Deviation too large"
+            );
+            tokenAmounts[3] = tokenAmounts[1] - tokenAmounts[2];
+        }
 
-        IERC20Modified(_tokens[0]).transferFrom(msg.sender, address(this), tokenAmounts[1]);
+        IERC20Modified(_tokens[0]).transferFrom(msg.sender, address(this), tokenAmounts[2]);
         IVolmexProtocol _protocol = protocols[_indices[0]][_indices[2]];
-        _protocol.redeem(tokenAmounts[1]);
+        _protocol.redeem(tokenAmounts[2]);
 
         // Array of collateralAmount {0} and volatilityAmount {1}
         uint256[3] memory protocolAmounts;
         protocolAmounts[2] = _protocol.volatilityCapRatio();
         (protocolAmounts[0], fees[2]) = _calculateAssetQuantity(
-            tokenAmounts[1] * protocolAmounts[2],
+            tokenAmounts[2] * protocolAmounts[2],
             _protocol.redeemFees(),
             false,
             protocolAmounts[2],
@@ -510,7 +516,7 @@ contract VolmexController is
         address poolOutTokenIn = isInverse ? _pool.tokens(0) : _pool.tokens(1);
 
         _pool.reprice();
-        (tokenAmounts[1], ) = _pool.getTokenAmountOut(poolOutTokenIn, protocolAmounts[1]);
+        (tokenAmounts[1], fees[1]) = _pool.getTokenAmountOut(poolOutTokenIn, protocolAmounts[1]);
 
         _approveAssets(
             IERC20Modified(poolOutTokenIn),
@@ -518,7 +524,7 @@ contract VolmexController is
             address(this),
             address(this)
         );
-        (tokenAmounts[1], fees[1]) = _pool.swapExactAmountIn(
+        (tokenAmounts[1], ) = _pool.swapExactAmountIn(
             poolOutTokenIn,
             protocolAmounts[1],
             _tokens[1],
@@ -537,6 +543,14 @@ contract VolmexController is
             protocolAmounts[1] + tokenAmounts[1],
             msg.sender
         );
+        if (tokenAmounts[3] > 0) {
+            _pool = pools[_indices[0]];
+            _transferAsset(
+                IERC20Modified(_pool.tokens(1) == _tokens[0] ? _pool.tokens(0) : _pool.tokens(1)),
+                tokenAmounts[3],
+                msg.sender
+            );
+        }
 
         emit PoolSwapped(
             _amounts[0],
@@ -583,34 +597,6 @@ contract VolmexController is
     }
 
     /**
-     * @notice Used to call flash loan on Pool
-     *
-     * @dev This method is for developers.
-     * Make sure you call this method from a contract with the implementation
-     * of IFlashLoanReceiver interface
-     *
-     * @param _assetToken Address of the token in need
-     * @param _amount Amount of token in need
-     * @param _params msg.data for verifying the loan
-     * @param _poolIndex Index of the Pool
-     */
-    function makeFlashLoan(
-        address _receiver,
-        address _assetToken,
-        uint256 _amount,
-        bytes calldata _params,
-        uint256 _poolIndex
-    ) external whenNotPaused {
-        require(
-            IERC165Upgradeable(_receiver).supportsInterface(_IFlashLoan_Receiver_ID),
-            "VolmexPool: Repricer does not supports interface"
-        );
-
-        IVolmexPool _pool = pools[_poolIndex];
-        _pool.flashLoan(_receiver, _assetToken, _amount, _params);
-    }
-
-    /**
      * @notice Used to swap the exact amount in
      *
      * @param _poolIndex Index of the pool to which interact
@@ -647,154 +633,6 @@ contract VolmexController is
         _token.transferFrom(_account, msg.sender, _amount);
     }
 
-    /**
-     * @notice Used to get the volatility amount out
-     *
-     * @param _collateralAmount Amount of minimum expected collateral
-     * @param _tokenOut Address of the token out
-     * @param _indices Index of pool and stableCoin
-     */
-    function getCollateralToVolatility(
-        uint256 _collateralAmount,
-        address _tokenOut,
-        uint256[2] calldata _indices
-    ) external view returns (uint256 minVolatilityAmount, uint256[2] memory fees) {
-        IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
-        IVolmexPool _pool = pools[_indices[0]];
-
-        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (minVolatilityAmount, fees[1]) = _calculateAssetQuantity(
-            _collateralAmount,
-            _protocol.issuanceFees(),
-            true,
-            _volatilityCapRatio,
-            precisionRatios[_indices[1]]
-        );
-
-        bool isInverse = _pool.tokens(1) == _tokenOut;
-
-        uint256 tokenAmountOut;
-        (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
-            isInverse ? _pool.tokens(0) : _pool.tokens(1),
-            minVolatilityAmount
-        );
-
-        minVolatilityAmount += tokenAmountOut;
-    }
-
-    /**
-     * @notice Used to get collateral amount, fees, left over amount while swapping volatility
-     * to collateral/stablecoin
-     *
-     * @param _tokenIn Address of token in
-     * @param _amount Value of amount wants to swap
-     * @param _indices Index of pool and stableCoin
-     */
-    function getVolatilityToCollateral(
-        address _tokenIn,
-        uint256 _amount,
-        uint256[2] calldata _indices
-    ) external view returns (uint256 minCollateralAmount, uint256[2] memory fees) {
-        IVolmexProtocol _protocol = protocols[_indices[0]][_indices[1]];
-        IVolmexPool _pool = pools[_indices[0]];
-
-        bool _isInverse = _pool.tokens(1) == _tokenIn;
-        uint256[2] memory amounts;
-        uint256[2] memory fee; // 0: Pool fee, 1: Protocol fee
-        (amounts[0], amounts[1], fee[0]) = _getSwappedAssetAmount(
-            _tokenIn,
-            _amount,
-            _pool,
-            _isInverse
-        );
-        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
-        (minCollateralAmount, fee[1]) = _calculateAssetQuantity(
-            amounts[1] * _volatilityCapRatio,
-            _protocol.redeemFees(),
-            false,
-            _volatilityCapRatio,
-            precisionRatios[_indices[1]]
-        );
-
-        fees = [fee[0], fee[1]];
-    }
-
-    /**
-     * @notice Used to get the token out amount of swap in between multiple pools
-     *
-     * @param _tokens Addresses of token in and out
-     * @param _amountIn Value of amount in or change
-     * @param _indices Array of indices of poolOut, poolIn and stable coin
-     *
-     * returns amountOut, and fees array {0: pool in fee, 1: pool out fee, 2: protocolFee}
-     */
-    function getSwapAmountBetweenPools(
-        address[2] calldata _tokens,
-        uint256 _amountIn,
-        uint256[3] calldata _indices
-    ) external view returns (uint256 amountOut, uint256[3] memory fees) {
-        IVolmexPool _pool = IVolmexPool(pools[_indices[0]]);
-
-        uint256 tokenAmountOut;
-        uint256 fee;
-        (, tokenAmountOut, fee) = _getSwappedAssetAmount(
-            _tokens[0],
-            _amountIn,
-            _pool,
-            _pool.tokens(1) == _tokens[0]
-        );
-        fees[0] = fee;
-
-        IVolmexProtocol _protocol = protocols[_indices[0]][_indices[2]];
-        uint256[3] memory protocolAmount;
-        protocolAmount[2] = _protocol.volatilityCapRatio();
-        (protocolAmount[0], fee) = _calculateAssetQuantity(
-            tokenAmountOut * protocolAmount[2],
-            _protocol.redeemFees(),
-            false,
-            protocolAmount[2],
-            precisionRatios[_indices[2]]
-        );
-        fees[2] = fee;
-
-        _protocol = protocols[_indices[1]][_indices[2]];
-        protocolAmount[2] = _protocol.volatilityCapRatio();
-
-        (protocolAmount[1], fee) = _calculateAssetQuantity(
-            protocolAmount[0],
-            _protocol.issuanceFees(),
-            true,
-            protocolAmount[2],
-            precisionRatios[_indices[2]]
-        );
-        fees[2] += fee;
-
-        _pool = pools[_indices[1]];
-
-        (tokenAmountOut, fee) = _pool.getTokenAmountOut(
-            _pool.tokens(0) != _tokens[1] ? _pool.tokens(0) : _pool.tokens(1),
-            protocolAmount[1]
-        );
-        fees[1] += fee;
-
-        amountOut = protocolAmount[1] + tokenAmountOut;
-    }
-
-    function _calculateAssetQuantity(
-        uint256 _amount,
-        uint256 _feePercent,
-        bool _isVolatility,
-        uint256 _volatilityCapRatio,
-        uint256 _precisionRatio
-    ) private pure returns (uint256 amount, uint256 protocolFee) {
-        protocolFee = (_amount * _feePercent) / 10000;
-        _amount = _amount - protocolFee;
-
-        amount = _isVolatility
-            ? (_amount / _volatilityCapRatio) * _precisionRatio
-            : _amount / _precisionRatio;
-    }
-
     function _transferAsset(
         IERC20Modified _token,
         uint256 _amount,
@@ -814,44 +652,5 @@ contract VolmexController is
         if (_amount <= _allowance) return;
 
         _token.approve(_spender, _amount);
-    }
-
-    function _volatilityAmountToSwap(
-        uint256 _amount,
-        IVolmexPool _pool,
-        bool _isInverse,
-        uint256 _fee
-    ) private view returns (uint256 volatilityAmount) {
-        uint256 leverage = _pool.getLeverage(_pool.tokens(0));
-        uint256 iLeverage = _pool.getLeverage(_pool.tokens(1));
-
-        volatilityAmount = _isInverse
-            ? ((_amount * iLeverage) * BONE) /
-                (leverage * (BONE - _fee) + iLeverage * BONE)
-            : ((_amount * leverage) * BONE) /
-                (iLeverage * (BONE - _fee) + leverage * BONE);
-    }
-
-    function _getSwappedAssetAmount(
-        address _tokenIn,
-        uint256 _amount,
-        IVolmexPool _pool,
-        bool _isInverse
-    )
-        private
-        view
-        returns (
-            uint256 swapAmount,
-            uint256 amountOut,
-            uint256 fee
-        )
-    {
-        swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, 0);
-
-        (, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
-
-        swapAmount = _volatilityAmountToSwap(_amount, _pool, _isInverse, fee);
-
-        (amountOut, fee) = _pool.getTokenAmountOut(_tokenIn, swapAmount);
     }
 }

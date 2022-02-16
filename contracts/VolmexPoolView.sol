@@ -10,6 +10,7 @@ import "./interfaces/IVolmexPool.sol";
 import "./interfaces/IERC20Modified.sol";
 import "./interfaces/IVolmexPoolView.sol";
 import "./interfaces/IPausablePool.sol";
+import "./interfaces/IVolmexController.sol";
 
 /**
  * @title Reading key data from specified derivative trading Pool
@@ -18,7 +19,10 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
     // Interface ID of VolmexPoolView contract, hashId = 0x45ea1e36
     bytes4 private constant _IVOLMEX_POOLVIEW_ID = type(IVolmexPoolView).interfaceId;
 
-    function initialize() external initializer {
+    IVolmexController public controller;
+
+    function initialize(IVolmexController _controller) external initializer {
+        controller = _controller;
         __ERC165Storage_init();
         _registerInterface(_IVOLMEX_POOLVIEW_ID);
     }
@@ -198,6 +202,160 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
                 adminFee
             );
         }
+    }
+
+    /**
+     * @notice Used to get the volatility amount out
+     *
+     * @param _collateralAmount Amount of minimum expected collateral
+     * @param _tokenOut Address of the token out
+     * @param _indices Index of pool and stableCoin
+     */
+    function getCollateralToVolatility(
+        uint256 _collateralAmount,
+        address _tokenOut,
+        uint256[2] calldata _indices
+    ) external view returns (uint256 minVolatilityAmount, uint256[2] memory fees) {
+        IVolmexProtocol _protocol = controller.protocols(_indices[0], _indices[1]);
+        IVolmexPool _pool = controller.pools(_indices[0]);
+
+        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
+        (minVolatilityAmount, fees[1]) = _calculateAssetQuantity(
+            _collateralAmount,
+            _protocol.issuanceFees(),
+            true,
+            _volatilityCapRatio,
+            controller.precisionRatios(_indices[1])
+        );
+
+        bool isInverse = _pool.tokens(1) == _tokenOut;
+
+        uint256 tokenAmountOut;
+        (tokenAmountOut, fees[0]) = _pool.getTokenAmountOut(
+            isInverse ? _pool.tokens(0) : _pool.tokens(1),
+            minVolatilityAmount
+        );
+
+        minVolatilityAmount += tokenAmountOut;
+    }
+
+    /**
+     * @notice Used to get collateral amount, fees, left over amount while swapping volatility
+     * to collateral/stablecoin
+     *
+     * @param _tokenIn Address of token in
+     * @param _amount Value of amount wants to swap
+     * @param _indices Index of pool and stableCoin
+     */
+    function getVolatilityToCollateral(
+        address _tokenIn,
+        uint256 _amount,
+        uint256[2] calldata _indices
+    ) external view returns (uint256 minCollateralAmount, uint256[2] memory fees) {
+        IVolmexProtocol _protocol = controller.protocols(_indices[0], _indices[1]);
+        IVolmexPool _pool = controller.pools(_indices[0]);
+
+        bool _isInverse = _pool.tokens(1) == _tokenIn;
+        uint256[3] memory amounts;
+        uint256[2] memory fee; // 0: Pool fee, 1: Protocol fee
+        (amounts[0], amounts[1], fee[0]) = _getSwappedAssetAmount(
+            _tokenIn,
+            _amount,
+            _pool,
+            _isInverse
+        );
+
+        if (amounts[1] <= _amount - amounts[0]) {
+            amounts[2] = amounts[1];
+        } else {
+            amounts[2] = _amount - amounts[0];
+            require(
+                (BONE / 10) > amounts[1] - amounts[2],
+                "VolmexController: Deviation too large"
+            );
+        }
+
+        uint256 _volatilityCapRatio = _protocol.volatilityCapRatio();
+        (minCollateralAmount, fee[1]) = _calculateAssetQuantity(
+            amounts[2] * _volatilityCapRatio,
+            _protocol.redeemFees(),
+            false,
+            _volatilityCapRatio,
+            controller.precisionRatios(_indices[1])
+        );
+
+        fees = [fee[0], fee[1]];
+    }
+
+    /**
+     * @notice Used to get the token out amount of swap in between multiple pools
+     *
+     * @param _tokens Addresses of token in and out
+     * @param _amountIn Value of amount in or change
+     * @param _indices Array of indices of poolOut, poolIn and stable coin
+     *
+     * returns amountOut, and fees array {0: pool in fee, 1: pool out fee, 2: protocolFee}
+     */
+    function getSwapAmountBetweenPools(
+        address[2] calldata _tokens,
+        uint256 _amountIn,
+        uint256[3] calldata _indices
+    ) external view returns (uint256 amountOut, uint256[3] memory fees) {
+        IVolmexPool _pool = IVolmexPool(controller.pools(_indices[0]));
+
+        uint256[3] memory tokenAmounts;
+        uint256 fee;
+        (tokenAmounts[0], tokenAmounts[1], fee) = _getSwappedAssetAmount(
+            _tokens[0],
+            _amountIn,
+            _pool,
+            _pool.tokens(1) == _tokens[0]
+        );
+        fees[0] = fee;
+
+        if (tokenAmounts[1] <= _amountIn - tokenAmounts[0]) {
+            tokenAmounts[2] = tokenAmounts[1];
+        } else {
+            tokenAmounts[2] = _amountIn - tokenAmounts[0];
+            require(
+                (BONE / 10) > tokenAmounts[1] - tokenAmounts[2],
+                "VolmexController: Deviation too large"
+            );
+        }
+
+        IVolmexProtocol _protocol = controller.protocols(_indices[0], _indices[2]);
+        uint256[3] memory protocolAmount;
+        protocolAmount[2] = _protocol.volatilityCapRatio();
+        (protocolAmount[0], fee) = _calculateAssetQuantity(
+            tokenAmounts[2] * protocolAmount[2],
+            _protocol.redeemFees(),
+            false,
+            protocolAmount[2],
+            controller.precisionRatios(_indices[2])
+        );
+        fees[2] = fee;
+
+        _protocol = controller.protocols(_indices[1], _indices[2]);
+        protocolAmount[2] = _protocol.volatilityCapRatio();
+
+        (protocolAmount[1], fee) = _calculateAssetQuantity(
+            protocolAmount[0],
+            _protocol.issuanceFees(),
+            true,
+            protocolAmount[2],
+            controller.precisionRatios(_indices[2])
+        );
+        fees[2] += fee;
+
+        _pool = controller.pools(_indices[1]);
+
+        (tokenAmounts[1], fee) = _pool.getTokenAmountOut(
+            _pool.tokens(0) != _tokens[1] ? _pool.tokens(0) : _pool.tokens(1),
+            protocolAmount[1]
+        );
+        fees[1] += fee;
+
+        amountOut = protocolAmount[1] + tokenAmounts[1];
     }
 
     uint256[10] private __gap;

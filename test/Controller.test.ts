@@ -214,7 +214,7 @@ describe("VolmexController", function () {
           maxFee,
           feeAmpPrimary,
           feeAmpComplement,
-          owner
+          owner,
         ],
         {
           initializer: "initialize",
@@ -246,8 +246,7 @@ describe("VolmexController", function () {
       controllerParam.collaterals,
       controllerParam.pools,
       controllerParam.protocols,
-      volmexOracle.address,
-      owner
+      owner,
     ]);
     await controller.deployed();
 
@@ -291,8 +290,19 @@ describe("VolmexController", function () {
       )
     ).wait();
 
-    poolView = await upgrades.deployProxy(poolViewFactory, []);
+    poolView = await upgrades.deployProxy(poolViewFactory, [controller.address]);
     await poolView.deployed();
+
+    const volatilityIndexes = ["0"];
+    const volatilityTokenPrices = ["80000000"];
+    const proofHashes = ["0x6c00000000000000000000000000000000000000000000000000000000000000"];
+    await (
+      await volmexOracle.updateBatchVolatilityTokenPrice(
+        volatilityIndexes,
+        volatilityTokenPrices,
+        proofHashes
+      )
+    ).wait();
   });
 
   it("should deploy controller", async () => {
@@ -470,7 +480,7 @@ describe("VolmexController", function () {
       await add.wait();
 
       await (await pools["ETH"].reprice()).wait();
-      const volAmount = await controller
+      const volAmount = await poolView
         .connect(swapper2)
         .getCollateralToVolatility("1500000000000000000000", volatilities["ETH"].address, [0, 0]);
 
@@ -524,7 +534,7 @@ describe("VolmexController", function () {
       await add.wait();
 
       await (await pools["ETH"].reprice()).wait();
-      const colAmount = await controller
+      const colAmount = await poolView
         .connect(swapper1)
         .getVolatilityToCollateral(
           volatilities["ETH"].address,
@@ -581,7 +591,7 @@ describe("VolmexController", function () {
         .addLiquidity(poolAmountOut, [amountsIn[0].toString(), amountsIn[1].toString()], "0");
       await add.wait();
 
-      amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
+      amountsIn = await poolView.getTokensToJoin(pools["BTC"].address, poolAmountOut);
       await (
         await volatilities["BTC"]
           .connect(lpHolder)
@@ -600,7 +610,7 @@ describe("VolmexController", function () {
 
       await (await pools["ETH"].reprice()).wait();
       await (await pools["BTC"].reprice()).wait();
-      const volAmountOut = await controller
+      const volAmountOut = await poolView
         .connect(swapper1)
         .getSwapAmountBetweenPools(
           [volatilities["ETH"].address, inverseVolatilities["BTC"].address],
@@ -734,7 +744,7 @@ describe("VolmexController", function () {
       );
       await add.wait();
 
-      const volAmount = await controller.getCollateralToVolatility(
+      const volAmount = await poolView.getCollateralToVolatility(
         "1500000000",
         volatilities["ETH"].address,
         [0, 1]
@@ -779,7 +789,7 @@ describe("VolmexController", function () {
       await add.wait();
 
       await (await pools["ETH"].reprice()).wait();
-      const colAmount = await controller.getVolatilityToCollateral(
+      const colAmount = await poolView.getVolatilityToCollateral(
         volatilities["ETH"].address,
         "20000000000000000000",
         [0, 1]
@@ -839,7 +849,7 @@ describe("VolmexController", function () {
 
       await (await pools["ETH"].reprice()).wait();
       await (await pools["BTC"].reprice()).wait();
-      const volAmountOut = await controller.getSwapAmountBetweenPools(
+      const volAmountOut = await poolView.getSwapAmountBetweenPools(
         [volatilities["ETH"].address, volatilities["BTC"].address],
         "20000000000000000000",
         [0, 1, 1]
@@ -1065,19 +1075,6 @@ describe("VolmexController", function () {
         });
       });
 
-      it("Not oracle", async () => {
-        await expectRevert(
-          upgrades.deployProxy(controllerFactory, [
-            controllerParam.collaterals,
-            controllerParam.pools,
-            controllerParam.protocols,
-            controllerParam.collaterals[0],
-            owner
-          ]),
-          "VolmexController: Oracle does not supports interface"
-        );
-      });
-
       it("Not pool", async () => {
         controllerParam.pools[0] = controllerParam.collaterals[0];
         await expectRevert(
@@ -1085,7 +1082,6 @@ describe("VolmexController", function () {
             controllerParam.collaterals,
             controllerParam.pools,
             controllerParam.protocols,
-            volmexOracle.address,
             owner
           ]),
           "VolmexController: Pool does not supports interface"
@@ -1099,7 +1095,6 @@ describe("VolmexController", function () {
             controllerParam.collaterals,
             controllerParam.pools,
             controllerParam.protocols,
-            volmexOracle.address,
             owner
           ]),
           "VolmexController: address of stable coin can't be zero"
@@ -1113,7 +1108,6 @@ describe("VolmexController", function () {
             controllerParam.collaterals,
             controllerParam.pools,
             controllerParam.protocols,
-            volmexOracle.address,
             owner
           ]),
           "VolmexController: Incorrect pool for add protocol"
@@ -1127,7 +1121,6 @@ describe("VolmexController", function () {
             controllerParam.collaterals,
             controllerParam.pools,
             controllerParam.protocols,
-            volmexOracle.address,
             owner
           ]),
           "VolmexController: Incorrect stableCoin for add protocol"
@@ -1298,38 +1291,6 @@ describe("VolmexController", function () {
         poolView.getTokensToExit(pools["ETH"].address, 0),
         "VolmexPoolView: Invalid math approximation in exit"
       );
-    });
-  });
-
-  describe("Flash loan", () => {
-    let flashLoanInstance: any;
-    this.beforeEach(async () => {
-      const flashLoanFactory = await ethers.getContractFactory("FlashLoanExample");
-      flashLoanInstance = await flashLoanFactory.deploy(pools["ETH"].address, controller.address);
-      await flashLoanInstance.deployed();
-
-      await (
-        await volatilities["ETH"].approve(controller.address, "599999999000000000000000000")
-      ).wait();
-      await (
-        await inverseVolatilities["ETH"].approve(controller.address, "599999999000000000000000000")
-      ).wait();
-
-      const add = await controller.addLiquidity(
-        "250000000000000000000000000",
-        ["599999999000000000000000000", "599999999000000000000000000"],
-        0
-      );
-      await add.wait();
-    });
-
-    it("Should flash loan", async () => {
-      await (
-        await volatilities["ETH"].transfer(flashLoanInstance.address, "90000000000000000")
-      ).wait();
-
-      const flashLoan = await flashLoanInstance.makeFlashLoan(volatilities["ETH"].address, 0);
-      const { events } = await flashLoan.wait();
     });
   });
 });
