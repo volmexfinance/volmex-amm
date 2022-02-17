@@ -45,6 +45,8 @@ interface IVolmexOracle {
         uint256 _volatilityTokenPrice,
         IVolmexProtocol _protocol,
         string calldata _volatilityTokenSymbol,
+        uint256 _leverage,
+        uint256 _baseVolatilityIndex,
         bytes32 _proofHash
     ) external;
 }
