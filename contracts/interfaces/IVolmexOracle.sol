@@ -5,20 +5,26 @@ pragma solidity =0.8.11;
 import "./IVolmexProtocol.sol";
 
 interface IVolmexOracle {
+    event SymbolIndexUpdated(uint256 indexed _index);
+    event BaseVolatilityIndexUpdated(uint256 indexed baseVolatilityIndex);
     event BatchVolatilityTokenPriceUpdated(
         uint256[] _volatilityIndexes,
         uint256[] _volatilityTokenPrices,
         bytes32[] _proofHashes
     );
-
     event VolatilityIndexAdded(
         uint256 indexed volatilityTokenIndex,
         uint256 volatilityCapRatio,
         string volatilityTokenSymbol,
         uint256 volatilityTokenPrice
     );
-
-    event SymbolIndexUpdated(uint256 indexed _index);
+    event LeverageVolatilityIndexAdded(
+        uint256 indexed volatilityTokenIndex,
+        uint256 volatilityCapRatio,
+        string volatilityTokenSymbol,
+        uint256 leverage,
+        uint256 baseVolatilityIndex
+    );
 
     // Getter  methods
     function volatilityCapRatioByIndex(uint256 _index) external view returns (uint256);
