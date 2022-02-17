@@ -30,10 +30,16 @@ interface IVolmexOracle {
     function volatilityCapRatioByIndex(uint256 _index) external view returns (uint256);
     function volatilityTokenPriceProofHash(uint256 _index) external view returns (bytes32);
     function volatilityIndexBySymbol(string calldata _tokenSymbol) external view returns (uint256);
+    function volatilityLeverageByIndex(uint256 _index) external view returns (uint256);
+    function baseVolatilityIndex(uint256 _index) external view returns (uint256);
     function indexCount() external view returns (uint256);
 
     // Setter methods
     function updateIndexBySymbol(string calldata _tokenSymbol, uint256 _index) external;
+    function updateBaseVolatilityIndex(
+        uint256 _leverageVolatilityIndex,
+        uint256 _newBaseVolatilityIndex
+    ) external;
     function getVolatilityTokenPriceByIndex(uint256 _index)
         external
         view
