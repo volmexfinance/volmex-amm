@@ -26,7 +26,9 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
     mapping(uint256 => bytes32) public volatilityTokenPriceProofHash;
     // Store the index of volatility by symbol
     mapping(string => uint256) public volatilityIndexBySymbol;
+    // Store the leverage on volatility by index
     mapping(uint256 => uint256) public volatilityLeverageByIndex;
+    // Store the base volatility index by leverage volatility index
     mapping(uint256 => uint256) public baseVolatilityIndex;
     // Store the number of indexes
     uint256 public indexCount;
