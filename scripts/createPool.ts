@@ -148,7 +148,7 @@ const createPool = async () => {
   console.log("Pools finalized!");
 
   console.log("Deploying Pool view ...");
-  const poolView = await upgrades.deployProxy(VolmexPoolView, []);
+  const poolView = await upgrades.deployProxy(VolmexPoolView, [controller.address]);
   await poolView.deployed();
   console.log("VolmexPoolView deployed", poolView.address);
 

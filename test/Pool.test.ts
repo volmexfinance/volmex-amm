@@ -19,11 +19,7 @@ describe("VolmexPool", function () {
   let volatilityFactory: any;
   let volatility: any;
   let inverseVolatility: any;
-  let controllerFactory: any;
-  let controller: any;
   let zeroAddress: any;
-  let flashLoanFactory: any;
-  let flashLoanInstance: any;
   let protocolFactoryPrecision: any;
 
   this.beforeAll(async function () {
@@ -42,10 +38,6 @@ describe("VolmexPool", function () {
     protocolFactory = await ethers.getContractFactory("VolmexProtocol");
 
     protocolFactoryPrecision = await ethers.getContractFactory("VolmexProtocolWithPrecision");
-
-    controllerFactory = await ethers.getContractFactory("VolmexController");
-
-    flashLoanFactory = await ethers.getContractFactory("FlashLoanExample");
   });
 
   this.beforeEach(async function () {
@@ -301,19 +293,13 @@ describe("VolmexPool", function () {
       expect(poolreceipt.confirmations).not.equal(0);
     });
 
-    it("should not update flashloan premium if it is greter than 1000", async () => {
-      await (await pool.updateFlashLoanPremium("1000")).wait();
-
-      expect((await pool.flashLoanPremium()).toString()).to.equal("1000");
-      await expectRevert(
-        pool.updateFlashLoanPremium("100000"),
-        "VolmexPool: _premium value not in range"
-      );
-    });
-
     it("Should update the admin fee", async () => {
       await (await pool.updateAdminFee(70)).wait();
       expect(await pool.adminFee()).to.equal(70);
+      await expectRevert(
+        pool.updateAdminFee(10001),
+        "VolmexPool: _fee should be smaller than 10000"
+      );
     });
 
     it("Should update volatility index", async () => {
@@ -805,42 +791,6 @@ describe("VolmexPool", function () {
           false
         ),
         "VolmexPool: Exposure boundary"
-      );
-    });
-  });
-
-  describe("Flash loan", () => {
-    this.beforeEach(async () => {
-      flashLoanInstance = await flashLoanFactory.deploy(pool.address, zeroAddress);
-      await flashLoanInstance.deployed();
-
-      await (await volatility.approve(pool.address, "28000000000000000000")).wait();
-      await (await inverseVolatility.approve(pool.address, "28000000000000000000")).wait();
-
-      const join = await pool.joinPool(
-        "7000000000000000000000",
-        ["28000000000000000000", "28000000000000000000"],
-        owner
-      );
-      await join.wait();
-    });
-
-    it("Should flash loan", async () => {
-      await (await volatility.transfer(flashLoanInstance.address, "90000000000000000")).wait();
-      await (await pool.setControllerWithoutCheck(flashLoanInstance.address)).wait();
-
-      const flashLoan = await flashLoanInstance.flashLoan(volatility.address);
-      const { events } = await flashLoan.wait();
-    });
-
-    it("Should revert for invalid receiver", async () => {
-      const flashLoanMock = await ethers.getContractFactory("FlashLoanMock");
-      const flashLoan = await flashLoanMock.deploy(pool.address);
-      await (await pool.setControllerWithoutCheck(flashLoan.address)).wait();
-
-      await expectRevert(
-        flashLoan.flashLoan(volatility.address),
-        "VolmexPool: Invalid flash loan executor"
       );
     });
   });
