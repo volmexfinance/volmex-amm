@@ -156,7 +156,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
             volatilityLeverageByIndex[_index] = _leverage;
             baseVolatilityIndex[_index] = _baseVolatilityIndex;
 
-            emit LeverageVolatilityIndexAdded(
+            emit LeveragedVolatilityIndexAdded(
                 _index,
                 _volatilityCapRatio,
                 _volatilityTokenSymbol,

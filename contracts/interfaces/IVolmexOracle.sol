@@ -18,7 +18,7 @@ interface IVolmexOracle {
         string volatilityTokenSymbol,
         uint256 volatilityTokenPrice
     );
-    event LeverageVolatilityIndexAdded(
+    event LeveragedVolatilityIndexAdded(
         uint256 indexed volatilityTokenIndex,
         uint256 volatilityCapRatio,
         string volatilityTokenSymbol,
