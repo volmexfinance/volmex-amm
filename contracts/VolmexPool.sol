@@ -889,27 +889,38 @@ contract VolmexPool is
         return (((_value * _value) / iBONE) * _value) / iBONE;
     }
 
+    function getLeveragedBalance(int256 _balance, int256 _leverage)
+        internal
+        pure
+        returns (int256)
+    {
+        return _balance * _leverage;
+    }
+
     function _calcExpEndFee(
         int256[3] memory _inRecord,
         int256[3] memory _outRecord,
         int256 _baseFee,
         int256 _feeAmp,
         int256 _expEnd
-    ) private pure returns (int256) {
-        int256 inBalanceLeveraged = _inRecord[0] * _inRecord[1];
+    ) internal pure returns (int256) {
+        int256 inBalanceLeveraged = getLeveragedBalance(_inRecord[0], _inRecord[1]);
         int256 tokenAmountIn1 = (inBalanceLeveraged * (_outRecord[0] - _inRecord[0])) /
-            (inBalanceLeveraged + (_outRecord[0] * _outRecord[1]));
+            (inBalanceLeveraged + getLeveragedBalance(_outRecord[0], _outRecord[1]));
 
         int256 inBalanceLeveragedChanged = inBalanceLeveraged + _inRecord[2] * iBONE;
         int256 tokenAmountIn2 = (inBalanceLeveragedChanged *
             (_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2])) /
-            (inBalanceLeveragedChanged + (_outRecord[0] * _outRecord[1]) - _outRecord[2] * iBONE);
+            (inBalanceLeveragedChanged +
+                getLeveragedBalance(_outRecord[0], _outRecord[1]) -
+                _outRecord[2] *
+                iBONE);
 
         return
             (tokenAmountIn1 *
                 _baseFee +
                 tokenAmountIn2 *
-                (_baseFee + (_feeAmp * ((_expEnd * _expEnd) / iBONE)) / 3)) /
+                (_baseFee + (_feeAmp * ((_expEnd * _expEnd) / iBONE)) / (3 * iBONE))) /
             (tokenAmountIn1 + tokenAmountIn2);
     }
 
@@ -919,7 +930,7 @@ contract VolmexPool is
         int256 _baseFee,
         int256 _feeAmp,
         int256 _maxFee
-    ) private pure returns (int256 fee, int256 expStart) {
+    ) internal pure returns (int256 fee, int256 expStart) {
         expStart = _calcExpStart(_inRecord[0], _outRecord[0]);
 
         int256 _expEnd = ((_inRecord[0] - _outRecord[0] + _inRecord[2] + _outRecord[2]) * iBONE) /
