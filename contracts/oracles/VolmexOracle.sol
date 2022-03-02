@@ -26,6 +26,10 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
     mapping(uint256 => bytes32) public volatilityTokenPriceProofHash;
     // Store the index of volatility by symbol
     mapping(string => uint256) public volatilityIndexBySymbol;
+    // Store the leverage on volatility by index
+    mapping(uint256 => uint256) public volatilityLeverageByIndex;
+    // Store the base volatility index by leverage volatility index
+    mapping(uint256 => uint256) public baseVolatilityIndex;
     // Store the number of indexes
     uint256 public indexCount;
 
@@ -103,15 +107,34 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
     }
 
     /**
+     * @notice Update the baseVolatilityIndex of leverage token
+     * @param _leverageVolatilityIndex Index of the leverage volatility token
+     * @param _newBaseVolatilityIndex Index of the base volatility token
+     */
+    function updateBaseVolatilityIndex(
+        uint256 _leverageVolatilityIndex,
+        uint256 _newBaseVolatilityIndex
+    ) external onlyOwner {
+        baseVolatilityIndex[_leverageVolatilityIndex] = _newBaseVolatilityIndex;
+
+        emit BaseVolatilityIndexUpdated(_newBaseVolatilityIndex);
+    }
+
+    /**
      * @notice Add volatility token price by index
      * @param _volatilityTokenPrice Price of the adding volatility token
+     * @param _protocol Address of the VolmexProtocol of which the price is added
      * @param _volatilityTokenSymbol Symbol of the adding volatility token
+     * @param _leverage Value of leverage on token {2X: 2, 5X: 5}
+     * @param _baseVolatilityIndex Index of the base volatility {0: ETHV, 1: BTCV}
      * @param _proofHash Bytes32 value of token price proof of hash
      */
     function addVolatilityIndex(
         uint256 _volatilityTokenPrice,
         IVolmexProtocol _protocol,
         string calldata _volatilityTokenSymbol,
+        uint256 _leverage,
+        uint256 _baseVolatilityIndex,
         bytes32 _proofHash
     ) external onlyOwner {
         require(address(_protocol) != address(0), "VolmexOracle: protocol address can't be zero");
@@ -120,23 +143,41 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
             _volatilityCapRatio >= 1000000,
             "VolmexOracle: volatility cap ratio should be greater than 1000000"
         );
-        require(
-            _volatilityTokenPrice <= _volatilityCapRatio,
-            "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
-        );
         uint256 _index = ++indexCount;
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;
-
-        _volatilityTokenPriceByIndex[_index] = _volatilityTokenPrice;
-        volatilityTokenPriceProofHash[_index] = _proofHash;
         volatilityIndexBySymbol[_volatilityTokenSymbol] = _index;
 
-        emit VolatilityIndexAdded(
-            _index,
-            _volatilityCapRatio,
-            _volatilityTokenSymbol,
-            _volatilityTokenPrice
-        );
+        if (_leverage >= 2) {
+            // This will also check the base volatilities are present
+            require(
+                volatilityCapRatioByIndex[_baseVolatilityIndex] / _leverage == _volatilityCapRatio,
+                "VolmexOracle: Invalid _baseVolatilityIndex provided"
+            );
+            volatilityLeverageByIndex[_index] = _leverage;
+            baseVolatilityIndex[_index] = _baseVolatilityIndex;
+
+            emit LeveragedVolatilityIndexAdded(
+                _index,
+                _volatilityCapRatio,
+                _volatilityTokenSymbol,
+                _leverage,
+                _baseVolatilityIndex
+            );
+        } else {
+            require(
+                _volatilityTokenPrice <= _volatilityCapRatio,
+                "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
+            );
+            _volatilityTokenPriceByIndex[_index] = _volatilityTokenPrice;
+            volatilityTokenPriceProofHash[_index] = _proofHash;
+
+            emit VolatilityIndexAdded(
+                _index,
+                _volatilityCapRatio,
+                _volatilityTokenSymbol,
+                _volatilityTokenPrice
+            );
+        }
     }
 
     /**
@@ -148,12 +189,12 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
         view
         returns (uint256 volatilityTokenPrice, uint256 iVolatilityTokenPrice)
     {
-        volatilityTokenPrice = _volatilityTokenPriceByIndex[
-            volatilityIndexBySymbol[_volatilityTokenSymbol]
-        ];
-        iVolatilityTokenPrice =
-            volatilityCapRatioByIndex[volatilityIndexBySymbol[_volatilityTokenSymbol]] -
-            volatilityTokenPrice;
+        uint256 volatilityIndex = volatilityIndexBySymbol[_volatilityTokenSymbol];
+        volatilityTokenPrice = volatilityLeverageByIndex[volatilityIndex] > 0
+            ? (_volatilityTokenPriceByIndex[baseVolatilityIndex[volatilityIndex]]) /
+                volatilityLeverageByIndex[volatilityIndex]
+            : _volatilityTokenPriceByIndex[volatilityIndex];
+        iVolatilityTokenPrice = volatilityCapRatioByIndex[volatilityIndex] - volatilityTokenPrice;
     }
 
     /**
@@ -165,7 +206,10 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
         view
         returns (uint256 volatilityTokenPrice, uint256 iVolatilityTokenPrice)
     {
-        volatilityTokenPrice = _volatilityTokenPriceByIndex[_index];
+        volatilityTokenPrice = volatilityLeverageByIndex[_index] > 0
+            ? (_volatilityTokenPriceByIndex[baseVolatilityIndex[_index]]) /
+                volatilityLeverageByIndex[_index]
+            : _volatilityTokenPriceByIndex[_index];
         iVolatilityTokenPrice = volatilityCapRatioByIndex[_index] - volatilityTokenPrice;
     }
 
