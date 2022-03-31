@@ -353,7 +353,7 @@ describe("VolmexController", function () {
             await (await protocols["BTCVDAI"].connect(swapper2).collateralize(volatilityTokens)).wait();
         });
 
-        it.only("Should swap volatility to collateral", async () => {
+        it("Should swap volatility to collateral", async () => {
             let volatilityIndexes = ["0"];
             let volatilityTokenPrices = ["140000000"];
             let proofHashes = ["0x6c00000000000000000000000000000000000000000000000000000000000000"];
@@ -432,7 +432,7 @@ describe("VolmexController", function () {
             expect(Number(changedBalance.toString())).to.equal(Number(logData[1].toString()));
         });
 
-        it.only("Should swap volatility to collateral when oracle price is 70", async () => {
+        it("Should swap volatility to collateral when oracle price is 70", async () => {
             let volatilityIndexes = ["0"];
             let volatilityTokenPrices = ["70000000"];
             let proofHashes = ["0x6c00000000000000000000000000000000000000000000000000000000000000"];

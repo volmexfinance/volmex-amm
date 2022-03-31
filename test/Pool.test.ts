@@ -792,15 +792,26 @@ describe("VolmexPool", function () {
       bytes32 = "0x6c00000000000000000000000000000000000000000000000000000000000000";
     });
     it("Exposure boundary", async () => {
+      let amountOut = await pool.getTokenAmountOut(volatility.address, "200000000000000000");
+      await (await volatility.approve(pool.address, "200000000000000000")).wait();
+      await (await pool.swapExactAmountIn(
+        volatility.address,
+        "200000000000000000",
+        inverseVolatility.address,
+        amountOut[0].toString(),
+        owner,
+        false
+      )).wait();
+
       await (
-        await volmexOracle.updateBatchVolatilityTokenPrice([0], ["125000000"], [bytes32])
+        await volmexOracle.updateBatchVolatilityTokenPrice([0], ["100000000"], [bytes32])
       ).wait();
-      const amountOut = await pool.getTokenAmountOut(volatility.address, "10000000000000000000");
-      await (await volatility.approve(pool.address, "10000000000000000000")).wait();
+      amountOut = await pool.getTokenAmountOut(volatility.address, "100000000000000000");
+      await (await volatility.approve(pool.address, "100000000000000000")).wait();
       await expectRevert(
         pool.swapExactAmountIn(
           volatility.address,
-          "10000000000000000000",
+          "100000000000000000",
           inverseVolatility.address,
           amountOut[0].toString(),
           owner,
