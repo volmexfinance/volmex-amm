@@ -769,30 +769,6 @@ describe("VolmexPool", function () {
         "VolmexPool: Amount out limit exploit"
       );
     });
-
-    xit("Should revert require boundary exposure", async () => {
-      await (await volatility.approve(pool.address, "18000000000000000000")).wait();
-      await (await inverseVolatility.approve(pool.address, "18000000000000000000")).wait();
-      const joinReceipt = await pool.joinPool(
-        "4000000000000000000000",
-        ["18000000000000000000", "18000000000000000000"],
-        owner
-      );
-      await joinReceipt.wait();
-
-      await (await volatility.approve(pool.address, "8000000000000000000")).wait();
-      await expectRevert(
-        pool.swapExactAmountIn(
-          volatility.address,
-          "8000000000000000000",
-          inverseVolatility.address,
-          "1000000000000000000",
-          owner,
-          false
-        ),
-        "VolmexPool: Exposure boundary"
-      );
-    });
   });
 
   describe("Modifers", () => {
@@ -832,47 +808,6 @@ describe("VolmexPool", function () {
         ),
         "VolmexPool: Exposure boundary"
       );
-    });
-
-    xit("Exposure boundary", async () => {
-      await (await volatility.approve(pool.address, "16000000000000000000")).wait();
-
-      let amountOut = await pool.getTokenAmountOut(volatility.address, "8000000000000000000");
-      await (
-        await pool.swapExactAmountIn(
-          volatility.address,
-          "8000000000000000000",
-          inverseVolatility.address,
-          amountOut[0].toString(),
-          owner,
-          false
-        )
-      ).wait();
-
-      amountOut = await pool.getTokenAmountOut(volatility.address, "8000000000000000000");
-      await (
-        await pool.swapExactAmountIn(
-          volatility.address,
-          "8000000000000000000",
-          inverseVolatility.address,
-          amountOut[0].toString(),
-          owner,
-          false
-        )
-      ).wait();
-
-      amountOut = await pool.getTokenAmountOut(volatility.address, "7446944723135031082");
-
-      await (
-        await pool.swapExactAmountIn(
-          volatility.address,
-          "14531453399216261402",
-          inverseVolatility.address,
-          amountOut[0].toString(),
-          owner,
-          false
-        )
-      ).wait();
     });
   });
 
