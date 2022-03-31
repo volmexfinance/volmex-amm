@@ -769,30 +769,6 @@ describe("VolmexPool", function () {
         "VolmexPool: Amount out limit exploit"
       );
     });
-
-    xit("Should revert require boundary exposure", async () => {
-      await (await volatility.approve(pool.address, "18000000000000000000")).wait();
-      await (await inverseVolatility.approve(pool.address, "18000000000000000000")).wait();
-      const joinReceipt = await pool.joinPool(
-        "4000000000000000000000",
-        ["18000000000000000000", "18000000000000000000"],
-        owner
-      );
-      await joinReceipt.wait();
-
-      await (await volatility.approve(pool.address, "8000000000000000000")).wait();
-      await expectRevert(
-        pool.swapExactAmountIn(
-          volatility.address,
-          "8000000000000000000",
-          inverseVolatility.address,
-          "1000000000000000000",
-          owner,
-          false
-        ),
-        "VolmexPool: Exposure boundary"
-      );
-    });
   });
 
   describe("Modifers", () => {
@@ -816,15 +792,26 @@ describe("VolmexPool", function () {
       bytes32 = "0x6c00000000000000000000000000000000000000000000000000000000000000";
     });
     it("Exposure boundary", async () => {
+      let amountOut = await pool.getTokenAmountOut(volatility.address, "200000000000000000");
+      await (await volatility.approve(pool.address, "200000000000000000")).wait();
+      await (await pool.swapExactAmountIn(
+        volatility.address,
+        "200000000000000000",
+        inverseVolatility.address,
+        amountOut[0].toString(),
+        owner,
+        false
+      )).wait();
+
       await (
-        await volmexOracle.updateBatchVolatilityTokenPrice([0], ["125000000"], [bytes32])
+        await volmexOracle.updateBatchVolatilityTokenPrice([0], ["100000000"], [bytes32])
       ).wait();
-      const amountOut = await pool.getTokenAmountOut(volatility.address, "10000000000000000000");
-      await (await volatility.approve(pool.address, "10000000000000000000")).wait();
+      amountOut = await pool.getTokenAmountOut(volatility.address, "100000000000000000");
+      await (await volatility.approve(pool.address, "100000000000000000")).wait();
       await expectRevert(
         pool.swapExactAmountIn(
           volatility.address,
-          "10000000000000000000",
+          "100000000000000000",
           inverseVolatility.address,
           amountOut[0].toString(),
           owner,
@@ -832,47 +819,6 @@ describe("VolmexPool", function () {
         ),
         "VolmexPool: Exposure boundary"
       );
-    });
-
-    xit("Exposure boundary", async () => {
-      await (await volatility.approve(pool.address, "16000000000000000000")).wait();
-
-      let amountOut = await pool.getTokenAmountOut(volatility.address, "8000000000000000000");
-      await (
-        await pool.swapExactAmountIn(
-          volatility.address,
-          "8000000000000000000",
-          inverseVolatility.address,
-          amountOut[0].toString(),
-          owner,
-          false
-        )
-      ).wait();
-
-      amountOut = await pool.getTokenAmountOut(volatility.address, "8000000000000000000");
-      await (
-        await pool.swapExactAmountIn(
-          volatility.address,
-          "8000000000000000000",
-          inverseVolatility.address,
-          amountOut[0].toString(),
-          owner,
-          false
-        )
-      ).wait();
-
-      amountOut = await pool.getTokenAmountOut(volatility.address, "7446944723135031082");
-
-      await (
-        await pool.swapExactAmountIn(
-          volatility.address,
-          "14531453399216261402",
-          inverseVolatility.address,
-          amountOut[0].toString(),
-          owner,
-          false
-        )
-      ).wait();
     });
   });
 
