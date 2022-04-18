@@ -7,11 +7,13 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpg
 import "../interfaces/IVolmexProtocol.sol";
 import "../interfaces/IVolmexOracle.sol";
 
+import "./TWAP.sol";
+
 /**
  * @title Volmex Oracle contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOracle {
+contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOracle, TWAP {
     // price precision constant upto 6 decimal places
     uint256 private constant _VOLATILITY_PRICE_PRECISION = 1000000;
     // Interface ID of VolmexOracle contract, hashId = 0xf9fffc9f
@@ -56,6 +58,32 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
     }
 
     /**
+     * @notice Adds a new datapoint to the datapoints storage array
+     *
+     * @param _index Datapoints volatility index id {0}
+     * @param _value Datapoint value to add {250000000}
+     */
+    function addIndexDataPoint(uint256 _index, uint256 _value) external onlyOwner {
+      _addIndexDataPoint(_index, _value);
+    }
+
+    /**
+     * @notice Get all datapoints available for a specific volatility index
+     * @param _index Datapoints volatility index id {0}
+     */
+    function getIndexDataPoints(uint256 _index) external view returns (DataPoint[] memory dp) {
+      dp = _getIndexDataPoints(_index);
+    }
+
+    /**
+     * @notice Get the TWAP value from current available datapoints
+     * @param _index Datapoints volatility index id {0}
+     */
+    function getIndexTwap(uint256 _index) external view returns (uint256 twap) {
+      twap = _getIndexTwap(_index);
+    } 
+
+    /**
      * @notice Updates the volatility token price by index
      *
      * @dev Check if volatility token price is greater than zero (0)
@@ -84,7 +112,10 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
                 _volatilityTokenPrices[i] <= volatilityCapRatioByIndex[_volatilityIndexes[i]],
                 "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
             );
-            _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _volatilityTokenPrices[i];
+
+            _addIndexDataPoint(_volatilityIndexes[i], _volatilityTokenPrices[i]);
+
+            _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _getIndexTwap(_volatilityIndexes[i]);
             volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
         }
 

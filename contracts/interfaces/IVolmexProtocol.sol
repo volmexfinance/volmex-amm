@@ -18,6 +18,7 @@ interface IVolmexProtocol {
     function volatilityCapRatio() external view returns (uint256);
     function settlementPrice() external view returns (uint256);
     function precisionRatio() external view returns (uint256);
+    
 
     //setter methods
     function toggleActive() external;

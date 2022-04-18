@@ -71,6 +71,19 @@ describe("Volmex Oracle", function () {
     assert.equal(await protocol.volatilityCapRatio(), "250");
   });
 
+  it("Should add volatility index datapoints and retrieve TWAP value", async () => {
+    const volatilityIndex = "0";
+    const volatilityTokenPrice1 = "105000000";
+    const volatilityTokenPrice2 = "115000000";
+    await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1);
+    await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2);
+
+    const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
+    assert.equal(datapoints[0].length, 2);
+    const indexTwap =  await volmexOracle.getIndexTwap(volatilityIndex);
+    assert.equal(indexTwap.toString(), "110000000");
+  });
+
   it("Should update the Batch volatility Token price", async () => {
     volatilityIndexes = ["0"];
     volatilityTokenPrices = ["105000000"];
@@ -84,6 +97,7 @@ describe("Volmex Oracle", function () {
     const event = contractReceipt.events?.find(
       (event) => event.event === "BatchVolatilityTokenPriceUpdated"
     );
+    const totalDataEndpoints = await volmexOracle.get
     expect((await contractTx.wait()).confirmations).not.equal(0);
     assert.equal(event?.args?._volatilityIndexes.length, 1);
     assert.equal(event?.args?._volatilityTokenPrices.length, 1);

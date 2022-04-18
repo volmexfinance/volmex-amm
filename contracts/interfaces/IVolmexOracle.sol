@@ -48,6 +48,7 @@ interface IVolmexOracle {
         external
         view
         returns (uint256 volatilityTokenPrice, uint256 iVolatilityTokenPrice);
+    function addIndexDataPoint(uint256 _index, uint256 _value) external;
     function updateBatchVolatilityTokenPrice(
         uint256[] memory _volatilityIndexes,
         uint256[] memory _volatilityTokenPrices,
