@@ -97,6 +97,7 @@ describe("Volmex Oracle", function () {
     const event = contractReceipt.events?.find(
       (event) => event.event === "BatchVolatilityTokenPriceUpdated"
     );
+    const totalDataEndpoints = await volmexOracle.get
     expect((await contractTx.wait()).confirmations).not.equal(0);
     assert.equal(event?.args?._volatilityIndexes.length, 1);
     assert.equal(event?.args?._volatilityTokenPrices.length, 1);

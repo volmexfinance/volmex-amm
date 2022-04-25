@@ -37,7 +37,6 @@ contract TWAP {
       } else {
         // overwrite old datapoints slots with new index data once the maximum allowed storage datapoints are reached
         if (_datapointsCursor[_index] == 0 || _datapointsCursor[_index] == _MAX_DATAPOINTS) {
-          // reset cursor
           _datapointsCursor[_index] = 0;
         }
         

@@ -64,7 +64,7 @@ contract TWAP {
      * @notice Get all datapoints available for a specific volatility index
      * @param _index Datapoints volatility index id {0}
      */
-    function _getIndexDataPoints(uint256 _index) internal view returns (DataPoint[] memory dp) {
-      dp = _datapoints[_index];
+    function _getIndexDataPoints(uint256 _index) internal view returns (DataPoint[] memory datapoints) {
+      datapoints = _datapoints[_index];
     }
 }
