@@ -84,6 +84,15 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOr
     } 
 
     /**
+     * @notice Get the TWAP value about the latest round.
+     * @param _index Datapoints volatility index id {0}
+     * @return answer is the answer for the given round
+     */     
+    function latestRoundData(uint256 _index) public view virtual override returns (uint256 answer) {
+      answer = _getIndexTwap(_index);
+    }    
+
+    /**
      * @notice Updates the volatility token price by index
      *
      * @dev Check if volatility token price is greater than zero (0)
