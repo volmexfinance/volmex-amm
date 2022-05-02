@@ -7,13 +7,13 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpg
 import "../interfaces/IVolmexProtocol.sol";
 import "../interfaces/IVolmexOracle.sol";
 
-import "./TWAP.sol";
+import "./VolmexTWAP.sol";
 
 /**
  * @title Volmex Oracle contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, IVolmexOracle, TWAP {
+contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWAP, IVolmexOracle {
     // price precision constant upto 6 decimal places
     uint256 private constant _VOLATILITY_PRICE_PRECISION = 1000000;
     // Interface ID of VolmexOracle contract, hashId = 0xf9fffc9f

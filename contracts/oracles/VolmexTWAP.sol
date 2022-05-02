@@ -6,7 +6,7 @@ pragma solidity =0.8.11;
  * @title Volmex Oracle TWAP library
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract TWAP {
+contract VolmexTWAP {
     // Max datapoints allowed to store in
     uint8 private constant _MAX_DATAPOINTS = 180;
 
