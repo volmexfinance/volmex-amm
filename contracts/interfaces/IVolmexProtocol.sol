@@ -19,7 +19,6 @@ interface IVolmexProtocol {
     function settlementPrice() external view returns (uint256);
     function precisionRatio() external view returns (uint256);
     
-
     //setter methods
     function toggleActive() external;
     function updateMinimumCollQty(uint256 _newMinimumCollQty) external;
