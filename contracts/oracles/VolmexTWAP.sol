@@ -37,18 +37,24 @@ contract VolmexTWAP {
     function _addIndexDataPoint(uint256 _index, uint256 _value) internal {
       DataPoint memory datapoint = DataPoint(_value, block.timestamp);
 
-      if (_datapoints[_index].length < _MAX_DATAPOINTS) {
+      uint256 _datapointsLen = _datapoints[_index].length;
+
+      if (_datapointsLen < _MAX_DATAPOINTS) {
         // initially populate available datapoint storage slots with index data
         _datapoints[_index].push(datapoint);
       } else {
-        // overwrite old datapoints slots with new index data once the maximum allowed storage datapoints are reached
-        if (_datapointsCursor[_index] == 0 || _datapointsCursor[_index] == _MAX_DATAPOINTS) {
-          // reset cursor
+        if (
+          // check if cursor has been initialized
+          _datapointsCursor[_index] == 0 || 
+          // check if cursor has reached the maximum allowed storage datapoints
+          _datapointsCursor[_index] == _MAX_DATAPOINTS
+        ) {
+          // initialize or reset cursor
           _datapointsCursor[_index] = 0;
         }
         
         _datapoints[_index][_datapointsCursor[_index]] = datapoint;
-        _datapointsCursor[_index] += 1;
+        _datapointsCursor[_index]++;
       }
 
       emit IndexDataPointAdded(
@@ -62,13 +68,15 @@ contract VolmexTWAP {
      * @param _index Datapoints volatility index id {0}
      */
     function _getIndexTwap(uint256 _index) internal view returns (uint256 twap) {
-      uint256 _datapointsSum = 0;
+      uint256 _datapointsSum;
 
-      for (uint256 i = 0; i < _datapoints[_index].length; i++) {
+      uint256 _datapointsLen = _datapoints[_index].length;
+
+      for (uint256 i = 0; i < _datapointsLen; i++) {
         _datapointsSum += _datapoints[_index][i].value;
       }
 
-      twap = _datapointsSum / _datapoints[_index].length;
+      twap = _datapointsSum / _datapointsLen;
     }
 
     /**
