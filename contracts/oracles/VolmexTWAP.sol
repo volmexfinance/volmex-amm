@@ -67,4 +67,6 @@ contract VolmexTWAP {
     function _getIndexDataPoints(uint256 _index) internal view returns (DataPoint[] memory datapoints) {
       datapoints = _datapoints[_index];
     }
+
+    uint256[10] private __gap;
 }
