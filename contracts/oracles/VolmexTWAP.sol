@@ -16,6 +16,12 @@ contract VolmexTWAP {
       uint256 timestamp;
     }
 
+    // Emit new event when new datapoint is added
+    event IndexDataPointAdded(
+      uint256 _index,
+      uint256 _value
+    );
+
     // Store index datapoints into DataPoint structures array [{value: 105000000, timestamp: 1512918335}, ...]
     mapping(uint256 => DataPoint[]) private _datapoints;
 
@@ -44,6 +50,11 @@ contract VolmexTWAP {
         _datapoints[_index][_datapointsCursor[_index]] = datapoint;
         _datapointsCursor[_index] += 1;
       }
+
+      emit IndexDataPointAdded(
+        _index,
+        _value
+      );
     }
 
     /**

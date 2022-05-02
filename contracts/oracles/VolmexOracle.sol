@@ -84,7 +84,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     } 
 
     /**
-     * @notice Get the TWAP value about the latest round.
+     * @notice Emulate the Chainlink Oracle interface for retrieving Volmex TWAP volatility index
      * @param _index Datapoints volatility index id {0}
      * @return answer is the answer for the given round
      */     
