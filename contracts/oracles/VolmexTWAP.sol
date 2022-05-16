@@ -18,12 +18,12 @@ contract VolmexTWAP {
 
     // Emit new event when new datapoint is added
     event IndexDataPointAdded(
-      uint256 _index,
+      uint256 indexed_index,
       uint256 _value
     );
 
     // Store index datapoints into DataPoint structures array [{value: 105000000, timestamp: 1512918335}, ...]
-    mapping(uint256 => DataPoint[]) private _datapoints;
+    mapping(uint256 => uint256[]) private _datapoints;
 
     // In order to maintain low gas fees and storage efficiency we use cursors to store datapoints
     mapping(uint256 => uint256) private _datapointsCursor;
@@ -35,25 +35,19 @@ contract VolmexTWAP {
      * @param _value Datapoint value to add {250000000}
      */
     function _addIndexDataPoint(uint256 _index, uint256 _value) internal {
-      DataPoint memory datapoint = DataPoint(_value, block.timestamp);
-
-      uint256 _datapointsLen = _datapoints[_index].length;
-
-      if (_datapointsLen < _MAX_DATAPOINTS) {
+      if ( _datapoints[_index].length < _MAX_DATAPOINTS) {
         // initially populate available datapoint storage slots with index data
-        _datapoints[_index].push(datapoint);
+        _datapoints[_index].push(_value);
       } else {
         if (
-          // check if cursor has been initialized
-          _datapointsCursor[_index] == 0 || 
           // check if cursor has reached the maximum allowed storage datapoints
           _datapointsCursor[_index] == _MAX_DATAPOINTS
         ) {
-          // initialize or reset cursor
+          // reset cursor
           _datapointsCursor[_index] = 0;
         }
         
-        _datapoints[_index][_datapointsCursor[_index]] = datapoint;
+        _datapoints[_index][_datapointsCursor[_index]] = _value;
         _datapointsCursor[_index]++;
       }
 
@@ -73,7 +67,7 @@ contract VolmexTWAP {
       uint256 _datapointsLen = _datapoints[_index].length;
 
       for (uint256 i = 0; i < _datapointsLen; i++) {
-        _datapointsSum += _datapoints[_index][i].value;
+        _datapointsSum += _datapoints[_index][i];
       }
 
       twap = _datapointsSum / _datapointsLen;
@@ -83,7 +77,7 @@ contract VolmexTWAP {
      * @notice Get all datapoints available for a specific volatility index
      * @param _index Datapoints volatility index id {0}
      */
-    function _getIndexDataPoints(uint256 _index) internal view returns (DataPoint[] memory datapoints) {
+    function _getIndexDataPoints(uint256 _index) internal view returns (uint256[] memory datapoints) {
       datapoints = _datapoints[_index];
     }
 

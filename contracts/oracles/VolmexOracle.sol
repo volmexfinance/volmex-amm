@@ -71,7 +71,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @notice Get all datapoints available for a specific volatility index
      * @param _index Datapoints volatility index id {0}
      */
-    function getIndexDataPoints(uint256 _index) external view returns (DataPoint[] memory dp) {
+    function getIndexDataPoints(uint256 _index) external view returns (uint256[] memory dp) {
       dp = _getIndexDataPoints(_index);
     }
 
