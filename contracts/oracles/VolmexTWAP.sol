@@ -22,7 +22,7 @@ contract VolmexTWAP {
       uint256 _value
     );
 
-    // Store index datapoints into multidimenstional arrays
+    // Store index datapoints into multidimensional arrays
     mapping(uint256 => uint256[]) private _datapoints;
 
     // In order to maintain low gas fees and storage efficiency we use cursors to store datapoints
