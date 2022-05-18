@@ -10,12 +10,6 @@ contract VolmexTWAP {
     // Max datapoints allowed to store in
     uint8 private constant _MAX_DATAPOINTS = 180;
 
-    // Datapoint object structure
-    struct DataPoint { 
-      uint256 value;
-      uint256 timestamp;
-    }
-
     // Emit new event when new datapoint is added
     event IndexDataPointAdded(
       uint256 indexed_index,
