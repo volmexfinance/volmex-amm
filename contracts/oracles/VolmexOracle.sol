@@ -89,7 +89,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @return answer is the answer for the given round
      */     
     function latestRoundData(uint256 _index) public view virtual override returns (uint256 answer) {
-      answer = _getIndexTwap(_index);
+      answer = _getIndexTwap(_index) * 100;
     }    
 
     /**
