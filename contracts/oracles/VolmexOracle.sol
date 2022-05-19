@@ -64,7 +64,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @param _value Datapoint value to add {250000000}
      */
     function addIndexDataPoint(uint256 _index, uint256 _value) external onlyOwner {
-      _addIndexDataPoint(_index, _value);
+        _addIndexDataPoint(_index, _value);
     }
 
     /**
@@ -72,7 +72,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @param _index Datapoints volatility index id {0}
      */
     function getIndexDataPoints(uint256 _index) external view returns (uint256[] memory dp) {
-      dp = _getIndexDataPoints(_index);
+        dp = _getIndexDataPoints(_index);
     }
 
     /**
@@ -80,17 +80,23 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @param _index Datapoints volatility index id {0}
      */
     function getIndexTwap(uint256 _index) external view returns (uint256 twap) {
-      twap = _getIndexTwap(_index);
-    } 
+        twap = _getIndexTwap(_index);
+    }
 
     /**
      * @notice Emulate the Chainlink Oracle interface for retrieving Volmex TWAP volatility index
      * @param _index Datapoints volatility index id {0}
      * @return answer is the answer for the given round
-     */     
-    function latestRoundData(uint256 _index) public view virtual override returns (uint256 answer) {
-      answer = _getIndexTwap(_index) * 100;
-    }    
+     */
+    function latestRoundData(uint256 _index)
+        public
+        view
+        virtual
+        override
+        returns (uint256 answer)
+    {
+        answer = _getIndexTwap(_index) * 100;
+    }
 
     /**
      * @notice Updates the volatility token price by index
@@ -124,7 +130,9 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
 
             _addIndexDataPoint(_volatilityIndexes[i], _volatilityTokenPrices[i]);
 
-            _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _getIndexTwap(_volatilityIndexes[i]);
+            _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _getIndexTwap(
+                _volatilityIndexes[i]
+            );
             volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
         }
 
