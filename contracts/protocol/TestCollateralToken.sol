@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/presets/ERC20PresetMinterPauser.sol"
 
 contract TestCollateralToken is ERC20PresetMinterPauser {
     uint8 private decimal;
+
     constructor(
         string memory _symbol,
         uint256 _initSupply,

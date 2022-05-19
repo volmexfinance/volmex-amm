@@ -22,3 +22,4 @@ audits/
 dump/
 .openzeppelin/unknown-31337.json
 typechain-types
+.history
