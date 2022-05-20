@@ -4,9 +4,9 @@ pragma solidity =0.8.11;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
+
 import "../interfaces/IVolmexProtocol.sol";
 import "../interfaces/IVolmexOracle.sol";
-
 import "./VolmexTWAP.sol";
 
 /**
@@ -81,21 +81,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      */
     function getIndexTwap(uint256 _index) external view returns (uint256 twap) {
         twap = _getIndexTwap(_index);
-    }
-
-    /**
-     * @notice Emulate the Chainlink Oracle interface for retrieving Volmex TWAP volatility index
-     * @param _index Datapoints volatility index id {0}
-     * @return answer is the answer for the given round
-     */
-    function latestRoundData(uint256 _index)
-        public
-        view
-        virtual
-        override
-        returns (uint256 answer)
-    {
-        answer = _getIndexTwap(_index) * 100;
     }
 
     /**
@@ -259,6 +244,21 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 volatilityLeverageByIndex[_index]
             : _volatilityTokenPriceByIndex[_index];
         iVolatilityTokenPrice = volatilityCapRatioByIndex[_index] - volatilityTokenPrice;
+    }
+
+    /**
+     * @notice Emulate the Chainlink Oracle interface for retrieving Volmex TWAP volatility index
+     * @param _index Datapoints volatility index id {0}
+     * @return answer is the answer for the given round
+     */
+    function latestRoundData(uint256 _index)
+        public
+        view
+        virtual
+        override
+        returns (uint256 answer)
+    {
+        answer = _getIndexTwap(_index) * 100;
     }
 
     uint256[10] private __gap;
