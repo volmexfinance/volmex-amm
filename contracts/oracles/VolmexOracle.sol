@@ -79,8 +79,9 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @notice Get the TWAP value from current available datapoints
      * @param _index Datapoints volatility index id {0}
      */
-    function getIndexTwap(uint256 _index) external view returns (uint256 twap) {
-        twap = _getIndexTwap(_index);
+    function getIndexTwap(uint256 _index) external view returns (uint256 primaryTwap, uint256 complementTwap) {
+        primaryTwap = _getIndexTwap(_index);
+        complementTwap = volatilityCapRatioByIndex[_index] - primaryTwap;
     }
 
     /**

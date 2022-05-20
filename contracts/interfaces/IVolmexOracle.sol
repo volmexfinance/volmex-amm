@@ -34,6 +34,7 @@ interface IVolmexOracle {
     function baseVolatilityIndex(uint256 _index) external view returns (uint256);
     function indexCount() external view returns (uint256);
     function latestRoundData(uint256 _index) external view returns (uint256);
+    function getIndexTwap(uint256 _index) external view returns (uint256 primaryTwap, uint256 complementTwap);
 
     // Setter methods
     function updateIndexBySymbol(string calldata _tokenSymbol, uint256 _index) external;
