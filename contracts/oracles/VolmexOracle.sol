@@ -193,6 +193,10 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
             );
             volatilityLeverageByIndex[_index] = _leverage;
             baseVolatilityIndex[_index] = _baseVolatilityIndex;
+            _addIndexDataPoint(
+                _index,
+                _volatilityTokenPriceByIndex[_baseVolatilityIndex] / _leverage
+            );
 
             emit LeveragedVolatilityIndexAdded(
                 _index,
@@ -208,6 +212,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
             );
             _volatilityTokenPriceByIndex[_index] = _volatilityTokenPrice;
             volatilityTokenPriceProofHash[_index] = _proofHash;
+            _addIndexDataPoint(_index, _volatilityTokenPrice);
 
             emit VolatilityIndexAdded(
                 _index,
