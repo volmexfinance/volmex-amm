@@ -227,12 +227,15 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         )
     {
         uint256 volatilityIndex = volatilityIndexBySymbol[_volatilityTokenSymbol];
-        volatilityTokenPrice = volatilityLeverageByIndex[volatilityIndex] > 0
-            ? (_volatilityTokenPriceByIndex[baseVolatilityIndex[volatilityIndex]]) /
-                volatilityLeverageByIndex[volatilityIndex]
-            : _volatilityTokenPriceByIndex[volatilityIndex];
+        if (volatilityLeverageByIndex[volatilityIndex] > 0) {
+            uint256 baseIndex = baseVolatilityIndex[volatilityIndex];
+            volatilityTokenPrice = _volatilityTokenPriceByIndex[baseIndex] / volatilityLeverageByIndex[volatilityIndex];
+            priceTimestamp = volatilityTokensPriceTimestamp[baseIndex];
+        } else {
+            volatilityTokenPrice = _volatilityTokenPriceByIndex[volatilityIndex];
+            priceTimestamp = volatilityTokensPriceTimestamp[volatilityIndex];
+        }
         iVolatilityTokenPrice = volatilityCapRatioByIndex[volatilityIndex] - volatilityTokenPrice;
-        priceTimestamp = volatilityTokensPriceTimestamp[volatilityIndex];
     }
 
     /**
@@ -248,12 +251,15 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
             uint256 priceTimestamp
         )
     {
-        volatilityTokenPrice = volatilityLeverageByIndex[_index] > 0
-            ? (_volatilityTokenPriceByIndex[baseVolatilityIndex[_index]]) /
-                volatilityLeverageByIndex[_index]
-            : _volatilityTokenPriceByIndex[_index];
+        if (volatilityLeverageByIndex[_index] > 0) {
+            uint256 baseIndex = baseVolatilityIndex[_index];
+            volatilityTokenPrice = _volatilityTokenPriceByIndex[baseIndex] / volatilityLeverageByIndex[_index];
+            priceTimestamp = volatilityTokensPriceTimestamp[baseIndex];
+        } else {
+            volatilityTokenPrice = _volatilityTokenPriceByIndex[_index];
+            priceTimestamp = volatilityTokensPriceTimestamp[_index];
+        }
         iVolatilityTokenPrice = volatilityCapRatioByIndex[_index] - volatilityTokenPrice;
-        priceTimestamp = volatilityTokensPriceTimestamp[_index];
     }
 
     /**
@@ -263,11 +269,21 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     function getIndexTwap(uint256 _index)
         external
         view
-        returns (uint256 primaryTwap, uint256 complementTwap, uint256 priceTimestamp)
+        returns (
+            uint256 volatilityTokenTwap,
+            uint256 iVolatilityTokenTwap,
+            uint256 twapTimestamp
+        )
     {
-        primaryTwap = _getIndexTwap(_index);
-        complementTwap = volatilityCapRatioByIndex[_index] - primaryTwap;
-        priceTimestamp = volatilityTokensPriceTimestamp[_index];
+        if (volatilityLeverageByIndex[_index] > 0) {
+            uint256 baseIndex = baseVolatilityIndex[_index];
+            volatilityTokenTwap = (_getIndexTwap(baseVolatilityIndex[_index])) / volatilityLeverageByIndex[_index];
+            twapTimestamp = volatilityTokensPriceTimestamp[baseIndex];
+        } else {
+            volatilityTokenTwap = _getIndexTwap(_index);
+            twapTimestamp = volatilityTokensPriceTimestamp[_index];
+        }
+        iVolatilityTokenTwap = volatilityCapRatioByIndex[_index] - volatilityTokenTwap;
     }
 
     /**
