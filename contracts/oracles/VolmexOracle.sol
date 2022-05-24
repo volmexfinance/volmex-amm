@@ -263,10 +263,11 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     function getIndexTwap(uint256 _index)
         external
         view
-        returns (uint256 primaryTwap, uint256 complementTwap)
+        returns (uint256 primaryTwap, uint256 complementTwap, uint256 priceTimestamp)
     {
         primaryTwap = _getIndexTwap(_index);
         complementTwap = volatilityCapRatioByIndex[_index] - primaryTwap;
+        priceTimestamp = volatilityTokensPriceTimestamp[_index];
     }
 
     /**
