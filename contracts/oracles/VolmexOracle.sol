@@ -275,6 +275,8 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
             uint256 twapTimestamp
         )
     {
+        // TODO Optimize it. There are multiple state reads
+        // Store the lverage for all the tokens, whether base or leveraged, and then calculate the price
         if (volatilityLeverageByIndex[_index] > 0) {
             uint256 baseIndex = baseVolatilityIndex[_index];
             volatilityTokenTwap = (_getIndexTwap(baseVolatilityIndex[_index])) / volatilityLeverageByIndex[_index];
