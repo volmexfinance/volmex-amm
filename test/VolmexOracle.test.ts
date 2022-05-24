@@ -73,23 +73,23 @@ describe("Volmex Oracle", function () {
 
   it("Should add volatility index datapoints and retrieve TWAP value", async () => {
     const volatilityIndex = "0";
-    const volatilityTokenPrice1 = "105000000";
-    const volatilityTokenPrice2 = "115000000";
+    const volatilityTokenPrice1 = "125000000";
+    const volatilityTokenPrice2 = "125000000";
     await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1);
     await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2);
 
-    assert.equal((await volmexOracle.getIndexDataPoints(volatilityIndex)).length, 2);
+    assert.equal((await volmexOracle.getIndexDataPoints(volatilityIndex)).length, 3);
 
     for (let index = 0; index < 360; index++) {
-      await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2)  
+      await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2)
     }
 
     const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
     assert.equal(datapoints.length, 180);
     const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
-    assert.equal(indexTwap.toString(), "115000000");
+    assert.equal(indexTwap[0].toString(), "125000000");
     const indexTwapRoundData = await volmexOracle.latestRoundData(volatilityIndex);
-    assert.equal(indexTwapRoundData.toString(), "11500000000");
+    assert.equal(indexTwapRoundData.toString(), "12500000000");
   });
 
   it("Should update the Batch volatility Token price", async () => {
@@ -110,8 +110,8 @@ describe("Volmex Oracle", function () {
     assert.equal(event?.args?._volatilityTokenPrices.length, 1);
     assert.equal(event?.args?._proofHashes.length, 1);
     let prices = await volmexOracle.getVolatilityTokenPriceByIndex("0");
-    assert.equal(prices[0].toString(), "105000000");
-    assert.equal(prices[1].toString(), "145000000");
+    assert.equal(prices[0].toString(), "115000000");
+    assert.equal(prices[1].toString(), "135000000");
   });
 
   it("Should not update if volatility price greater than cap ratio", async () => {
@@ -313,4 +313,83 @@ describe("Volmex Oracle", function () {
       "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
     );
   });
+
+  describe("variable volatility index data points average", () => {
+    it("Should add 1 volatility index datapoints and retrieve TWAP value", async () => {
+      const volatilityIndex = "0";
+      let volatilityTokenPrice1 = 125000000;
+
+      for (let index = 0; index < 1; index++) {
+        await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
+        volatilityTokenPrice1 += 500000;
+      }
+      const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
+      assert.equal(datapoints.length, 2);
+      const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
+      assert.equal(indexTwap[0].toString(), "125000000");
+    });
+    it("Should add 50 volatility index datapoints and retrieve TWAP value", async () => {
+      const volatilityIndex = "0";
+      let volatilityTokenPrice1 = 125000000;
+
+      for (let index = 0; index < 50; index++) {
+        await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
+        volatilityTokenPrice1 += 500000;
+      }
+      const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
+      assert.equal(datapoints.length, 51);
+      const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
+      assert.equal(indexTwap[0].toString(), "137009803");
+    });
+    it("Should add 100 volatility index datapoints and retrieve TWAP value", async () => {
+      const volatilityIndex = "0";
+      let volatilityTokenPrice1 = 125000000;
+
+      for (let index = 0; index < 100; index++) {
+        await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
+        volatilityTokenPrice1 += 500000;
+      }
+      const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
+      assert.equal(datapoints.length, 101);
+      const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
+      assert.equal(indexTwap[0].toString(), "149504950");
+    });
+    it("Should add 180 volatility index datapoints and retrieve TWAP value", async () => {
+      const volatilityIndex = "0";
+      let volatilityTokenPrice1 = 125000000;
+
+      for (let index = 0; index < 179; index++) {
+        await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
+        volatilityTokenPrice1 += 500000;
+      }
+      const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
+      assert.equal(datapoints.length, 180);
+      const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
+      assert.equal(indexTwap[0].toString(), "169252777");
+    });
+  })
+  describe("variable volatility index data points average", () => {
+    it("Should volatility index datapoints for min precision loss", async () => {
+      const volatilityIndex = "0";
+      let volatilityTokenPrice1 = 90000000;
+
+      for (let index = 0; index < 179; index++) {
+        await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
+        volatilityTokenPrice1 += 500629;
+      }
+      const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
+      assert.equal(indexTwap[0].toString(), "134502892");
+    });
+    it("Should add volatility index datapoint for max precision loss", async () => {
+      const volatilityIndex = "0";
+      let volatilityTokenPrice1 = 125300000;
+
+      for (let index = 0; index < 179; index++) {
+        await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
+        volatilityTokenPrice1 += 300000;
+      }
+      const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
+      assert.equal(indexTwap[0].toString(), "151850000");
+    });
+  })
 });
