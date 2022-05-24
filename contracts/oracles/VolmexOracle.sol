@@ -34,6 +34,8 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     mapping(uint256 => uint256) public baseVolatilityIndex;
     // Store the number of indexes
     uint256 public indexCount;
+    // Store the timestamp of volatility price update by index
+    mapping(uint256 => uint256) public volatilityTokensPriceTimestamp;
 
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
@@ -45,6 +47,9 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityCapRatioByIndex[indexCount] = 250000000;
         _addIndexDataPoint(indexCount, 125000000);
 
+        uint256 currentTimestamp = block.timestamp;
+        volatilityTokensPriceTimestamp[indexCount] = currentTimestamp;
+
         indexCount++;
 
         _volatilityTokenPriceByIndex[indexCount] = 125000000;
@@ -52,6 +57,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityIndexBySymbol["BTCV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
         _addIndexDataPoint(indexCount, 125000000);
+        volatilityTokensPriceTimestamp[indexCount] = currentTimestamp;
 
         __Ownable_init();
         __ERC165Storage_init();
@@ -67,72 +73,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      */
     function addIndexDataPoint(uint256 _index, uint256 _value) external onlyOwner {
         _addIndexDataPoint(_index, _value);
-    }
-
-    /**
-     * @notice Get all datapoints available for a specific volatility index
-     * @param _index Datapoints volatility index id {0}
-     */
-    function getIndexDataPoints(uint256 _index) external view returns (uint256[] memory dp) {
-        dp = _getIndexDataPoints(_index);
-    }
-
-    /**
-     * @notice Get the TWAP value from current available datapoints
-     * @param _index Datapoints volatility index id {0}
-     */
-    function getIndexTwap(uint256 _index)
-        external
-        view
-        returns (uint256 primaryTwap, uint256 complementTwap)
-    {
-        primaryTwap = _getIndexTwap(_index);
-        complementTwap = volatilityCapRatioByIndex[_index] - primaryTwap;
-    }
-
-    /**
-     * @notice Updates the volatility token price by index
-     *
-     * @dev Check if volatility token price is greater than zero (0)
-     * @dev Update the volatility token price corresponding to the volatility token symbol
-     * @dev Store the volatility token price corresponding to the block number
-     * @dev Update the proof of hash for the volatility token price
-     *
-     * @param _volatilityIndexes Number array of values of the volatility index. { eg. 0 }
-     * @param _volatilityTokenPrices array of prices of volatility token, between {0, 250000000}
-     * @param _proofHashes arrau of Bytes32 values of token prices proof of hash
-     *
-     * NOTE: Make sure the volatility token price are with 6 decimals, eg. 125000000
-     */
-    function updateBatchVolatilityTokenPrice(
-        uint256[] memory _volatilityIndexes,
-        uint256[] memory _volatilityTokenPrices,
-        bytes32[] memory _proofHashes
-    ) external onlyOwner {
-        require(
-            _volatilityIndexes.length == _volatilityTokenPrices.length &&
-                _volatilityIndexes.length == _proofHashes.length,
-            "VolmexOracle: length of input arrays are not equal"
-        );
-        for (uint256 i = 0; i < _volatilityIndexes.length; i++) {
-            require(
-                _volatilityTokenPrices[i] <= volatilityCapRatioByIndex[_volatilityIndexes[i]],
-                "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
-            );
-
-            _addIndexDataPoint(_volatilityIndexes[i], _volatilityTokenPrices[i]);
-
-            _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _getIndexTwap(
-                _volatilityIndexes[i]
-            );
-            volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
-        }
-
-        emit BatchVolatilityTokenPriceUpdated(
-            _volatilityIndexes,
-            _volatilityTokenPrices,
-            _proofHashes
-        );
     }
 
     /**
@@ -186,6 +126,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         uint256 _index = ++indexCount;
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;
         volatilityIndexBySymbol[_volatilityTokenSymbol] = _index;
+        volatilityTokensPriceTimestamp[_index] = block.timestamp;
 
         if (_leverage >= 2) {
             // This will also check the base volatilities are present
@@ -226,13 +167,64 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     }
 
     /**
+     * @notice Updates the volatility token price by index
+     *
+     * @dev Check if volatility token price is greater than zero (0)
+     * @dev Update the volatility token price corresponding to the volatility token symbol
+     * @dev Store the volatility token price corresponding to the block number
+     * @dev Update the proof of hash for the volatility token price
+     *
+     * @param _volatilityIndexes Number array of values of the volatility index. { eg. 0 }
+     * @param _volatilityTokenPrices array of prices of volatility token, between {0, 250000000}
+     * @param _proofHashes arrau of Bytes32 values of token prices proof of hash
+     *
+     * NOTE: Make sure the volatility token price are with 6 decimals, eg. 125000000
+     */
+    function updateBatchVolatilityTokenPrice(
+        uint256[] memory _volatilityIndexes,
+        uint256[] memory _volatilityTokenPrices,
+        bytes32[] memory _proofHashes
+    ) external onlyOwner {
+        require(
+            _volatilityIndexes.length == _volatilityTokenPrices.length &&
+                _volatilityIndexes.length == _proofHashes.length,
+            "VolmexOracle: length of input arrays are not equal"
+        );
+        uint256 currentTimestamp = block.timestamp;
+        for (uint256 i = 0; i < _volatilityIndexes.length; i++) {
+            require(
+                _volatilityTokenPrices[i] <= volatilityCapRatioByIndex[_volatilityIndexes[i]],
+                "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
+            );
+
+            _addIndexDataPoint(_volatilityIndexes[i], _volatilityTokenPrices[i]);
+
+            _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _getIndexTwap(
+                _volatilityIndexes[i]
+            );
+            volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
+            volatilityTokensPriceTimestamp[_volatilityIndexes[i]] = currentTimestamp;
+        }
+
+        emit BatchVolatilityTokenPriceUpdated(
+            _volatilityIndexes,
+            _volatilityTokenPrices,
+            _proofHashes
+        );
+    }
+
+    /**
      * @notice Get the volatility token price by symbol
      * @param _volatilityTokenSymbol Symbol of the volatility token
      */
     function getVolatilityPriceBySymbol(string calldata _volatilityTokenSymbol)
         external
         view
-        returns (uint256 volatilityTokenPrice, uint256 iVolatilityTokenPrice)
+        returns (
+            uint256 volatilityTokenPrice,
+            uint256 iVolatilityTokenPrice,
+            uint256 priceTimestamp
+        )
     {
         uint256 volatilityIndex = volatilityIndexBySymbol[_volatilityTokenSymbol];
         volatilityTokenPrice = volatilityLeverageByIndex[volatilityIndex] > 0
@@ -240,6 +232,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 volatilityLeverageByIndex[volatilityIndex]
             : _volatilityTokenPriceByIndex[volatilityIndex];
         iVolatilityTokenPrice = volatilityCapRatioByIndex[volatilityIndex] - volatilityTokenPrice;
+        priceTimestamp = volatilityTokensPriceTimestamp[volatilityIndex];
     }
 
     /**
@@ -249,13 +242,39 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     function getVolatilityTokenPriceByIndex(uint256 _index)
         external
         view
-        returns (uint256 volatilityTokenPrice, uint256 iVolatilityTokenPrice)
+        returns (
+            uint256 volatilityTokenPrice,
+            uint256 iVolatilityTokenPrice,
+            uint256 priceTimestamp
+        )
     {
         volatilityTokenPrice = volatilityLeverageByIndex[_index] > 0
             ? (_volatilityTokenPriceByIndex[baseVolatilityIndex[_index]]) /
                 volatilityLeverageByIndex[_index]
             : _volatilityTokenPriceByIndex[_index];
         iVolatilityTokenPrice = volatilityCapRatioByIndex[_index] - volatilityTokenPrice;
+        priceTimestamp = volatilityTokensPriceTimestamp[_index];
+    }
+
+    /**
+     * @notice Get the TWAP value from current available datapoints
+     * @param _index Datapoints volatility index id {0}
+     */
+    function getIndexTwap(uint256 _index)
+        external
+        view
+        returns (uint256 primaryTwap, uint256 complementTwap)
+    {
+        primaryTwap = _getIndexTwap(_index);
+        complementTwap = volatilityCapRatioByIndex[_index] - primaryTwap;
+    }
+
+    /**
+     * @notice Get all datapoints available for a specific volatility index
+     * @param _index Datapoints volatility index id {0}
+     */
+    function getIndexDataPoints(uint256 _index) external view returns (uint256[] memory dp) {
+        dp = _getIndexDataPoints(_index);
     }
 
     /**
@@ -272,6 +291,4 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     {
         answer = _getIndexTwap(_index) * 100;
     }
-
-    uint256[10] private __gap;
 }
