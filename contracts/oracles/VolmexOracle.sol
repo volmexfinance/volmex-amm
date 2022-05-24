@@ -4,9 +4,9 @@ pragma solidity =0.8.11;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol";
+
 import "../interfaces/IVolmexProtocol.sol";
 import "../interfaces/IVolmexOracle.sol";
-
 import "./VolmexTWAP.sol";
 
 /**
@@ -43,6 +43,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityTokenPriceProofHash[indexCount] = ""; // Add proof of hash bytes32 value
         volatilityIndexBySymbol["ETHV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
+        _addIndexDataPoint(indexCount, 125000000);
 
         indexCount++;
 
@@ -50,6 +51,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityTokenPriceProofHash[indexCount] = ""; // Add proof of hash bytes32 value
         volatilityIndexBySymbol["BTCV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
+        _addIndexDataPoint(indexCount, 125000000);
 
         __Ownable_init();
         __ERC165Storage_init();
@@ -79,23 +81,13 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @notice Get the TWAP value from current available datapoints
      * @param _index Datapoints volatility index id {0}
      */
-    function getIndexTwap(uint256 _index) external view returns (uint256 twap) {
-        twap = _getIndexTwap(_index);
-    }
-
-    /**
-     * @notice Emulate the Chainlink Oracle interface for retrieving Volmex TWAP volatility index
-     * @param _index Datapoints volatility index id {0}
-     * @return answer is the answer for the given round
-     */
-    function latestRoundData(uint256 _index)
-        public
+    function getIndexTwap(uint256 _index)
+        external
         view
-        virtual
-        override
-        returns (uint256 answer)
+        returns (uint256 primaryTwap, uint256 complementTwap)
     {
-        answer = _getIndexTwap(_index) * 100;
+        primaryTwap = _getIndexTwap(_index);
+        complementTwap = volatilityCapRatioByIndex[_index] - primaryTwap;
     }
 
     /**
@@ -203,6 +195,10 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
             );
             volatilityLeverageByIndex[_index] = _leverage;
             baseVolatilityIndex[_index] = _baseVolatilityIndex;
+            _addIndexDataPoint(
+                _index,
+                _volatilityTokenPriceByIndex[_baseVolatilityIndex] / _leverage
+            );
 
             emit LeveragedVolatilityIndexAdded(
                 _index,
@@ -218,6 +214,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
             );
             _volatilityTokenPriceByIndex[_index] = _volatilityTokenPrice;
             volatilityTokenPriceProofHash[_index] = _proofHash;
+            _addIndexDataPoint(_index, _volatilityTokenPrice);
 
             emit VolatilityIndexAdded(
                 _index,
@@ -259,6 +256,21 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 volatilityLeverageByIndex[_index]
             : _volatilityTokenPriceByIndex[_index];
         iVolatilityTokenPrice = volatilityCapRatioByIndex[_index] - volatilityTokenPrice;
+    }
+
+    /**
+     * @notice Emulate the Chainlink Oracle interface for retrieving Volmex TWAP volatility index
+     * @param _index Datapoints volatility index id {0}
+     * @return answer is the answer for the given round
+     */
+    function latestRoundData(uint256 _index)
+        external
+        view
+        virtual
+        override
+        returns (uint256 answer)
+    {
+        answer = _getIndexTwap(_index) * 100;
     }
 
     uint256[10] private __gap;
