@@ -78,7 +78,7 @@ describe("Volmex Oracle", function () {
     await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1);
     await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2);
 
-    assert.equal((await volmexOracle.getIndexDataPoints(volatilityIndex)).length, 2);
+    assert.equal((await volmexOracle.getIndexDataPoints(volatilityIndex)).length, 3);
 
     for (let index = 0; index < 360; index++) {
       await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2)  
@@ -87,7 +87,7 @@ describe("Volmex Oracle", function () {
     const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
     assert.equal(datapoints.length, 180);
     const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
-    assert.equal(indexTwap.toString(), "115000000");
+    assert.equal(indexTwap[0].toString(), "115000000");
     const indexTwapRoundData = await volmexOracle.latestRoundData(volatilityIndex);
     assert.equal(indexTwapRoundData.toString(), "11500000000");
   });
@@ -110,8 +110,8 @@ describe("Volmex Oracle", function () {
     assert.equal(event?.args?._volatilityTokenPrices.length, 1);
     assert.equal(event?.args?._proofHashes.length, 1);
     let prices = await volmexOracle.getVolatilityTokenPriceByIndex("0");
-    assert.equal(prices[0].toString(), "105000000");
-    assert.equal(prices[1].toString(), "145000000");
+    assert.equal(prices[0].toString(), "115000000");
+    assert.equal(prices[1].toString(), "135000000");
   });
 
   it("Should not update if volatility price greater than cap ratio", async () => {
