@@ -44,14 +44,12 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         _updateVolatilityMeta(indexCount, 125000000, "");
         volatilityIndexBySymbol["ETHV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
-        _addIndexDataPoint(indexCount, 125000000);
 
         indexCount++;
 
         _updateVolatilityMeta(indexCount, 125000000, "");
         volatilityIndexBySymbol["BTCV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
-        _addIndexDataPoint(indexCount, 125000000);
 
         __Ownable_init();
         __ERC165Storage_init();
@@ -147,7 +145,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
             );
             _updateVolatilityMeta(_index, _volatilityTokenPrice, _proofHash);
-            _addIndexDataPoint(_index, _volatilityTokenPrice);
 
             emit VolatilityIndexAdded(
                 _index,
@@ -188,11 +185,9 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
             );
 
-            _addIndexDataPoint(_volatilityIndexes[i], _volatilityTokenPrices[i]);
-
             _updateVolatilityMeta(
                 _volatilityIndexes[i],
-                _getIndexTwap(_volatilityIndexes[i]),
+                _volatilityTokenPrices[i],
                 _proofHashes[i]
             );
         }
@@ -312,7 +307,8 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         uint256 _volatilityTokenPrice,
         bytes32 _proofHash
     ) private {
-        _volatilityTokenPriceByIndex[_index] = _volatilityTokenPrice;
+        _addIndexDataPoint(_index, _volatilityTokenPrice);
+        _volatilityTokenPriceByIndex[_index] = _getIndexTwap(_index);
         volatilityLastUpdateTimestamp[_index] = block.timestamp;
         volatilityTokenPriceProofHash[_index] = _proofHash;
     }
