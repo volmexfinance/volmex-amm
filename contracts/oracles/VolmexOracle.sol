@@ -35,7 +35,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     // Store the number of indexes
     uint256 public indexCount;
     // Store the timestamp of volatility price update by index
-    mapping(uint256 => uint256) public volatilityTokensPriceTimestamp;
+    mapping(uint256 => uint256) public volatilityLastUpdateTimestamp;
 
     /**
      * @notice Initializes the contract setting the deployer as the initial owner.
@@ -47,8 +47,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityCapRatioByIndex[indexCount] = 250000000;
         _addIndexDataPoint(indexCount, 125000000);
 
-        uint256 currentTimestamp = block.timestamp;
-        volatilityTokensPriceTimestamp[indexCount] = currentTimestamp;
+        volatilityLastUpdateTimestamp[indexCount] = block.timestamp;
 
         indexCount++;
 
@@ -57,7 +56,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityIndexBySymbol["BTCV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
         _addIndexDataPoint(indexCount, 125000000);
-        volatilityTokensPriceTimestamp[indexCount] = currentTimestamp;
+        volatilityLastUpdateTimestamp[indexCount] = block.timestamp;
 
         __Ownable_init();
         __ERC165Storage_init();
@@ -126,7 +125,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         uint256 _index = ++indexCount;
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;
         volatilityIndexBySymbol[_volatilityTokenSymbol] = _index;
-        volatilityTokensPriceTimestamp[_index] = block.timestamp;
+        volatilityLastUpdateTimestamp[_index] = block.timestamp;
 
         if (_leverage >= 2) {
             // This will also check the base volatilities are present
@@ -190,7 +189,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 _volatilityIndexes.length == _proofHashes.length,
             "VolmexOracle: length of input arrays are not equal"
         );
-        uint256 currentTimestamp = block.timestamp;
         for (uint256 i = 0; i < _volatilityIndexes.length; i++) {
             require(
                 _volatilityTokenPrices[i] <= volatilityCapRatioByIndex[_volatilityIndexes[i]],
@@ -203,7 +201,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 _volatilityIndexes[i]
             );
             volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
-            volatilityTokensPriceTimestamp[_volatilityIndexes[i]] = currentTimestamp;
+            volatilityLastUpdateTimestamp[_volatilityIndexes[i]] = block.timestamp;
         }
 
         emit BatchVolatilityTokenPriceUpdated(
@@ -223,17 +221,19 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         returns (
             uint256 volatilityTokenPrice,
             uint256 iVolatilityTokenPrice,
-            uint256 priceTimestamp
+            uint256 lastUpdateTimestamp
         )
     {
         uint256 volatilityIndex = volatilityIndexBySymbol[_volatilityTokenSymbol];
         if (volatilityLeverageByIndex[volatilityIndex] > 0) {
             uint256 baseIndex = baseVolatilityIndex[volatilityIndex];
-            volatilityTokenPrice = _volatilityTokenPriceByIndex[baseIndex] / volatilityLeverageByIndex[volatilityIndex];
-            priceTimestamp = volatilityTokensPriceTimestamp[baseIndex];
+            volatilityTokenPrice =
+                _volatilityTokenPriceByIndex[baseIndex] /
+                volatilityLeverageByIndex[volatilityIndex];
+            lastUpdateTimestamp = volatilityLastUpdateTimestamp[baseIndex];
         } else {
             volatilityTokenPrice = _volatilityTokenPriceByIndex[volatilityIndex];
-            priceTimestamp = volatilityTokensPriceTimestamp[volatilityIndex];
+            lastUpdateTimestamp = volatilityLastUpdateTimestamp[volatilityIndex];
         }
         iVolatilityTokenPrice = volatilityCapRatioByIndex[volatilityIndex] - volatilityTokenPrice;
     }
@@ -248,16 +248,18 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         returns (
             uint256 volatilityTokenPrice,
             uint256 iVolatilityTokenPrice,
-            uint256 priceTimestamp
+            uint256 lastUpdateTimestamp
         )
     {
         if (volatilityLeverageByIndex[_index] > 0) {
             uint256 baseIndex = baseVolatilityIndex[_index];
-            volatilityTokenPrice = _volatilityTokenPriceByIndex[baseIndex] / volatilityLeverageByIndex[_index];
-            priceTimestamp = volatilityTokensPriceTimestamp[baseIndex];
+            volatilityTokenPrice =
+                _volatilityTokenPriceByIndex[baseIndex] /
+                volatilityLeverageByIndex[_index];
+            lastUpdateTimestamp = volatilityLastUpdateTimestamp[baseIndex];
         } else {
             volatilityTokenPrice = _volatilityTokenPriceByIndex[_index];
-            priceTimestamp = volatilityTokensPriceTimestamp[_index];
+            lastUpdateTimestamp = volatilityLastUpdateTimestamp[_index];
         }
         iVolatilityTokenPrice = volatilityCapRatioByIndex[_index] - volatilityTokenPrice;
     }
@@ -272,16 +274,16 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         returns (
             uint256 volatilityTokenTwap,
             uint256 iVolatilityTokenTwap,
-            uint256 twapTimestamp
+            uint256 lastUpdateTimestamp
         )
     {
         if (volatilityLeverageByIndex[_index] > 0) {
             uint256 baseIndex = baseVolatilityIndex[_index];
             volatilityTokenTwap = (_getIndexTwap(baseIndex)) / volatilityLeverageByIndex[_index];
-            twapTimestamp = volatilityTokensPriceTimestamp[baseIndex];
+            lastUpdateTimestamp = volatilityLastUpdateTimestamp[baseIndex];
         } else {
             volatilityTokenTwap = _getIndexTwap(_index);
-            twapTimestamp = volatilityTokensPriceTimestamp[_index];
+            lastUpdateTimestamp = volatilityLastUpdateTimestamp[_index];
         }
         iVolatilityTokenTwap = volatilityCapRatioByIndex[_index] - volatilityTokenTwap;
     }
@@ -304,8 +306,11 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         view
         virtual
         override
-        returns (uint256 answer)
+        returns (uint256 answer, uint256 lastUpdateTimestamp)
     {
         answer = _getIndexTwap(_index) * 100;
+        lastUpdateTimestamp = volatilityLeverageByIndex[_index] > 0
+            ? volatilityLastUpdateTimestamp[baseVolatilityIndex[_index]]
+            : volatilityLastUpdateTimestamp[_index];
     }
 }
