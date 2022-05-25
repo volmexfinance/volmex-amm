@@ -41,7 +41,7 @@ interface IVolmexOracle {
         returns (
             uint256 volatilityTokenTwap,
             uint256 iVolatilityTokenTwap,
-            uint256 twapTimestamp
+            uint256 lastUpdateTimestamp
         );
     function getVolatilityTokenPriceByIndex(uint256 _index)
         external
@@ -49,7 +49,7 @@ interface IVolmexOracle {
         returns (
             uint256 volatilityTokenPrice,
             uint256 iVolatilityTokenPrice,
-            uint256 priceTimestamp
+            uint256 lastUpdateTimestamp
         );
     function getVolatilityPriceBySymbol(string calldata _volatilityTokenSymbol)
         external
@@ -57,7 +57,7 @@ interface IVolmexOracle {
         returns (
             uint256 volatilityTokenPrice,
             uint256 iVolatilityTokenPrice,
-            uint256 priceTimestamp
+            uint256 lastUpdateTimestamp
         );
 
     // Setter methods
