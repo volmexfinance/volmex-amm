@@ -1365,7 +1365,7 @@ describe("VolmexController", function () {
       await poolView.getTokensToExit(pools["ETH"].address, "250000000000000000000000000");
       await controller.removeLiquidity("250000000000000000000000000", ["999999999999999999999999", "999999999999999999999999"], "0");
     });
-    it.only("get swap prices before and after increasing block by 100", async () => {
+    it("get swap prices before and after increasing block by 100", async () => {
       const poolAmountOut = "625000000000000000000000";
       const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
 
@@ -1433,7 +1433,7 @@ describe("VolmexController", function () {
         );
       await swap.wait();
     })
-    it.only("swap 1 ETHV from the pool of 2500 Tokens", async () => {
+    it("swap 1 ETHV from the pool of 2500 Tokens", async () => {
       const poolAmountOut = "625000000000000000000000";
       const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
 
@@ -1479,7 +1479,7 @@ describe("VolmexController", function () {
 
       expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
     })
-    it.only("swap 10 ETHV from the pool of 2500 Tokens", async () => {
+    it("swap 10 ETHV from the pool of 2500 Tokens", async () => {
       const poolAmountOut = "625000000000000000000000";
       const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
 
@@ -1525,7 +1525,7 @@ describe("VolmexController", function () {
 
       expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
     })
-    it.only("swap 100 ETHV from the pool of 2500 Tokens", async () => {
+    it("swap 100 ETHV from the pool of 2500 Tokens", async () => {
       const poolAmountOut = "625000000000000000000000";
       const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
 
@@ -1571,7 +1571,7 @@ describe("VolmexController", function () {
 
       expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
     })
-    it.only("swap Max ETHV from the pool of 2500 Tokens", async () => {
+    it("swap Max ETHV from the pool of 2500 Tokens", async () => {
       const poolAmountOut = "625000000000000000000000";
       const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
 
