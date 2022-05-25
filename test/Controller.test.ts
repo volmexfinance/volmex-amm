@@ -1293,6 +1293,331 @@ describe("VolmexController", function () {
       );
     });
   });
+  describe("Stale oracle price", () => {
+    this.beforeEach(async () => {
+      const collateralTokens = "100000000000000000000000000000000";
+      const volatilityTokens = "100000000000000000000000000";
+
+      let lp = await lpHolder.getAddress();
+      let swap1 = await swapper1.getAddress();
+      let swap2 = await swapper2.getAddress();
+
+      await (await collateral["DAI"].mint(lp, collateralTokens)).wait();
+      await (
+        await collateral["DAI"]
+          .connect(lpHolder)
+          .approve(protocols["ETHVDAI"].address, volatilityTokens)
+      ).wait();
+      await (
+        await collateral["DAI"]
+          .connect(lpHolder)
+          .approve(protocols["BTCVDAI"].address, volatilityTokens)
+      ).wait();
+      await (await protocols["ETHVDAI"].connect(lpHolder).collateralize(volatilityTokens)).wait();
+      await (await protocols["BTCVDAI"].connect(lpHolder).collateralize(volatilityTokens)).wait();
+
+      await (await collateral["DAI"].mint(swap1, collateralTokens)).wait();
+      await (
+        await collateral["DAI"]
+          .connect(swapper1)
+          .approve(protocols["ETHVDAI"].address, volatilityTokens)
+      ).wait();
+      await (
+        await collateral["DAI"]
+          .connect(swapper1)
+          .approve(protocols["BTCVDAI"].address, volatilityTokens)
+      ).wait();
+      await (await protocols["ETHVDAI"].connect(swapper1).collateralize(volatilityTokens)).wait();
+      await (await protocols["BTCVDAI"].connect(swapper1).collateralize(volatilityTokens)).wait();
+
+      await (await collateral["DAI"].mint(swap2, collateralTokens)).wait();
+      await (
+        await collateral["DAI"]
+          .connect(swapper2)
+          .approve(protocols["ETHVDAI"].address, volatilityTokens)
+      ).wait();
+      await (
+        await collateral["DAI"]
+          .connect(swapper2)
+          .approve(protocols["BTCVDAI"].address, volatilityTokens)
+      ).wait();
+      await (await protocols["ETHVDAI"].connect(swapper2).collateralize(volatilityTokens)).wait();
+      await (await protocols["BTCVDAI"].connect(swapper2).collateralize(volatilityTokens)).wait();
+      const volatilityIndex = "0";
+      let volatilityTokenPrice1 = 125000000;
+
+      for (let index = 0; index < 179; index++) {
+        await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
+        volatilityTokenPrice1 += 500000;
+      }
+      const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
+      assert.equal(datapoints.length, 180);
+      const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
+      await (
+        await volatilities["ETH"].approve(controller.address, "999999999999999999999999")
+      ).wait();
+      await (
+        await inverseVolatilities["ETH"].approve(
+          controller.address,
+          "999999999999999999999999"
+        )
+      ).wait();
+      await poolView.getTokensToExit(pools["ETH"].address, "250000000000000000000000000");
+      await controller.removeLiquidity("250000000000000000000000000", ["999999999999999999999999", "999999999999999999999999"], "0");
+    });
+    it.only("get swap prices before and after increasing block by 100", async () => {
+      const poolAmountOut = "625000000000000000000000";
+      const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
+
+      await (
+        await volatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      await (
+        await inverseVolatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      const add = await controller
+        .addLiquidity(poolAmountOut, [amountsIn[0].toString(), amountsIn[0].toString()], "0");
+      await add.wait();
+      const poolInfo = await poolView.getPoolTokenData(pools["ETH"].address);
+      const latest = await time.latestBlock();
+      let swap2 = await swapper2.getAddress();
+      const amountOut = await pools["ETH"]
+        .connect(swapper2)
+        .getTokenAmountOut(volatilities["ETH"].address, "1000000000000000000");
+      await (
+        await volatilities["ETH"]
+          .connect(swapper2)
+          .approve(controller.address, "1000000000000000000")
+      ).wait();
+
+      const balanceBefore = await inverseVolatilities["ETH"].balanceOf(swap2);
+      const swap = await controller
+        .connect(swapper2)
+        .swap(
+          0,
+          volatilities["ETH"].address,
+          "1000000000000000000",
+          inverseVolatilities["ETH"].address,
+          amountOut[0].toString()
+        );
+      await swap.wait();
+
+      const balanceAfter = await inverseVolatilities["ETH"].balanceOf(swap2);
+
+      const changedBalance = balanceAfter.sub(balanceBefore);
+
+      expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
+
+      await time.advanceBlockTo(parseInt(latest) + 100);
+      const amountOut2 = await pools["ETH"]
+        .connect(swapper2)
+        .getTokenAmountOut(volatilities["ETH"].address, "1000000000000000000");
+      await (
+        await volatilities["ETH"]
+          .connect(swapper2)
+          .approve(controller.address, "1000000000000000000")
+      ).wait();
+
+      const swap = await controller
+        .connect(swapper2)
+        .swap(
+          0,
+          volatilities["ETH"].address,
+          "1000000000000000000",
+          inverseVolatilities["ETH"].address,
+          amountOut2[0].toString()
+        );
+      await swap.wait();
+    })
+    it.only("swap 1 ETHV from the pool of 2500 Tokens", async () => {
+      const poolAmountOut = "625000000000000000000000";
+      const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
+
+      await (
+        await volatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      await (
+        await inverseVolatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      const add = await controller
+        .addLiquidity(poolAmountOut, [amountsIn[0].toString(), amountsIn[0].toString()], "0");
+      await add.wait();
+      const poolInfo = await poolView.getPoolTokenData(pools["ETH"].address);
+      let swap2 = await swapper2.getAddress();
+      const amountOut = await pools["ETH"]
+        .connect(swapper2)
+        .getTokenAmountOut(volatilities["ETH"].address, "1000000000000000000");
+      await (
+        await volatilities["ETH"]
+          .connect(swapper2)
+          .approve(controller.address, "1000000000000000000")
+      ).wait();
+
+      const balanceBefore = await inverseVolatilities["ETH"].balanceOf(swap2);
+      const swap = await controller
+        .connect(swapper2)
+        .swap(
+          0,
+          volatilities["ETH"].address,
+          "1000000000000000000",
+          inverseVolatilities["ETH"].address,
+          amountOut[0].toString()
+        );
+      await swap.wait();
+
+      const balanceAfter = await inverseVolatilities["ETH"].balanceOf(swap2);
+
+      const changedBalance = balanceAfter.sub(balanceBefore);
+
+      expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
+    })
+    it.only("swap 10 ETHV from the pool of 2500 Tokens", async () => {
+      const poolAmountOut = "625000000000000000000000";
+      const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
+
+      await (
+        await volatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      await (
+        await inverseVolatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      const add = await controller
+        .addLiquidity(poolAmountOut, [amountsIn[0].toString(), amountsIn[0].toString()], "0");
+      await add.wait();
+      const poolInfo = await poolView.getPoolTokenData(pools["ETH"].address);
+      let swap2 = await swapper2.getAddress();
+      const amountOut = await pools["ETH"]
+        .connect(swapper2)
+        .getTokenAmountOut(volatilities["ETH"].address, "10000000000000000000");
+      await (
+        await volatilities["ETH"]
+          .connect(swapper2)
+          .approve(controller.address, "10000000000000000000")
+      ).wait();
+
+      const balanceBefore = await inverseVolatilities["ETH"].balanceOf(swap2);
+      const swap = await controller
+        .connect(swapper2)
+        .swap(
+          0,
+          volatilities["ETH"].address,
+          "10000000000000000000",
+          inverseVolatilities["ETH"].address,
+          amountOut[0].toString()
+        );
+      await swap.wait();
+
+      const balanceAfter = await inverseVolatilities["ETH"].balanceOf(swap2);
+
+      const changedBalance = balanceAfter.sub(balanceBefore);
+
+      expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
+    })
+    it.only("swap 100 ETHV from the pool of 2500 Tokens", async () => {
+      const poolAmountOut = "625000000000000000000000";
+      const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
+
+      await (
+        await volatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      await (
+        await inverseVolatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      const add = await controller
+        .addLiquidity(poolAmountOut, [amountsIn[0].toString(), amountsIn[0].toString()], "0");
+      await add.wait();
+      const poolInfo = await poolView.getPoolTokenData(pools["ETH"].address);
+      let swap2 = await swapper2.getAddress();
+      const amountOut = await pools["ETH"]
+        .connect(swapper2)
+        .getTokenAmountOut(volatilities["ETH"].address, "100000000000000000000");
+      await (
+        await volatilities["ETH"]
+          .connect(swapper2)
+          .approve(controller.address, "100000000000000000000")
+      ).wait();
+
+      const balanceBefore = await inverseVolatilities["ETH"].balanceOf(swap2);
+      const swap = await controller
+        .connect(swapper2)
+        .swap(
+          0,
+          volatilities["ETH"].address,
+          "100000000000000000000",
+          inverseVolatilities["ETH"].address,
+          amountOut[0].toString()
+        );
+      await swap.wait();
+
+      const balanceAfter = await inverseVolatilities["ETH"].balanceOf(swap2);
+
+      const changedBalance = balanceAfter.sub(balanceBefore);
+
+      expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
+    })
+    it.only("swap Max ETHV from the pool of 2500 Tokens", async () => {
+      const poolAmountOut = "625000000000000000000000";
+      const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
+
+      await (
+        await volatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      await (
+        await inverseVolatilities["ETH"]
+          .connect(lpHolder)
+          .approve(controller.address, amountsIn[0].toString())
+      ).wait();
+      const add = await controller
+        .addLiquidity(poolAmountOut, [amountsIn[0].toString(), amountsIn[0].toString()], "0");
+      await add.wait();
+      const poolInfo = await poolView.getPoolTokenData(pools["ETH"].address);
+      let swap2 = await swapper2.getAddress();
+      const amountOut = await pools["ETH"]
+        .connect(swapper2)
+        .getTokenAmountOut(volatilities["ETH"].address, "448000000000000000000");
+      await (
+        await volatilities["ETH"]
+          .connect(swapper2)
+          .approve(controller.address, "448000000000000000000")
+      ).wait();
+
+      const balanceBefore = await inverseVolatilities["ETH"].balanceOf(swap2);
+      const swap = await controller
+        .connect(swapper2)
+        .swap(
+          0,
+          volatilities["ETH"].address,
+          "448000000000000000000",
+          inverseVolatilities["ETH"].address,
+          amountOut[0].toString()
+        );
+      await swap.wait();
+
+      const balanceAfter = await inverseVolatilities["ETH"].balanceOf(swap2);
+
+      const changedBalance = balanceAfter.sub(balanceBefore);
+
+      expect(Number(changedBalance.toString())).to.equal(Number(amountOut[0].toString()));
+    })
+  })
 });
 
 const getEventLog = (events: any[], eventName: string, params: string[]): any => {
