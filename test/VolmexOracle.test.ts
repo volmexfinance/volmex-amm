@@ -178,7 +178,7 @@ describe("Volmex Oracle", function () {
     assert.equal(price1[1].toString(), "125000000");
   });
 
-  it("should add volatility index if leverage is greater than 2", async () => {
+  it("should add volatility index if leverage is greater than 1", async () => {
     protocol = await upgrades.deployProxy(protocolFactory, [
       `${collateral.address}`,
       `${volatility.address}`,
@@ -202,6 +202,13 @@ describe("Volmex Oracle", function () {
     assert.equal(event?.args?.volatilityTokenSymbol, "ETHV2X");
     assert.equal(event?.args?.leverage, 2);
     assert.equal(event?.args?.baseVolatilityIndex, 0);
+
+    let receipt = await volmexOracle.getVolatilityPriceBySymbol("ETHV2X");
+    assert.equal(receipt[0].toString(), "62500000");
+    receipt = await volmexOracle.getVolatilityTokenPriceByIndex(2);
+    assert.equal(receipt[0].toString(), "62500000");
+    receipt = await volmexOracle.getIndexTwap(2);
+    assert.equal(receipt[0].toString(), "62500000");
   });
 
   it("update base volatility ", async () => {
