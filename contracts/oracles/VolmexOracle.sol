@@ -47,8 +47,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityCapRatioByIndex[indexCount] = 250000000;
         _addIndexDataPoint(indexCount, 125000000);
 
-        uint256 currentTimestamp = block.timestamp;
-        volatilityLastUpdateTimestamp[indexCount] = currentTimestamp;
+        volatilityLastUpdateTimestamp[indexCount] = block.timestamp;
 
         indexCount++;
 
@@ -57,7 +56,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityIndexBySymbol["BTCV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
         _addIndexDataPoint(indexCount, 125000000);
-        volatilityLastUpdateTimestamp[indexCount] = currentTimestamp;
+        volatilityLastUpdateTimestamp[indexCount] = block.timestamp;
 
         __Ownable_init();
         __ERC165Storage_init();
@@ -190,7 +189,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 _volatilityIndexes.length == _proofHashes.length,
             "VolmexOracle: length of input arrays are not equal"
         );
-        uint256 currentTimestamp = block.timestamp;
         for (uint256 i = 0; i < _volatilityIndexes.length; i++) {
             require(
                 _volatilityTokenPrices[i] <= volatilityCapRatioByIndex[_volatilityIndexes[i]],
@@ -203,7 +201,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 _volatilityIndexes[i]
             );
             volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
-            volatilityLastUpdateTimestamp[_volatilityIndexes[i]] = currentTimestamp;
+            volatilityLastUpdateTimestamp[_volatilityIndexes[i]] = block.timestamp;
         }
 
         emit BatchVolatilityTokenPriceUpdated(
