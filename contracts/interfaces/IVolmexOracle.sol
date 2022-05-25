@@ -34,7 +34,15 @@ interface IVolmexOracle {
     function baseVolatilityIndex(uint256 _index) external view returns (uint256);
     function indexCount() external view returns (uint256);
     function latestRoundData(uint256 _index) external view returns (uint256);
-    function getIndexTwap(uint256 _index) external view returns (uint256 primaryTwap, uint256 complementTwap);
+    function getIndexTwap(uint256 _index) external view returns (uint256, uint256, uint256);
+    function getVolatilityTokenPriceByIndex(uint256 _index)
+        external
+        view
+        returns (uint256, uint256, uint256);
+    function getVolatilityPriceBySymbol(string calldata _volatilityTokenSymbol)
+        external
+        view
+        returns (uint256, uint256, uint256);
 
     // Setter methods
     function updateIndexBySymbol(string calldata _tokenSymbol, uint256 _index) external;
@@ -42,14 +50,6 @@ interface IVolmexOracle {
         uint256 _leverageVolatilityIndex,
         uint256 _newBaseVolatilityIndex
     ) external;
-    function getVolatilityTokenPriceByIndex(uint256 _index)
-        external
-        view
-        returns (uint256, uint256);
-    function getVolatilityPriceBySymbol(string calldata _volatilityTokenSymbol)
-        external
-        view
-        returns (uint256 volatilityTokenPrice, uint256 iVolatilityTokenPrice);
     function addIndexDataPoint(uint256 _index, uint256 _value) external;
     function updateBatchVolatilityTokenPrice(
         uint256[] memory _volatilityIndexes,
