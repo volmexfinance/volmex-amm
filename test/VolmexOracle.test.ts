@@ -89,7 +89,7 @@ describe("Volmex Oracle", function () {
     const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
     assert.equal(indexTwap.toString(), "115000000");
     const indexTwapRoundData = await volmexOracle.latestRoundData(volatilityIndex);
-    assert.equal(indexTwapRoundData.toString(), "11500000000");
+    assert.equal(indexTwapRoundData[0].toString(), "11500000000");
   });
 
   it("Should update the Batch volatility Token price", async () => {

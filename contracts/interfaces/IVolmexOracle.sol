@@ -34,7 +34,10 @@ interface IVolmexOracle {
     function volatilityLeverageByIndex(uint256 _index) external view returns (uint256);
     function baseVolatilityIndex(uint256 _index) external view returns (uint256);
     function indexCount() external view returns (uint256);
-    function latestRoundData(uint256 _index) external view returns (uint256);
+    function latestRoundData(uint256 _index)
+        external
+        view
+        returns (uint256 answer, uint256 lastUpdateTimestamp);
     function getIndexTwap(uint256 _index)
         external
         view
