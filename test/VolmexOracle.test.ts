@@ -369,27 +369,27 @@ describe("Volmex Oracle", function () {
     });
   })
   describe("variable volatility index data points average", () => {
-    it("Should volatility index datapoints for min precision loss", async () => {
+    it.only("Should volatility index datapoints for min precision loss", async () => {
       const volatilityIndex = "0";
       let volatilityTokenPrice1 = 90000000;
 
       for (let index = 0; index < 179; index++) {
         await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
-        volatilityTokenPrice1 += 500629;
+        volatilityTokenPrice1 += 393200;
       }
       const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
-      assert.equal(indexTwap[0].toString(), "134502892");
+      assert.equal(indexTwap[0].toString(), "124994828");
     });
-    it("Should add volatility index datapoint for max precision loss", async () => {
+    it.only("Should add volatility index datapoint for max precision loss", async () => {
       const volatilityIndex = "0";
-      let volatilityTokenPrice1 = 125300000;
+      let volatilityTokenPrice1 = 35890000;
 
       for (let index = 0; index < 179; index++) {
         await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1)
-        volatilityTokenPrice1 += 300000;
+        volatilityTokenPrice1 += 990000;
       }
       const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
-      assert.equal(indexTwap[0].toString(), "151850000");
+      assert.equal(indexTwap[0].toString(), "124005555");
     });
   })
 });
