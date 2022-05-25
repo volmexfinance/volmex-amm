@@ -87,7 +87,7 @@ describe("Volmex Oracle", function () {
     const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
     assert.equal(datapoints.length, 180);
     const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
-    assert.equal(indexTwap.toString(), "115000000");
+    assert.equal(indexTwap[0].toString(), "115000000");
     const indexTwapRoundData = await volmexOracle.latestRoundData(volatilityIndex);
     assert.equal(indexTwapRoundData[0].toString(), "11500000000");
   });

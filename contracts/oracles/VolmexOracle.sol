@@ -41,22 +41,17 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @notice Initializes the contract setting the deployer as the initial owner.
      */
     function initialize(address _owner) external initializer {
-        _volatilityTokenPriceByIndex[indexCount] = 125000000;
-        volatilityTokenPriceProofHash[indexCount] = ""; // Add proof of hash bytes32 value
+        _updateVolatilityMeta(indexCount, 125000000, "");
         volatilityIndexBySymbol["ETHV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
         _addIndexDataPoint(indexCount, 125000000);
 
-        volatilityLastUpdateTimestamp[indexCount] = block.timestamp;
-
         indexCount++;
 
-        _volatilityTokenPriceByIndex[indexCount] = 125000000;
-        volatilityTokenPriceProofHash[indexCount] = ""; // Add proof of hash bytes32 value
+        _updateVolatilityMeta(indexCount, 125000000, "");
         volatilityIndexBySymbol["BTCV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
         _addIndexDataPoint(indexCount, 125000000);
-        volatilityLastUpdateTimestamp[indexCount] = block.timestamp;
 
         __Ownable_init();
         __ERC165Storage_init();
@@ -125,7 +120,6 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         uint256 _index = ++indexCount;
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;
         volatilityIndexBySymbol[_volatilityTokenSymbol] = _index;
-        volatilityLastUpdateTimestamp[_index] = block.timestamp;
 
         if (_leverage >= 2) {
             // This will also check the base volatilities are present
@@ -152,8 +146,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
                 _volatilityTokenPrice <= _volatilityCapRatio,
                 "VolmexOracle: _volatilityTokenPrice should be smaller than VolatilityCapRatio"
             );
-            _volatilityTokenPriceByIndex[_index] = _volatilityTokenPrice;
-            volatilityTokenPriceProofHash[_index] = _proofHash;
+            _updateVolatilityMeta(_index, _volatilityTokenPrice, _proofHash);
             _addIndexDataPoint(_index, _volatilityTokenPrice);
 
             emit VolatilityIndexAdded(
@@ -197,11 +190,11 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
 
             _addIndexDataPoint(_volatilityIndexes[i], _volatilityTokenPrices[i]);
 
-            _volatilityTokenPriceByIndex[_volatilityIndexes[i]] = _getIndexTwap(
-                _volatilityIndexes[i]
+            _updateVolatilityMeta(
+                _volatilityIndexes[i],
+                _getIndexTwap(_volatilityIndexes[i]),
+                _proofHashes[i]
             );
-            volatilityTokenPriceProofHash[_volatilityIndexes[i]] = _proofHashes[i];
-            volatilityLastUpdateTimestamp[_volatilityIndexes[i]] = block.timestamp;
         }
 
         emit BatchVolatilityTokenPriceUpdated(
@@ -312,5 +305,15 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         lastUpdateTimestamp = volatilityLeverageByIndex[_index] > 0
             ? volatilityLastUpdateTimestamp[baseVolatilityIndex[_index]]
             : volatilityLastUpdateTimestamp[_index];
+    }
+
+    function _updateVolatilityMeta(
+        uint256 _index,
+        uint256 _volatilityTokenPrice,
+        bytes32 _proofHash
+    ) private {
+        _volatilityTokenPriceByIndex[_index] = _volatilityTokenPrice;
+        volatilityLastUpdateTimestamp[_index] = block.timestamp;
+        volatilityTokenPriceProofHash[_index] = _proofHash;
     }
 }
