@@ -32,7 +32,7 @@ interface ICollaterals {
   USDC: string | any;
 }
 
-describe("VolmexController", function () {
+describe("VolmexController - Leverage", function () {
   let accounts: Signer[];
   let owner: string;
   let volmexOracleFactory: any;

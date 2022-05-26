@@ -190,6 +190,16 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     }
 
     /**
+     * @notice Adds a new datapoint to the datapoints storage array
+     *
+     * @param _index Datapoints volatility index id {0}
+     * @param _value Datapoint value to add {250000000}
+     */
+    function addIndexDataPoint(uint256 _index, uint256 _value) external onlyOwner {
+        _addIndexDataPoint(_index, _value);
+    }
+
+    /**
      * @notice Get the volatility token price by symbol
      * @param _volatilityTokenSymbol Symbol of the volatility token
      */

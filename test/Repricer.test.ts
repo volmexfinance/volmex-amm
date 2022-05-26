@@ -112,12 +112,12 @@ describe("Repricer", function () {
   });
 
   it("Should update the last timestamp duration", async () => {
-    let timestampDuration = await repricer.lastUpdateTimestampDuration();
+    let timestampDuration = await repricer.allowedDelay();
     expect(timestampDuration.toString()).equal("600");
 
     await (await repricer.updateAllowedDelay("300")).wait();
 
-    timestampDuration = await repricer.lastUpdateTimestampDuration();
+    timestampDuration = await repricer.allowedDelay();
     expect(timestampDuration.toString()).equal("300");
   });
 
