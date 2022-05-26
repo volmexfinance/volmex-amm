@@ -76,12 +76,12 @@ contract Math is Num {
     ) internal pure returns (uint256 amount, uint256 protocolFee) {
         uint256 effectiveAmount = _isVolatilityRequired ? _amount : _amount / _precisionRatio;
 
-        protocolFee = ((effectiveAmount * _feePercent) / 10000) / _precisionRatio;
+        protocolFee = ((effectiveAmount * _feePercent) / 10000);
         effectiveAmount = effectiveAmount - protocolFee;
 
         amount = _isVolatilityRequired
             ? (effectiveAmount / _volatilityCapRatio) * _precisionRatio
-            : effectiveAmount / _precisionRatio;
+            : effectiveAmount;
     }
 
     /**
