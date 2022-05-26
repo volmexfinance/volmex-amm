@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
 const assert = require("assert");
 import { Signer, ContractReceipt, ContractTransaction } from "ethers";
-const { expectRevert, expectEvent } = require("@openzeppelin/test-helpers");
+const { expectRevert, time } = require("@openzeppelin/test-helpers");
 
 describe("Volmex Oracle", function () {
   let owner: string;
@@ -181,7 +181,7 @@ describe("Volmex Oracle", function () {
     assert.equal(price1[1].toString(), "125000000");
   });
 
-  it("should add volatility index if leverage is greater than 2", async () => {
+  it("should add volatility index if leverage is greater than 1", async () => {
     protocol = await upgrades.deployProxy(protocolFactory, [
       `${collateral.address}`,
       `${volatility.address}`,
@@ -199,12 +199,93 @@ describe("Volmex Oracle", function () {
       "0x6c00000000000000000000000000000000000000000000000000000000000000"
     );
     const contractReceipt: ContractReceipt = await contractTx.wait();
-    const event = contractReceipt.events?.find((event) => event.event === "LeveragedVolatilityIndexAdded");
+    const event = contractReceipt.events?.find(
+      (event) => event.event === "LeveragedVolatilityIndexAdded"
+    );
     assert.equal(event?.args?.volatilityTokenIndex, 2);
     assert.equal(event?.args?.volatilityCapRatio, 125000000);
     assert.equal(event?.args?.volatilityTokenSymbol, "ETHV2X");
     assert.equal(event?.args?.leverage, 2);
     assert.equal(event?.args?.baseVolatilityIndex, 0);
+
+    let receipt = await volmexOracle.getVolatilityPriceBySymbol("ETHV2X");
+    assert.equal(receipt[0].toString(), "62500000");
+    receipt = await volmexOracle.getVolatilityTokenPriceByIndex(2);
+    assert.equal(receipt[0].toString(), "62500000");
+    receipt = await volmexOracle.getIndexTwap(2);
+    assert.equal(receipt[0].toString(), "62500000");
+  });
+
+  describe("Price Timestamp", function () {
+    let volatilityIndexes: number[];
+    this.beforeEach(async () => {
+      protocol = await upgrades.deployProxy(protocolFactory, [
+        `${collateral.address}`,
+        `${volatility.address}`,
+        `${inverseVolatility.address}`,
+        "25000000000000000000",
+        "125",
+      ]);
+      await protocol.deployed();
+      await (
+        await volmexOracle.addVolatilityIndex(
+          "1250000000",
+          protocol.address,
+          "ETHV2X",
+          2,
+          0,
+          "0x6c00000000000000000000000000000000000000000000000000000000000000"
+        )
+      ).wait();
+      volatilityIndexes = [2];
+      volatilityTokenPrices = ["100000000"];
+      proofHashes = ["0x6c00000000000000000000000000000000000000000000000000000000000000"];
+      await (
+        await volmexOracle.updateBatchVolatilityTokenPrice(
+          volatilityIndexes,
+          volatilityTokenPrices,
+          proofHashes
+        )
+      ).wait();
+    });
+
+    it("Should fetch the latest timestamp", async () => {
+      let receipt = await volmexOracle.getIndexTwap(volatilityIndexes[0]);
+      let priceTimestamp = Number(receipt[2].toString());
+      let currentTimestamp = Number((await time.latest()).toString());
+      expect(currentTimestamp - priceTimestamp).to.be.below(300, "Oracle price is stale");
+
+      receipt = await volmexOracle.getVolatilityTokenPriceByIndex(volatilityIndexes[0]);
+      priceTimestamp = Number(receipt[2].toString());
+      currentTimestamp = Number((await time.latest()).toString());
+      expect(currentTimestamp - priceTimestamp).to.be.below(300, "Oracle price is stale");
+
+      receipt = await volmexOracle.getVolatilityPriceBySymbol("ETHV2X");
+      priceTimestamp = Number(receipt[2].toString());
+      currentTimestamp = Number((await time.latest()).toString());
+      expect(currentTimestamp - priceTimestamp).to.be.below(300, "Oracle price is stale");
+    });
+
+    it("Should fetch the stake price", async () => {
+      let currentTimestamp = Number((await time.latest()).toString());
+
+      await time.increase(3600);
+      let receipt = await volmexOracle.getIndexTwap(volatilityIndexes[0]);
+      let priceTimestamp = Number(receipt[2].toString());
+      currentTimestamp = Number((await time.latest()).toString());
+      expect(currentTimestamp - priceTimestamp).to.be.above(1800, "Oracle price is stale");
+  
+      receipt = await volmexOracle.getVolatilityTokenPriceByIndex(volatilityIndexes[0]);
+      priceTimestamp = Number(receipt[2].toString());
+      currentTimestamp = Number((await time.latest()).toString());
+      expect(currentTimestamp - priceTimestamp).to.be.above(1800, "Oracle price is stale");
+  
+      receipt = await volmexOracle.getVolatilityPriceBySymbol("ETHV2X");
+      priceTimestamp = Number(receipt[2].toString());
+      currentTimestamp = Number((await time.latest()).toString());
+      expect(currentTimestamp - priceTimestamp).to.be.above(1800, "Oracle price is stale");
+      console.log("\t ORACLE PRICE IS STALE by: ", currentTimestamp - priceTimestamp, " seconds");
+    });
   });
 
   it("update base volatility ", async () => {
@@ -226,7 +307,9 @@ describe("Volmex Oracle", function () {
     );
     const contractTx = await volmexOracle.updateBaseVolatilityIndex(0, 1);
     const contractReceipt: ContractReceipt = await contractTx.wait();
-    const event = contractReceipt.events?.find((event) => event.event === "BaseVolatilityIndexUpdated");
+    const event = contractReceipt.events?.find(
+      (event) => event.event === "BaseVolatilityIndexUpdated"
+    );
     assert.equal(event?.args?.baseVolatilityIndex, 1);
   });
 
@@ -239,14 +322,17 @@ describe("Volmex Oracle", function () {
       "250",
     ]);
     await protocol.deployed();
-    await expectRevert(volmexOracle.addVolatilityIndex(
-      "125000000",
-      protocol.address,
-      "ETHV2X",
-      2,
-      2,
-      "0x6c00000000000000000000000000000000000000000000000000000000000000"
-    ), "VolmexOracle: Invalid _baseVolatilityIndex provided");
+    await expectRevert(
+      volmexOracle.addVolatilityIndex(
+        "125000000",
+        protocol.address,
+        "ETHV2X",
+        2,
+        2,
+        "0x6c00000000000000000000000000000000000000000000000000000000000000"
+      ),
+      "VolmexOracle: Invalid _baseVolatilityIndex provided"
+    );
   });
 
   it("should revert when cap ratio is smaller than 1000000", async () => {

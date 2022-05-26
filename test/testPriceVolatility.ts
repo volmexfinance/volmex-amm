@@ -402,7 +402,6 @@ describe("VolmexController", function () {
                     "100000000000000000000",
                     [0, 0]
                 );
-            console.log("collateral:", colAmount);
             await (
                 await volatilities["ETH"]
                     .connect(swapper1)
