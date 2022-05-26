@@ -93,8 +93,8 @@ describe("Repricer", function () {
     );
     await reciept.wait();
     reciept = await repricer.reprice("1");
-    assert.equal(reciept[0].toString(), "105000000");
-    assert.equal(reciept[1].toString(), "145000000");
+    assert.equal(reciept[0].toString(), "115000000");
+    assert.equal(reciept[1].toString(), "135000000");
   });
 
   it("Should revert on not contract", async () => {
