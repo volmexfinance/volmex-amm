@@ -5,6 +5,8 @@ pragma solidity =0.8.11;
 import "./IVolmexOracle.sol";
 
 interface IVolmexRepricer {
+    event LastTimestampDurationUpdated(uint256 newDuration);
+
     // Getter method
     function oracle() external view returns (IVolmexOracle);
 
@@ -18,4 +20,5 @@ interface IVolmexRepricer {
             uint256 estComplementPrice,
             uint256 estPrice
         );
+    function updatePriceTimestampDuration(uint256 _newDuration) external;
 }
