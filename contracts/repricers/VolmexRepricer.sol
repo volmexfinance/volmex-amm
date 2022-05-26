@@ -52,7 +52,7 @@ contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
             uint256 estPrice
         )
     {
-        (estPrimaryPrice, estComplementPrice) = oracle.getIndexTwap(_volatilityIndex);
+        (estPrimaryPrice, estComplementPrice,) = oracle.getIndexTwap(_volatilityIndex);
         estPrice = (estComplementPrice * BONE) / estPrimaryPrice;
     }
 
@@ -63,6 +63,4 @@ contract VolmexRepricer is ERC165StorageUpgradeable, NumExtra, IVolmexRepricer {
     function sqrtWrapped(int256 x) external pure returns (int256) {
         return sqrt(x);
     }
-
-    uint256[10] private __gap;
 }

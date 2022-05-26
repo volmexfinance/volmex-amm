@@ -75,27 +75,30 @@ describe("Volmex Oracle", function () {
     const volatilityIndex = "0";
     const volatilityTokenPrice1 = "105000000";
     const volatilityTokenPrice2 = "115000000";
-    await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1);
-    await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2);
+    const proofHash = "0x6c00000000000000000000000000000000000000000000000000000000000000";
+    await (await volmexOracle.updateBatchVolatilityTokenPrice(
+      [volatilityIndex],
+      [volatilityTokenPrice1],
+      [proofHash]
+    )).wait();
+    await (await volmexOracle.updateBatchVolatilityTokenPrice(
+      [volatilityIndex],
+      [volatilityTokenPrice2],
+      [proofHash]
+    )).wait();
 
-    assert.equal((await volmexOracle.getIndexDataPoints(volatilityIndex)).length, 2);
+    assert.equal((await volmexOracle.getIndexDataPoints(volatilityIndex)).length, 3);
 
-    for (let index = 0; index < 360; index++) {
-      await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2)  
-    }
-
-    const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
-    assert.equal(datapoints.length, 180);
     const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
-    assert.equal(indexTwap.toString(), "115000000");
+    assert.equal(indexTwap[0].toString(), "115000000");
     const indexTwapRoundData = await volmexOracle.latestRoundData(volatilityIndex);
-    assert.equal(indexTwapRoundData.toString(), "11500000000");
+    assert.equal(indexTwapRoundData[0].toString(), "11500000000");
   });
 
   it("Should update the Batch volatility Token price", async () => {
-    volatilityIndexes = ["0"];
-    volatilityTokenPrices = ["105000000"];
-    proofHashes = ["0x6c00000000000000000000000000000000000000000000000000000000000000"];
+    volatilityIndexes = ["0", "1"];
+    volatilityTokenPrices = ["105000000", "105000000"];
+    proofHashes = ["0x6c00000000000000000000000000000000000000000000000000000000000000", "0x6c00000000000000000000000000000000000000000000000000000000000000"];
     const contractTx = await volmexOracle.updateBatchVolatilityTokenPrice(
       volatilityIndexes,
       volatilityTokenPrices,
@@ -106,12 +109,12 @@ describe("Volmex Oracle", function () {
       (event) => event.event === "BatchVolatilityTokenPriceUpdated"
     );
     expect((await contractTx.wait()).confirmations).not.equal(0);
-    assert.equal(event?.args?._volatilityIndexes.length, 1);
-    assert.equal(event?.args?._volatilityTokenPrices.length, 1);
-    assert.equal(event?.args?._proofHashes.length, 1);
+    assert.equal(event?.args?._volatilityIndexes.length, 2);
+    assert.equal(event?.args?._volatilityTokenPrices.length, 2);
+    assert.equal(event?.args?._proofHashes.length, 2);
     let prices = await volmexOracle.getVolatilityTokenPriceByIndex("0");
-    assert.equal(prices[0].toString(), "105000000");
-    assert.equal(prices[1].toString(), "145000000");
+    assert.equal(prices[0].toString(), "115000000");
+    assert.equal(prices[1].toString(), "135000000");
   });
 
   it("Should not update if volatility price greater than cap ratio", async () => {
