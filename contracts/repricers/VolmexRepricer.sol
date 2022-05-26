@@ -53,10 +53,10 @@ contract VolmexRepricer is
      * @notice Used to set the duration between last price update
      * @param _newDuration Number of seconds of the timestamp duration
      */
-    function updatePriceTimestampDuration(uint256 _newDuration) external onlyOwner {
+    function updateAllowedDelay(uint256 _newDuration) external onlyOwner {
         allowedDelay = _newDuration;
 
-        emit UpdatedAllowedDelay(_newDuration);
+        emit AllowedDelayUpdated(_newDuration);
     }
 
     /**

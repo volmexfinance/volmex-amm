@@ -115,7 +115,7 @@ describe("Repricer", function () {
     let timestampDuration = await repricer.lastUpdateTimestampDuration();
     expect(timestampDuration.toString()).equal("600");
 
-    await (await repricer.updatePriceTimestampDuration("300")).wait();
+    await (await repricer.updateAllowedDelay("300")).wait();
 
     timestampDuration = await repricer.lastUpdateTimestampDuration();
     expect(timestampDuration.toString()).equal("300");
