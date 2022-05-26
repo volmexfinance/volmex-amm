@@ -1236,7 +1236,7 @@ describe("VolmexController", function () {
         await expectRevert(
           controller.swapBetweenPools(
             [volatilities["ETH"].address, volatilities["BTC"].address],
-            ["20000000000000000000", "20000000000000000000"],
+            ["20000000000000000000", "200000000000000000000"],
             [0, 1, 0]
           ),
           "VolmexController: Insufficient expected volatility amount"

@@ -428,7 +428,6 @@ describe("Volmex Oracle", function () {
       const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
       assert.equal(datapoints.length, 58);
       const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
-      console.log("indexTwap:", indexTwap[0]);
       assert.equal(indexTwap[0].toString(), "138758620");
     });
     it("Should add 100 volatility index datapoints and retrieve TWAP value", async () => {
@@ -479,7 +478,7 @@ describe("Volmex Oracle", function () {
         volatilityTokenPrice1 += 990000;
       }
       const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
-      assert.equal(indexTwap[0].toString(), "125300000");
+      assert.equal(indexTwap[0].toString(), "124005555");
     });
   })
 });
