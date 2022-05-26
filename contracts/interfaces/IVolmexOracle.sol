@@ -69,7 +69,6 @@ interface IVolmexOracle {
         uint256 _leverageVolatilityIndex,
         uint256 _newBaseVolatilityIndex
     ) external;
-    function addIndexDataPoint(uint256 _index, uint256 _value) external;
     function updateBatchVolatilityTokenPrice(
         uint256[] memory _volatilityIndexes,
         uint256[] memory _volatilityTokenPrices,
