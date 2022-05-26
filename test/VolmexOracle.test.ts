@@ -75,17 +75,20 @@ describe("Volmex Oracle", function () {
     const volatilityIndex = "0";
     const volatilityTokenPrice1 = "105000000";
     const volatilityTokenPrice2 = "115000000";
-    await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice1);
-    await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2);
+    const proofHash = "0x6c00000000000000000000000000000000000000000000000000000000000000";
+    await (await volmexOracle.updateBatchVolatilityTokenPrice(
+      [volatilityIndex],
+      [volatilityTokenPrice1],
+      [proofHash]
+    )).wait();
+    await (await volmexOracle.updateBatchVolatilityTokenPrice(
+      [volatilityIndex],
+      [volatilityTokenPrice2],
+      [proofHash]
+    )).wait();
 
     assert.equal((await volmexOracle.getIndexDataPoints(volatilityIndex)).length, 3);
 
-    for (let index = 0; index < 360; index++) {
-      await volmexOracle.addIndexDataPoint(volatilityIndex, volatilityTokenPrice2)  
-    }
-
-    const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
-    assert.equal(datapoints.length, 180);
     const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
     assert.equal(indexTwap[0].toString(), "115000000");
     const indexTwapRoundData = await volmexOracle.latestRoundData(volatilityIndex);
