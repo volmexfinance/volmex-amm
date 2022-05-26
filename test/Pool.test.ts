@@ -78,7 +78,7 @@ describe("VolmexPool", function () {
     volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
     await volmexOracle.deployed();
 
-    repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);
+    repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address, owner]);
     await repricer.deployed();
 
     const baseFee = (0.02 * Math.pow(10, 18)).toString();
@@ -94,7 +94,7 @@ describe("VolmexPool", function () {
       maxFee,
       feeAmpPrimary,
       feeAmpComplement,
-      owner
+      owner,
     ]);
     await pool.deployed();
     await (await pool.setControllerWithoutCheck(owner)).wait();
@@ -179,7 +179,7 @@ describe("VolmexPool", function () {
           maxFee,
           feeAmpPrimary,
           feeAmpComplement,
-          owner
+          owner,
         ]),
         "VolmexPool: Repricer does not supports interface"
       );
@@ -195,7 +195,7 @@ describe("VolmexPool", function () {
           maxFee,
           feeAmpPrimary,
           feeAmpComplement,
-          owner
+          owner,
         ]),
         "VolmexPool: protocol address can't be zero"
       );
@@ -210,7 +210,7 @@ describe("VolmexPool", function () {
         maxFee,
         feeAmpPrimary,
         feeAmpComplement,
-        owner
+        owner,
       ]);
       await pool.deployed();
       await (await pool.setControllerWithoutCheck(owner)).wait();
@@ -258,7 +258,7 @@ describe("VolmexPool", function () {
         maxFee,
         feeAmpPrimary,
         feeAmpComplement,
-        owner
+        owner,
       ]);
       await pool.deployed();
       await (await pool.setControllerWithoutCheck(owner)).wait();
@@ -377,7 +377,7 @@ describe("VolmexPool", function () {
       );
       await join.wait();
 
-      const amountOut = await pool.getTokenAmountOut(volatility.address, "5960000000000000000");
+      let amountOut = await pool.getTokenAmountOut(volatility.address, "5960000000000000000");
 
       await (await volatility.approve(pool.address, "5960000000000000000")).wait();
       // await (await inverseVolatility.approve(pool.address, "38960000000000000000")).wait();
@@ -406,6 +406,12 @@ describe("VolmexPool", function () {
       );
 
       expect(Number(balanceAfter.sub(balanceBefore))).to.equal(Number(logData[1].toString()));
+
+      await time.increase(time.duration.seconds(700));
+      await expectRevert(
+        pool.getTokenAmountOut(volatility.address, "5960000000000000000"),
+        "VolmexRepricer: Stale oracle price"
+      );
     });
 
     it("Should update reprice", async () => {
@@ -674,7 +680,7 @@ describe("VolmexPool", function () {
         maxFee,
         feeAmpPrimary,
         feeAmpComplement,
-        owner
+        owner,
       ]);
       await pool.deployed();
       await (await volatility.approve(pool.address, "20000000000000000000")).wait();
@@ -794,14 +800,16 @@ describe("VolmexPool", function () {
     it("Exposure boundary", async () => {
       let amountOut = await pool.getTokenAmountOut(volatility.address, "200000000000000000");
       await (await volatility.approve(pool.address, "200000000000000000")).wait();
-      await (await pool.swapExactAmountIn(
-        volatility.address,
-        "200000000000000000",
-        inverseVolatility.address,
-        amountOut[0].toString(),
-        owner,
-        false
-      )).wait();
+      await (
+        await pool.swapExactAmountIn(
+          volatility.address,
+          "200000000000000000",
+          inverseVolatility.address,
+          amountOut[0].toString(),
+          owner,
+          false
+        )
+      ).wait();
 
       await (
         await volmexOracle.updateBatchVolatilityTokenPrice([0], ["100000000"], [bytes32])

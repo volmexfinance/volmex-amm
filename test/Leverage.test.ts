@@ -279,7 +279,7 @@ describe("VolmexController", function () {
       volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
       await volmexOracle.deployed();
 
-      repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);
+      repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address, owner]);
       await repricer.deployed();
 
       const baseFee = (0.02 * Math.pow(10, 18)).toString();
