@@ -29,7 +29,7 @@ contract VolmexRepricer is
     // Instance of oracle contract
     IVolmexOracle public oracle;
     // Max stale price duration
-    uint256 public lastUpdateTimestampDuration;
+    uint256 public allowedDelay;
 
     /**
      * @notice Initializes the contract, setting the required state variables
@@ -41,7 +41,7 @@ contract VolmexRepricer is
             "VolmexController: Oracle does not supports interface"
         );
         oracle = _oracle;
-        lastUpdateTimestampDuration = 600; // 10 minutes in seconds
+        allowedDelay = 600; // 10 minutes in seconds
 
         __ERC165Storage_init();
         _registerInterface(_IVOLMEX_REPRICER_ID);
@@ -54,9 +54,9 @@ contract VolmexRepricer is
      * @param _newDuration Number of seconds of the timestamp duration
      */
     function updatePriceTimestampDuration(uint256 _newDuration) external onlyOwner {
-        lastUpdateTimestampDuration = _newDuration;
+        allowedDelay = _newDuration;
 
-        emit LastTimestampDurationUpdated(_newDuration);
+        emit UpdatedAllowedDelay(_newDuration);
     }
 
     /**
@@ -78,7 +78,7 @@ contract VolmexRepricer is
             _volatilityIndex
         );
         require(
-            (block.timestamp - lastUpdateTimestamp) <= lastUpdateTimestampDuration,
+            (block.timestamp - lastUpdateTimestamp) <= allowedDelay,
             "VolmexRepricer: Stale oracle price"
         );
         estPrice = (estComplementPrice * BONE) / estPrimaryPrice;

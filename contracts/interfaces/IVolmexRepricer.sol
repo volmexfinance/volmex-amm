@@ -5,7 +5,8 @@ pragma solidity =0.8.11;
 import "./IVolmexOracle.sol";
 
 interface IVolmexRepricer {
-    event LastTimestampDurationUpdated(uint256 newDuration);
+    // Event emitted when the allowed delay in the oracle price is updated
+    event UpdatedAllowedDelay(uint256 newDuration);
 
     // Getter method
     function oracle() external view returns (IVolmexOracle);
