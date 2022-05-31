@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
 import { Signer } from "ethers";
 const assert = require("assert");
-const { expectRevert } = require("@openzeppelin/test-helpers");
+const { expectRevert, time } = require("@openzeppelin/test-helpers");
 
 describe("Repricer", function () {
   let accounts: Signer[];
@@ -68,7 +68,7 @@ describe("Repricer", function () {
     volmexOracle = await upgrades.deployProxy(volmexOracleFactory, [owner]);
     await volmexOracle.deployed();
 
-    repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address]);
+    repricer = await upgrades.deployProxy(repricerFactory, [volmexOracle.address, owner]);
   });
 
   it("Should deploy repricer", async () => {
@@ -93,15 +93,15 @@ describe("Repricer", function () {
     );
     await reciept.wait();
     reciept = await repricer.reprice("1");
-    assert.equal(reciept[0].toString(), "105000000");
-    assert.equal(reciept[1].toString(), "145000000");
+    assert.equal(reciept[0].toString(), "115000000");
+    assert.equal(reciept[1].toString(), "135000000");
   });
 
   it("Should revert on not contract", async () => {
     const [other] = accounts;
 
     await expectRevert(
-      upgrades.deployProxy(repricerFactory, [await other.getAddress()]),
+      upgrades.deployProxy(repricerFactory, [await other.getAddress(), await accounts[0].getAddress()]),
       "Address: low-level delegate call failed"
     );
   });
@@ -109,5 +109,23 @@ describe("Repricer", function () {
   it("should calculate the correct square root", async () => {
     let output = await repricer.sqrtWrapped(4);
     assert.equal(output.toString(), "1999999999");
+  });
+
+  it("Should update the last timestamp duration", async () => {
+    let timestampDuration = await repricer.allowedDelay();
+    expect(timestampDuration.toString()).equal("600");
+
+    await (await repricer.updateAllowedDelay("300")).wait();
+
+    timestampDuration = await repricer.allowedDelay();
+    expect(timestampDuration.toString()).equal("300");
+  });
+
+  it("Should revert for stale oracle price", async () => {
+    await time.increase(time.duration.seconds(700));
+    await expectRevert(
+      repricer.reprice("0"),
+      "VolmexRepricer: Stale oracle price"
+    );
   });
 });

@@ -70,16 +70,18 @@ contract Math is Num {
     function _calculateAssetQuantity(
         uint256 _amount,
         uint256 _feePercent,
-        bool _isVolatility,
+        bool _isVolatilityRequired,
         uint256 _volatilityCapRatio,
         uint256 _precisionRatio
     ) internal pure returns (uint256 amount, uint256 protocolFee) {
-        protocolFee = (_amount * _feePercent) / 10000;
-        _amount = _amount - protocolFee;
+        uint256 effectiveAmount = _isVolatilityRequired ? _amount : _amount / _precisionRatio;
 
-        amount = _isVolatility
-            ? (_amount / _volatilityCapRatio) * _precisionRatio
-            : _amount / _precisionRatio;
+        protocolFee = ((effectiveAmount * _feePercent) / 10000);
+        effectiveAmount = effectiveAmount - protocolFee;
+
+        amount = _isVolatilityRequired
+            ? (effectiveAmount / _volatilityCapRatio) * _precisionRatio
+            : effectiveAmount;
     }
 
     /**
