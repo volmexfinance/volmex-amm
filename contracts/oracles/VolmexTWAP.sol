@@ -10,7 +10,6 @@ contract VolmexTWAP {
     // Max datapoints allowed to store in
     uint256 private _MAX_DATAPOINTS;
 
-
     // Emit new event when new datapoint is added
     event IndexDataPointAdded(uint256 indexed_index, uint256 _value);
 
@@ -80,9 +79,9 @@ contract VolmexTWAP {
      * @param _value Max datapoints value {180}
      */
     function _updateTwapMaxDatapoints(uint256 _value) internal {
-    require(_value > 0, "Minimum amount of index datapoints needs to be greater than zero");
+        require(_value > 0, "Minimum amount of index datapoints needs to be greater than zero");
 
-      _MAX_DATAPOINTS = _value;
+        _MAX_DATAPOINTS = _value;
     }
 
     uint256[10] private __gap;
