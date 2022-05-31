@@ -13,6 +13,9 @@ contract VolmexTWAP {
     // Emit new event when new datapoint is added
     event IndexDataPointAdded(uint256 indexed_index, uint256 _value);
 
+    // Emit an event when max allowed twap datapoints value it's updated
+    event MaxTwapDatapointsUpdated(uint256 _value);
+
     // Store index datapoints into multidimensional arrays
     mapping(uint256 => uint256[]) private _datapoints;
 
@@ -82,6 +85,8 @@ contract VolmexTWAP {
         require(_value > 0, "Minimum amount of index datapoints needs to be greater than zero");
 
         _MAX_DATAPOINTS = _value;
+
+        emit MaxTwapDatapointsUpdated(_value);
     }
 
     uint256[10] private __gap;

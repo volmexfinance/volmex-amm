@@ -88,6 +88,15 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
     }
 
     /**
+     * @notice Update maximum amount of volatility index datapoints for calculating the TWAP
+     *
+     * @param _value Max datapoints value {180}
+     */
+    function updateTwapMaxDatapoints(uint256 _value) external onlyOwner {
+        _updateTwapMaxDatapoints(_value);
+    }
+
+    /**
      * @notice Emulate the Chainlink Oracle interface for retrieving Volmex TWAP volatility index
      * @param _index Datapoints volatility index id {0}
      * @return answer is the answer for the given round
