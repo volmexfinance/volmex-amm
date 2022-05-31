@@ -55,7 +55,7 @@ const createPool = async () => {
   console.log("VolmexOracle deployed ", oracle.address);
 
   console.log("Deploying Repricer...");
-  const repricer = await upgrades.deployProxy(VolmexRepricer, [oracle.address]);
+  const repricer = await upgrades.deployProxy(VolmexRepricer, [oracle.address, governor]);
   await repricer.deployed();
   console.log("VolmexRepricer deployed ", repricer.address);
 

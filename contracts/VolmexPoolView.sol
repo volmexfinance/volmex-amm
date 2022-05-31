@@ -357,6 +357,4 @@ contract VolmexPoolView is ERC165StorageUpgradeable, Math, IVolmexPoolView {
 
         amountOut = protocolAmount[1] + tokenAmounts[1];
     }
-
-    uint256[10] private __gap;
 }
