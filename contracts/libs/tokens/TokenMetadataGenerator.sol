@@ -16,7 +16,7 @@ contract TokenMetadataGenerator {
         pure
         returns (string memory)
     {
-        return _formatMeta(_baseName, ' ', _postfix);
+        return _formatMeta(_baseName, " ", _postfix);
     }
 
     function _makeTokenSymbol(string memory _baseName, string memory _postfix)
@@ -24,7 +24,7 @@ contract TokenMetadataGenerator {
         pure
         returns (string memory)
     {
-        return _formatMeta(_baseName, '-', _postfix);
+        return _formatMeta(_baseName, "-", _postfix);
     }
 
     function _concat(string memory _a, string memory _b) internal pure returns (string memory) {
