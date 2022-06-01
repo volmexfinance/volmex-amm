@@ -34,8 +34,9 @@ contract VolmexTWAP {
             _datapoints[_index].push(_value);
         } else {
             if (
-                // check if cursor has reached the maximum allowed storage datapoints
-                _datapointsCursor[_index] == _MAX_DATAPOINTS
+                // reset the cursor has reached the maximum allowed storage datapoints 
+                // or max allowed datapoints values changed by the owner it's lower than current cursor
+                _datapointsCursor[_index] >= _MAX_DATAPOINTS
             ) {
                 // reset cursor
                 _datapointsCursor[_index] = 0;
