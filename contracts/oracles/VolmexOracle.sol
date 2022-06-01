@@ -16,6 +16,8 @@ import "./VolmexTWAP.sol";
 contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWAP, IVolmexOracle {
     // price precision constant upto 6 decimal places
     uint256 private constant _VOLATILITY_PRICE_PRECISION = 1000000;
+    // maximum allowed number of index volatility datapoints for calculating twap
+    uint256 private constant _MAX_ALLOWED_TWAP_DATAPOINTS = 180;
     // Interface ID of VolmexOracle contract, hashId = 0xf9fffc9f
     bytes4 private constant _IVOLMEX_ORACLE_ID = type(IVolmexOracle).interfaceId;
 
@@ -41,6 +43,8 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      * @notice Initializes the contract setting the deployer as the initial owner.
      */
     function initialize(address _owner) external initializer {
+        _updateTwapMaxDatapoints(_MAX_ALLOWED_TWAP_DATAPOINTS);
+
         _updateVolatilityMeta(indexCount, 125000000, "");
         volatilityIndexBySymbol["ETHV"] = indexCount;
         volatilityCapRatioByIndex[indexCount] = 250000000;
@@ -268,6 +272,15 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
      */
     function getIndexDataPoints(uint256 _index) external view returns (uint256[] memory dp) {
         dp = _getIndexDataPoints(_index);
+    }
+
+    /**
+     * @notice Update maximum amount of volatility index datapoints for calculating the TWAP
+     *
+     * @param _value Max datapoints value {180}
+     */
+    function updateTwapMaxDatapoints(uint256 _value) external onlyOwner {
+        _updateTwapMaxDatapoints(_value);
     }
 
     /**

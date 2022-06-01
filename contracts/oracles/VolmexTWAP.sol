@@ -8,10 +8,13 @@ pragma solidity =0.8.11;
  */
 contract VolmexTWAP {
     // Max datapoints allowed to store in
-    uint8 private constant _MAX_DATAPOINTS = 180;
+    uint256 private _MAX_DATAPOINTS;
 
     // Emit new event when new datapoint is added
     event IndexDataPointAdded(uint256 indexed_index, uint256 _value);
+
+    // Emit an event when max allowed twap datapoints value it's updated
+    event MaxTwapDatapointsUpdated(uint256 _value);
 
     // Store index datapoints into multidimensional arrays
     mapping(uint256 => uint256[]) private _datapoints;
@@ -31,8 +34,9 @@ contract VolmexTWAP {
             _datapoints[_index].push(_value);
         } else {
             if (
-                // check if cursor has reached the maximum allowed storage datapoints
-                _datapointsCursor[_index] == _MAX_DATAPOINTS
+                // reset the cursor has reached the maximum allowed storage datapoints 
+                // or max allowed datapoints values changed by the owner it's lower than current cursor
+                _datapointsCursor[_index] >= _MAX_DATAPOINTS
             ) {
                 // reset cursor
                 _datapointsCursor[_index] = 0;
@@ -71,6 +75,19 @@ contract VolmexTWAP {
         returns (uint256[] memory datapoints)
     {
         datapoints = _datapoints[_index];
+    }
+
+    /**
+     * @notice Update maximum amount of volatility index datapoints for calculating the TWAP
+     *
+     * @param _value Max datapoints value {180}
+     */
+    function _updateTwapMaxDatapoints(uint256 _value) internal {
+        require(_value > 0, "Minimum amount of index datapoints needs to be greater than zero");
+
+        _MAX_DATAPOINTS = _value;
+
+        emit MaxTwapDatapointsUpdated(_value);
     }
 
     uint256[10] private __gap;
