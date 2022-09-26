@@ -1,17 +1,17 @@
 import { ethers, upgrades, run } from "hardhat";
 
 const Protocols = [
-  "0xA480cb2928da9b3dCA7154D3cD8D955455B90ef0", // ETH DAI
-  "0x41b866fD8f50B1A9461877005eE942DAd51C037B", // ETH USDC
-  "0x60248bA0104EB51D91877Ee2302c0C5affB5f2aa", // BTC DAI
-  "0xd3081eba5728E6853005DB9f4A19Ea2DBFdf5A6D", // BTC USDC
+  "0x52833271fC7Aae6D0451De8D387ca8e248c90e7B", // ETH DAI
+  "0x6995C08611826Af0FE02B6F1a199848F5Db2b477", // ETH USDC
+  "0x08a9eA97042d70b33CbEf217fBB368E0FfDb38d8", // BTC DAI
+  "0x674d9e4493991b984ceB5a179853Bd76f815fc87", // BTC USDC
 ];
 
 const Volatility = [
-  "0xd214d87Cb51ce5a434426e6066E666cA1394dc88", // ETHV
-  "0x429E89202a75652dd96c7E80AfB904eBF5403a17",
-  "0xE94ee63927bee73Cf4e62adA3E06b4C84431C912", //BTCV
-  "0xcd3Ed7BFf2678e018d637451B449A76ed9584398",
+  "0x6b670Cb9490fc96C9dc56f7F06c54B8C0105b75E", // ETHV
+  "0xe71bbC40443C7708040Ac752Cd86F617473F9B5a",
+  "0x570df55Df6CA6b5b3485FC46209940729b813719", //BTCV
+  "0x4069de818471a08cdDB758177db48a2a25526245",
 ];
 
 const StableCoins = [
@@ -68,7 +68,7 @@ const createPool = async () => {
     maxFee,
     feeAmpPrimary,
     feeAmpComplement,
-    governor
+    governor,
   ]);
   await poolETH.deployed();
   console.log("ETH Pool deployed ", poolETH.address);
@@ -81,7 +81,7 @@ const createPool = async () => {
     maxFee,
     feeAmpPrimary,
     feeAmpComplement,
-    governor
+    governor,
   ]);
   await poolBTC.deployed();
   console.log("BTC Pool deployed ", poolBTC.address);
@@ -97,8 +97,7 @@ const createPool = async () => {
     StableCoins,
     [poolETH.address, poolBTC.address],
     Protocols,
-    oracle.address,
-    governor
+    governor,
   ]);
   await controller.deployed();
   console.log("VolmexController deployed :", controller.address);
@@ -162,29 +161,36 @@ const createPool = async () => {
 
   const proxyAdmin = await upgrades.admin.getInstance();
 
-  await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(poolETH.address),
-  });
-
-  await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(repricer.address),
-  });
-
-  await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(oracle.address),
-  });
-
-  await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(controller.address),
-  });
-
-  await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(poolView.address),
-  });
-
-  await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(poolBTC.address),
-  });
+  try {
+    await run("verify:verify", {
+      address: await proxyAdmin.getProxyImplementation(poolETH.address),
+    });
+  } catch (error: any) {}
+  try {
+    await run("verify:verify", {
+      address: await proxyAdmin.getProxyImplementation(repricer.address),
+    });
+  } catch (error: any) {}
+  try {
+    await run("verify:verify", {
+      address: await proxyAdmin.getProxyImplementation(oracle.address),
+    });
+  } catch (error: any) {}
+  try {
+    await run("verify:verify", {
+      address: await proxyAdmin.getProxyImplementation(controller.address),
+    });
+  } catch (error: any) {}
+  try {
+    await run("verify:verify", {
+      address: await proxyAdmin.getProxyImplementation(poolView.address),
+    });
+  } catch (error: any) {}
+  try {
+    await run("verify:verify", {
+      address: await proxyAdmin.getProxyImplementation(poolBTC.address),
+    });
+  } catch (error: any) {}
 };
 
 createPool()
