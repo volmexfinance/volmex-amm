@@ -385,6 +385,10 @@ contract VolmexProtocol is
         onlySettled
     {
         uint256 collQtyToBeRedeemed = _volatilityTokenAmount * volatilityCapRatio;
+        require(
+            collQtyToBeRedeemed >= minimumCollateralQty,
+            "Volmex Migrate: CollateralQty > minimum qty required"
+        );
 
         _redeem(
             collQtyToBeRedeemed,
@@ -394,7 +398,10 @@ contract VolmexProtocol is
 
         v2Protocol.collateralize(collQtyToBeRedeemed);
 
-        collateral.transfer(msg.sender, collQtyToBeRedeemed);
+        uint256 volatilityAmount = collQtyToBeRedeemed / v2Protocol.volatilityCapRatio();
+
+        volatilityToken.transfer(msg.sender, volatilityAmount);
+        inverseVolatilityToken.transfer(msg.sender, volatilityAmount);
     }
 
     function _redeem(
