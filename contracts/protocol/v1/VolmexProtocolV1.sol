@@ -13,7 +13,7 @@ import "../../interfaces/IVolmexProtocol.sol";
  * @title Protocol Contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexProtocol is
+contract VolmexProtocolV1 is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable
@@ -418,7 +418,8 @@ contract VolmexProtocol is
             _inverseVolatilityIndexTokenQty
         );
 
-        collateral.transfer(msg.sender, _collateralQtyRedeemed);
+        address receiver = isSettled ? address(this) : msg.sender;
+        collateral.transfer(receiver, _collateralQtyRedeemed);
 
         emit Redeemed(
             msg.sender,
