@@ -193,6 +193,7 @@ contract VolmexProtocol is
         virtual
         onlyActive
         onlyNotSettled
+        returns (uint256, uint256)
     {
         require(
             _collateralQty >= minimumCollateralQty,
@@ -220,6 +221,8 @@ contract VolmexProtocol is
         inverseVolatilityToken.mint(msg.sender, qtyToBeMinted);
 
         emit Collateralized(msg.sender, _collateralQty, qtyToBeMinted, fee);
+
+        return (qtyToBeMinted, fee);
     }
 
     /**
@@ -237,10 +240,11 @@ contract VolmexProtocol is
         virtual
         onlyActive
         onlyNotSettled
+        returns (uint256, uint256)
     {
         uint256 collQtyToBeRedeemed = _positionTokenQty * volatilityCapRatio;
 
-        _redeem(collQtyToBeRedeemed, _positionTokenQty, _positionTokenQty);
+        return _redeem(collQtyToBeRedeemed, _positionTokenQty, _positionTokenQty);
     }
 
     /**
@@ -258,13 +262,13 @@ contract VolmexProtocol is
     function redeemSettled(
         uint256 _volatilityIndexTokenQty,
         uint256 _inverseVolatilityIndexTokenQty
-    ) external virtual onlyActive onlySettled {
+    ) public virtual onlyActive onlySettled returns (uint256, uint256) {
         uint256 collQtyToBeRedeemed =
             (_volatilityIndexTokenQty * settlementPrice) +
                 (_inverseVolatilityIndexTokenQty *
                     (volatilityCapRatio - settlementPrice));
 
-        _redeem(
+        return _redeem(
             collQtyToBeRedeemed,
             _volatilityIndexTokenQty,
             _inverseVolatilityIndexTokenQty
@@ -363,7 +367,7 @@ contract VolmexProtocol is
         uint256 _collateralQtyRedeemed,
         uint256 _volatilityIndexTokenQty,
         uint256 _inverseVolatilityIndexTokenQty
-    ) internal virtual {
+    ) internal virtual returns (uint256, uint256) {
         uint256 fee;
         if (redeemFees > 0) {
             fee = (_collateralQtyRedeemed * redeemFees) / 10000;
@@ -387,5 +391,7 @@ contract VolmexProtocol is
             _inverseVolatilityIndexTokenQty,
             fee
         );
+
+        return (_collateralQtyRedeemed, fee);
     }
 }
