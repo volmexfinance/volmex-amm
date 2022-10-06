@@ -67,6 +67,7 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
         override
         onlyActive
         onlyNotSettled
+        returns (uint256, uint256)
     {
         require(
             _collateralQty >= minimumCollateralQty,
@@ -96,13 +97,15 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
         inverseVolatilityToken.mint(msg.sender, qtyToBeMinted);
 
         emit Collateralized(msg.sender, _collateralQty, qtyToBeMinted, fee);
+
+        return (qtyToBeMinted, fee);
     }
 
     function _redeem(
         uint256 _collateralQtyRedeemed,
         uint256 _volatilityIndexTokenQty,
         uint256 _inverseVolatilityIndexTokenQty
-    ) internal virtual override {
+    ) internal virtual override returns (uint256, uint256) {
         require(
             _collateralQtyRedeemed > precisionRatio,
             "Volmex: Collateral qty is less"
@@ -135,5 +138,7 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
             _inverseVolatilityIndexTokenQty,
             fee
         );
+
+        return (effectiveCollateralQty, fee);
     }
 }
