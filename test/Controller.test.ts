@@ -1351,7 +1351,7 @@ describe("VolmexController", function () {
         volatilityTokenPrice1 += 500000;
       }
       const datapoints = await volmexOracle.getIndexDataPoints(volatilityIndex);
-      assert.equal(datapoints.length, 180);
+      assert.equal(datapoints.length, 6);
       const indexTwap = await volmexOracle.getIndexTwap(volatilityIndex);
       await (
         await volatilities["ETH"].approve(controller.address, "999999999999999999999999")

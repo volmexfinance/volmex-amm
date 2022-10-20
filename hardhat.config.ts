@@ -53,6 +53,11 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       allowUnlimitedContractSize: false,
+      forking: {
+        enabled: true,
+        url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.POLYGON_MAINNET_ALCHEMY_API_KEY}`,
+        blockNumber: 34033365
+      }
     },
     localhost: {
       url: "http://127.0.0.1:8545", // same address and port for both Buidler and Ganache node
@@ -92,6 +97,15 @@ const config: HardhatUserConfig = {
       gas: 5000000,
       gasPrice: 10000000000,
       blockGasLimit: 8000000,
+    },
+    polygon: {
+      url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.POLYGON_MAINNET_ALCHEMY_API_KEY}`,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      throwOnTransactionFailures: true,
+      loggingEnabled: true,
+      gas: 5000000,
+      blockGasLimit: 8000000,
+      timeout: 18000000
     }
   },
   etherscan: {
