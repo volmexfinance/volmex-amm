@@ -248,7 +248,7 @@ contract VolmexProtocolV1 is
     {
         uint256 collQtyToBeRedeemed = _positionTokenQty * volatilityCapRatio;
 
-        return _redeem(collQtyToBeRedeemed, _positionTokenQty, _positionTokenQty);
+        return _redeem(collQtyToBeRedeemed, _positionTokenQty, _positionTokenQty, msg.sender);
     }
 
     /**
@@ -265,7 +265,8 @@ contract VolmexProtocolV1 is
      */
     function redeemSettled(
         uint256 _volatilityIndexTokenQty,
-        uint256 _inverseVolatilityIndexTokenQty
+        uint256 _inverseVolatilityIndexTokenQty,
+        address _receiver
     ) public virtual onlyActive onlySettled returns (uint256, uint256) {
         uint256 collQtyToBeRedeemed =
             (_volatilityIndexTokenQty * settlementPrice) +
@@ -275,7 +276,8 @@ contract VolmexProtocolV1 is
         return _redeem(
             collQtyToBeRedeemed,
             _volatilityIndexTokenQty,
-            _inverseVolatilityIndexTokenQty
+            _inverseVolatilityIndexTokenQty,
+            _receiver
         );
     }
 
@@ -388,7 +390,7 @@ contract VolmexProtocolV1 is
         onlyActive
         onlySettled
     {
-        (uint256 collQtyToBeRedeemed,) = redeemSettled(_volatilityTokenAmount, _volatilityTokenAmount);
+        (uint256 collQtyToBeRedeemed,) = redeemSettled(_volatilityTokenAmount, _volatilityTokenAmount, address(this));
         collateral.approve(address(v2Protocol), collQtyToBeRedeemed);
         (uint256 volatilityAmount,) = v2Protocol.collateralize(collQtyToBeRedeemed);
 
@@ -402,7 +404,8 @@ contract VolmexProtocolV1 is
     function _redeem(
         uint256 _collateralQtyRedeemed,
         uint256 _volatilityIndexTokenQty,
-        uint256 _inverseVolatilityIndexTokenQty
+        uint256 _inverseVolatilityIndexTokenQty,
+        address _receiver
     ) internal virtual returns (uint256, uint256) {
         uint256 fee;
         if (redeemFees > 0) {
@@ -418,8 +421,7 @@ contract VolmexProtocolV1 is
             _inverseVolatilityIndexTokenQty
         );
 
-        address receiver = isSettled ? address(this) : msg.sender;
-        collateral.transfer(receiver, _collateralQtyRedeemed);
+        collateral.transfer(_receiver, _collateralQtyRedeemed);
 
         emit Redeemed(
             msg.sender,
