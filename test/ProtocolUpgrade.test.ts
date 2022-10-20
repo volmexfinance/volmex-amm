@@ -118,9 +118,7 @@ describe("Volmex Protocol", function () {
     let newPositionTokenCreatedEvent: Result[];
     let v1factory: Contract;
     this.beforeAll(async () => {
-      protocolFactory = (await ethers.getContractFactory(
-        "VolmexProtocol"
-      ));
+      protocolFactory = await ethers.getContractFactory("VolmexProtocol");
     });
 
     this.beforeEach(async () => {
@@ -129,10 +127,7 @@ describe("Volmex Protocol", function () {
       v1factory = await upgrades.deployProxy(indexFactory, [VolmexPositionToken.address]);
       await v1factory.deployed();
 
-      const clonedPositionTokens = await v1factory.createVolatilityTokens(
-        "VIV ETH",
-        "VIVE"
-      );
+      const clonedPositionTokens = await v1factory.createVolatilityTokens("VIV ETH", "VIVE");
 
       const transaction = await clonedPositionTokens.wait();
 
@@ -146,7 +141,7 @@ describe("Volmex Protocol", function () {
         newPositionTokenCreatedEvent[0].volatilityToken,
         newPositionTokenCreatedEvent[0].inverseVolatilityToken,
         "25000000000000000000",
-        "300",
+        "250",
       ]);
       await protocol.deployed();
 
@@ -167,23 +162,40 @@ describe("Volmex Protocol", function () {
       expect(await protocol.deployed());
     });
 
-    it ("Should migrate to V2", async () => {
-      await (await CollateralToken.approve(VolmexProtocol.address, "10000000000000000000000000000000000")).wait();
+    it("Should migrate to V2", async () => {
+      await (
+        await CollateralToken.approve(
+          VolmexProtocol.address,
+          "10000000000000000000000000000000000"
+        )
+      ).wait();
       await (await VolmexProtocol.collateralize("10000000000000000000000")).wait();
 
       const ethv = VolmexPositionToken.attach(positionTokenCreatedEvent[0].volatilityToken);
-      const iethv = VolmexPositionToken.attach(positionTokenCreatedEvent[0].inverseVolatilityToken);
-      console.log("ETHV", (await ethv.balanceOf(await accounts[0].getAddress())).toString());
-      console.log("iETHV", (await iethv.balanceOf(await accounts[0].getAddress())).toString());
+      const beforeBalance = await ethv.balanceOf(await accounts[0].getAddress());
 
       await (await VolmexProtocol.settle("250")).wait();
 
-      await (await VolmexProtocol.migrateToV2((await ethv.balanceOf(await accounts[0].getAddress())).toString())).wait();
-      const vive = VolmexPositionToken.attach(newPositionTokenCreatedEvent[0].volatilityToken);
-      const ivive = VolmexPositionToken.attach(newPositionTokenCreatedEvent[0].inverseVolatilityToken);
+      await (
+        await VolmexProtocol.migrateToV2(
+          (await ethv.balanceOf(await accounts[0].getAddress())).toString()
+        )
+      ).wait();
 
-      console.log("VIVE", (await vive.balanceOf(await accounts[0].getAddress())).toString());
-      console.log("iVIVE", (await ivive.balanceOf(await accounts[0].getAddress())).toString());
+      const vive = VolmexPositionToken.attach(newPositionTokenCreatedEvent[0].volatilityToken);
+      const afterBalance = await vive.balanceOf(await accounts[0].getAddress());
+
+      const redeemedCollateral = beforeBalance.mul(await VolmexProtocol.volatilityCapRatio()).sub(
+        beforeBalance
+          .mul(await VolmexProtocol.volatilityCapRatio())
+          .mul(await VolmexProtocol.redeemFees())
+          .div(10000)
+      );
+      const actualConversion = redeemedCollateral
+        .sub(redeemedCollateral.mul(await VolmexProtocol.issuanceFees()).div(10000))
+        .div(await protocol.volatilityCapRatio());
+
+      expect(afterBalance).to.equal(actualConversion);
     });
   });
 });
