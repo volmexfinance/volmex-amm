@@ -381,7 +381,7 @@ contract VolmexProtocolV1 is
     /**
      * @notice Used to migrate to V2 protocol
      *
-     * @param _volatilityTokenAmount Amount of tokens that neeeds to migrate
+     * @param _volatilityTokenAmount Amount of tokens that needs to migrate
      *
      */
     function migrateToV2(uint256 _volatilityTokenAmount)
