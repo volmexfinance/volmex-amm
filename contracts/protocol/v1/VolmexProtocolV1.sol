@@ -36,11 +36,13 @@ contract VolmexProtocolV1 is
     );
     event Redeemed(
         address indexed sender,
+        address indexed receiver,
         uint256 collateralReleased,
         uint256 volatilityIndexTokenBurned,
         uint256 inverseVolatilityIndexTokenBurned,
         uint256 fees
     );
+    event NewProtocolSet(address indexed newProtocol);
 
     // Has the value of minimum collateral qty required
     uint256 public minimumCollateralQty;
@@ -289,7 +291,7 @@ contract VolmexProtocolV1 is
      * The inverse volatility index token at settlement is worth volatilityCapRatio - volatility index settlement price
      */
     function settle(uint256 _settlementPrice)
-        external
+        public
         virtual
         onlyOwner
         onlyNotSettled
@@ -374,8 +376,16 @@ contract VolmexProtocolV1 is
      *
      * @param _v2Protocol Address of the V2 protocol
      */
-    function setV2Protocol(IVolmexProtocol _v2Protocol) external onlyOwner {
+    function setV2Protocol(
+        IVolmexProtocol _v2Protocol,
+        bool isSettling,
+        uint256 _settlementPrice
+    ) external virtual onlyOwner {
         v2Protocol = _v2Protocol;
+        if(isSettling) {
+            settle(_settlementPrice);
+        }
+        emit NewProtocolSet(address(_v2Protocol));
     }
 
     /**
@@ -390,6 +400,7 @@ contract VolmexProtocolV1 is
         onlyActive
         onlySettled
     {
+        require(_volatilityTokenAmount != 0, "Volmex: amount should be non-zero");
         (uint256 collQtyToBeRedeemed,) = redeemSettled(_volatilityTokenAmount, _volatilityTokenAmount, address(this));
         collateral.approve(address(v2Protocol), collQtyToBeRedeemed);
         (uint256 volatilityAmount,) = v2Protocol.collateralize(collQtyToBeRedeemed);
@@ -425,6 +436,7 @@ contract VolmexProtocolV1 is
 
         emit Redeemed(
             msg.sender,
+            _receiver,
             _collateralQtyRedeemed,
             _volatilityIndexTokenQty,
             _inverseVolatilityIndexTokenQty,

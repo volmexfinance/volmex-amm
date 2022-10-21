@@ -134,6 +134,7 @@ contract VolmexProtocolWithPrecisionV1 is VolmexProtocolV1 {
 
         emit Redeemed(
             msg.sender,
+            _receiver,
             effectiveCollateralQty,
             _volatilityIndexTokenQty,
             _inverseVolatilityIndexTokenQty,
