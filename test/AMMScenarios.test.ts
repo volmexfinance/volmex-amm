@@ -353,43 +353,6 @@ describe("VolmexController", function () {
             await (await protocols["BTCVDAI"].connect(swapper2).collateralize(volatilityTokens)).wait();
         });
 
-        it("Should do huge swap and check the price change", async () => {
-            const poolAmountOut = "2000000000000000000000000";
-            const amountsIn = await poolView.getTokensToJoin(pools["ETH"].address, poolAmountOut);
-            await (
-                await volatilities["ETH"]
-                    .connect(lpHolder)
-                    .approve(controller.address, amountsIn[0].toString())
-            ).wait();
-            await (
-                await inverseVolatilities["ETH"]
-                    .connect(lpHolder)
-                    .approve(controller.address, amountsIn[0].toString())
-            ).wait();
-            const add = await controller
-                .connect(lpHolder)
-                .addLiquidity(poolAmountOut, [amountsIn[0].toString(), amountsIn[0].toString()], "0");
-            await add.wait();
-
-            const Swapper = await ethers.getContractFactory("Swapper");
-            const swapper = await Swapper.deploy(poolView.address, controller.address); 
-            await swapper.deployed();
-
-            await (await volatilities["ETH"].connect(swapper1).transfer(swapper.address, "8000000000000000000000")).wait();
-            await (await inverseVolatilities["ETH"].connect(swapper1).transfer(swapper.address, "8000000000000000000000")).wait();
-
-            const amountOut = await pools["ETH"].getTokenAmountOut(volatilities["ETH"].address, "500000000000000000000");
-            console.log("Oracle Price VIVE", (await volmexOracle.latestRoundData(0))[0]);
-            await (await swapper.doSwap(
-                pools["ETH"].address,
-                volatilities["ETH"].address,
-                "500000000000000000000",
-                inverseVolatilities["ETH"].address,
-                amountOut[0]
-            )).wait();
-            await (await pools["ETH"].reprice()).wait();
-        });
-
         it("Should swap volatility to collateral", async () => {
             let volatilityIndexes = ["0"];
             let volatilityTokenPrices = ["140000000"];
