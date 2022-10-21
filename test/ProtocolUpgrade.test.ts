@@ -154,8 +154,6 @@ describe("Volmex Protocol", function () {
       );
 
       await volmexProtocolRegister.wait();
-
-      await (await VolmexProtocol.setV2Protocol(protocol.address)).wait();
     });
 
     it("Should deploy protocol v2", async () => {
@@ -174,7 +172,7 @@ describe("Volmex Protocol", function () {
       const ethv = VolmexPositionToken.attach(positionTokenCreatedEvent[0].volatilityToken);
       const beforeBalance = await ethv.balanceOf(await accounts[0].getAddress());
 
-      await (await VolmexProtocol.settle("250")).wait();
+      await (await VolmexProtocol.setV2Protocol(protocol.address, true, 250)).wait();
 
       await (
         await VolmexProtocol.migrateToV2(
