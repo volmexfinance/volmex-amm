@@ -7,6 +7,7 @@ import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-truffle5";
 import "@nomiclabs/hardhat-ganache";
 import "@openzeppelin/hardhat-upgrades";
+import "@openzeppelin/hardhat-defender";
 
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
@@ -31,6 +32,10 @@ import { HardhatUserConfig } from "hardhat/types";
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
+  defender: {
+    apiKey: process.env.DEFENDER_TEAM_API_KEY,
+    apiSecret: process.env.DEFENDER_TEAM_API_SECRET_KEY,
+  },
   contractSizer: {
     alphaSort: true,
     runOnCompile: true,
