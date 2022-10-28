@@ -18,6 +18,7 @@ contract VolmexPositionToken is
     // Position token role, calculated as keccak256("VOLMEX_PROTOCOL_ROLE")
     bytes32 public constant VOLMEX_PROTOCOL_ROLE =
         0x33ba6006595f7ad5c59211bde33456cab351f47602fc04f644c8690bc73c4e16;
+    event UpdatedToken(string memory name, string memory sybmol);
 
     /**
      * @dev Grants `DEFAULT_ADMIN_ROLE` and `VOLMEX_PROTOCOL_ROLE` to the
@@ -37,6 +38,20 @@ contract VolmexPositionToken is
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(VOLMEX_PROTOCOL_ROLE, msg.sender);
+    }
+
+    /**
+     * @dev  
+     * Updates token name to '_name' & token symbol to '_symbol'
+     */
+    function updateToken(string memory _name, string memory _symbol) external virtual {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "VolmexPositionToken: must have default admin role to update token"
+        );
+        name = _name;
+        symbol = _symbol;
+        emit UpdatedToken(_name, _symbol);
     }
 
     /**
