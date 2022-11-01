@@ -6,13 +6,14 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "../interfaces/IERC20Modified.sol";
+import "../../interfaces/IERC20Modified.sol";
+import "../../interfaces/IVolmexProtocol.sol";
 
 /**
  * @title Protocol Contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexProtocol is
+contract VolmexProtocolV1 is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable
@@ -35,11 +36,13 @@ contract VolmexProtocol is
     );
     event Redeemed(
         address indexed sender,
+        address indexed receiver,
         uint256 collateralReleased,
         uint256 volatilityIndexTokenBurned,
         uint256 inverseVolatilityIndexTokenBurned,
         uint256 fees
     );
+    event NewProtocolSet(address indexed newProtocol);
 
     // Has the value of minimum collateral qty required
     uint256 public minimumCollateralQty;
@@ -77,6 +80,9 @@ contract VolmexProtocol is
     // This is the price of volatility index, ranges from 0 to volatilityCapRatio,
     // and the inverse can be calculated by subtracting volatilityCapRatio by settlementPrice.
     uint256 public settlementPrice;
+
+    // Address of V2 protocol
+    IVolmexProtocol public v2Protocol;
 
     /**
      * @notice Used to check contract is active
@@ -244,7 +250,7 @@ contract VolmexProtocol is
     {
         uint256 collQtyToBeRedeemed = _positionTokenQty * volatilityCapRatio;
 
-        return _redeem(collQtyToBeRedeemed, _positionTokenQty, _positionTokenQty);
+        return _redeem(collQtyToBeRedeemed, _positionTokenQty, _positionTokenQty, msg.sender);
     }
 
     /**
@@ -261,7 +267,8 @@ contract VolmexProtocol is
      */
     function redeemSettled(
         uint256 _volatilityIndexTokenQty,
-        uint256 _inverseVolatilityIndexTokenQty
+        uint256 _inverseVolatilityIndexTokenQty,
+        address _receiver
     ) public virtual onlyActive onlySettled returns (uint256, uint256) {
         uint256 collQtyToBeRedeemed =
             (_volatilityIndexTokenQty * settlementPrice) +
@@ -271,7 +278,8 @@ contract VolmexProtocol is
         return _redeem(
             collQtyToBeRedeemed,
             _volatilityIndexTokenQty,
-            _inverseVolatilityIndexTokenQty
+            _inverseVolatilityIndexTokenQty,
+            _receiver
         );
     }
 
@@ -283,7 +291,7 @@ contract VolmexProtocol is
      * The inverse volatility index token at settlement is worth volatilityCapRatio - volatility index settlement price
      */
     function settle(uint256 _settlementPrice)
-        external
+        public
         virtual
         onlyOwner
         onlyNotSettled
@@ -363,10 +371,52 @@ contract VolmexProtocol is
         emit ToggledVolatilityTokenPause(_isPause);
     }
 
+    /**
+     * @notice Used to set the V2 protocol
+     *
+     * @param _v2Protocol Address of the V2 protocol
+     */
+    function setV2Protocol(
+        IVolmexProtocol _v2Protocol,
+        bool isSettling,
+        uint256 _settlementPrice
+    ) external virtual onlyOwner {
+        v2Protocol = _v2Protocol;
+        if(isSettling) {
+            settle(_settlementPrice);
+        }
+        emit NewProtocolSet(address(_v2Protocol));
+    }
+
+    /**
+     * @notice Used to migrate to V2 protocol
+     *
+     * @param _volatilityTokenAmount Amount of tokens that needs to migrate
+     *
+     */
+    function migrateToV2(uint256 _volatilityTokenAmount)
+        external
+        virtual
+        onlyActive
+        onlySettled
+    {
+        require(_volatilityTokenAmount != 0, "Volmex: amount should be non-zero");
+        (uint256 collQtyToBeRedeemed,) = redeemSettled(_volatilityTokenAmount, _volatilityTokenAmount, address(this));
+        collateral.approve(address(v2Protocol), collQtyToBeRedeemed);
+        (uint256 volatilityAmount,) = v2Protocol.collateralize(collQtyToBeRedeemed);
+
+        IERC20Modified _volatilityToken = v2Protocol.volatilityToken();
+        IERC20Modified _inverseVolatilityToken = v2Protocol.inverseVolatilityToken();
+
+        _volatilityToken.transfer(msg.sender, volatilityAmount);
+        _inverseVolatilityToken.transfer(msg.sender, volatilityAmount);
+    }
+
     function _redeem(
         uint256 _collateralQtyRedeemed,
         uint256 _volatilityIndexTokenQty,
-        uint256 _inverseVolatilityIndexTokenQty
+        uint256 _inverseVolatilityIndexTokenQty,
+        address _receiver
     ) internal virtual returns (uint256, uint256) {
         uint256 fee;
         if (redeemFees > 0) {
@@ -382,10 +432,11 @@ contract VolmexProtocol is
             _inverseVolatilityIndexTokenQty
         );
 
-        collateral.transfer(msg.sender, _collateralQtyRedeemed);
+        collateral.transfer(_receiver, _collateralQtyRedeemed);
 
         emit Redeemed(
             msg.sender,
+            _receiver,
             _collateralQtyRedeemed,
             _volatilityIndexTokenQty,
             _inverseVolatilityIndexTokenQty,

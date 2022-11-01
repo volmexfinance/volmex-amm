@@ -2,7 +2,7 @@
 
 pragma solidity =0.8.11;
 
-import "./VolmexProtocol.sol";
+import "./VolmexProtocolV1.sol";
 
 /**
  * @title Protocol Contract with Precision
@@ -10,7 +10,7 @@ import "./VolmexProtocol.sol";
  *
  * This protocol is used for decimal values less than 18.
  */
-contract VolmexProtocolWithPrecision is VolmexProtocol {
+contract VolmexProtocolWithPrecisionV1 is VolmexProtocolV1 {
     // This is the ratio of standard ERC20 tokens decimals by custom token decimals
     // Calculation for USDC: 10^18 / 10^6 = 10^12
     // Where 10^18 represent precision of volatility token decimals and 10^6 represent USDC (collateral) decimals
@@ -104,7 +104,8 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
     function _redeem(
         uint256 _collateralQtyRedeemed,
         uint256 _volatilityIndexTokenQty,
-        uint256 _inverseVolatilityIndexTokenQty
+        uint256 _inverseVolatilityIndexTokenQty,
+        address _receiver
     ) internal virtual override returns (uint256, uint256) {
         require(
             _collateralQtyRedeemed > precisionRatio,
@@ -129,10 +130,11 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
             _inverseVolatilityIndexTokenQty
         );
 
-        collateral.transfer(msg.sender, effectiveCollateralQty);
+        collateral.transfer(_receiver, effectiveCollateralQty);
 
         emit Redeemed(
             msg.sender,
+            _receiver,
             effectiveCollateralQty,
             _volatilityIndexTokenQty,
             _inverseVolatilityIndexTokenQty,
