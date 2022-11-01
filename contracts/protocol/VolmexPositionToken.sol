@@ -21,6 +21,9 @@ contract VolmexPositionToken is
     bytes32 public constant VOLMEX_PROTOCOL_ROLE =
         0x33ba6006595f7ad5c59211bde33456cab351f47602fc04f644c8690bc73c4e16;
 
+    // Openzepplin's ERC20 name and symbol variables are private
+    // To add functionality to update the token metadata, we added another variables
+    // We added the override public-view method, to compensate on ERC20's methods
     // name of the token
     string private _vivName;
     // symbol of the token
