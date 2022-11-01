@@ -32,10 +32,6 @@ import { HardhatUserConfig } from "hardhat/types";
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
-  defender: {
-    apiKey: process.env.DEFENDER_TEAM_API_KEY,
-    apiSecret: process.env.DEFENDER_TEAM_API_SECRET_KEY,
-  },
   contractSizer: {
     alphaSort: true,
     runOnCompile: true,
@@ -119,13 +115,17 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   gasReporter: {
-    currency: 'USD',
+    currency: "USD",
     gasPrice: 21
   },
   typechain: {
     outDir: "typechain",
     target: "ethers-v5",
   },
+  defender: {
+    apiKey: process.env.DEFENDER_TEAM_API_KEY || "",
+    apiSecret: process.env.DEFENDER_TEAM_API_SECRET_KEY || "",
+  }
 };
 
 export default config;
