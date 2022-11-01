@@ -36,7 +36,6 @@ contract VolmexPositionToken is
         external
         initializer
     {
-        __ERC20_init_unchained(_name, _symbol);
         __AccessControl_init_unchained();
 
         __ERC20Pausable_init();
