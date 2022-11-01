@@ -199,7 +199,7 @@ contract VolmexProtocolV1 is
         virtual
         onlyActive
         onlyNotSettled
-        returns (uint256, uint256)
+        returns (uint256 qtyToBeMinted, uint256 fee)
     {
         require(
             _collateralQty >= minimumCollateralQty,
@@ -214,14 +214,13 @@ contract VolmexProtocolV1 is
 
         _collateralQty = finalProtocolBalance - initialProtocolBalance;
 
-        uint256 fee;
         if (issuanceFees > 0) {
             fee = (_collateralQty * issuanceFees) / 10000;
             _collateralQty = _collateralQty - fee;
             accumulatedFees = accumulatedFees + fee;
         }
 
-        uint256 qtyToBeMinted = _collateralQty / volatilityCapRatio;
+        qtyToBeMinted = _collateralQty / volatilityCapRatio;
 
         volatilityToken.mint(msg.sender, qtyToBeMinted);
         inverseVolatilityToken.mint(msg.sender, qtyToBeMinted);
@@ -246,11 +245,11 @@ contract VolmexProtocolV1 is
         virtual
         onlyActive
         onlyNotSettled
-        returns (uint256, uint256)
+        returns (uint256 collateralRedeemed, uint256 fee)
     {
         uint256 collQtyToBeRedeemed = _positionTokenQty * volatilityCapRatio;
 
-        return _redeem(collQtyToBeRedeemed, _positionTokenQty, _positionTokenQty, msg.sender);
+        (collateralRedeemed, fee) =  _redeem(collQtyToBeRedeemed, _positionTokenQty, _positionTokenQty, msg.sender);
     }
 
     /**
@@ -269,13 +268,13 @@ contract VolmexProtocolV1 is
         uint256 _volatilityIndexTokenQty,
         uint256 _inverseVolatilityIndexTokenQty,
         address _receiver
-    ) public virtual onlyActive onlySettled returns (uint256, uint256) {
+    ) public virtual onlyActive onlySettled returns (uint256 collateralRedeemed, uint256 fee) {
         uint256 collQtyToBeRedeemed =
             (_volatilityIndexTokenQty * settlementPrice) +
                 (_inverseVolatilityIndexTokenQty *
                     (volatilityCapRatio - settlementPrice));
 
-        return _redeem(
+        (collateralRedeemed, fee) = _redeem(
             collQtyToBeRedeemed,
             _volatilityIndexTokenQty,
             _inverseVolatilityIndexTokenQty,
@@ -417,12 +416,13 @@ contract VolmexProtocolV1 is
         uint256 _volatilityIndexTokenQty,
         uint256 _inverseVolatilityIndexTokenQty,
         address _receiver
-    ) internal virtual returns (uint256, uint256) {
-        uint256 fee;
+    ) internal virtual returns (uint256 collateralRedeemed, uint256 fee) {
         if (redeemFees > 0) {
             fee = (_collateralQtyRedeemed * redeemFees) / 10000;
-            _collateralQtyRedeemed = _collateralQtyRedeemed - fee;
+            collateralRedeemed = _collateralQtyRedeemed - fee;
             accumulatedFees = accumulatedFees + fee;
+        } else {
+            collateralRedeemed = _collateralQtyRedeemed;
         }
 
         volatilityToken.burn(msg.sender, _volatilityIndexTokenQty);
@@ -432,17 +432,17 @@ contract VolmexProtocolV1 is
             _inverseVolatilityIndexTokenQty
         );
 
-        collateral.transfer(_receiver, _collateralQtyRedeemed);
+        collateral.transfer(_receiver, collateralRedeemed);
 
         emit Redeemed(
             msg.sender,
             _receiver,
-            _collateralQtyRedeemed,
+            collateralRedeemed,
             _volatilityIndexTokenQty,
             _inverseVolatilityIndexTokenQty,
             fee
         );
 
-        return (_collateralQtyRedeemed, fee);
+        return (collateralRedeemed, fee);
     }
 }
