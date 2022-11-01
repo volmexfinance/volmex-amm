@@ -56,7 +56,7 @@ contract VolmexPositionToken is
     function updateTokenMetadata(string memory _name, string memory _symbol) external virtual {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "VolmexPositionToken: must have default admin role to update token"
+            "VolmexPositionToken: not admin"
         );
         _vivName = _name;
         _vivSymbol = _symbol;
