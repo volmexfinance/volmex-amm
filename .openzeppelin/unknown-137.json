@@ -72,6 +72,41 @@
       "address": "0x77502a97D697801CD3CA799B589c7310dEF78F66",
       "txHash": "0xaa8415473234cb0723d40b0ef2d27f02330002c3f421516c4e9e47c80d3017ed",
       "kind": "transparent"
+    },
+    {
+      "address": "0x60248bA0104EB51D91877Ee2302c0C5affB5f2aa",
+      "txHash": "0xedda1fb6c2bf51aa384c9caa93a93f3e6071fe40c06ca79d2b9a55aecf6e1763",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x3378D33EA0e3501B9dbdA9624DfE8f85CD69621e",
+      "txHash": "0x5aec7b0b5b420960ab399847aed698496fbdb45a0cc883101925fd43d449f96a",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xbcD2D8f9445bE36B096CB4EAe6b90D948916FA63",
+      "txHash": "0x00a7ee548a3952ff163fcbba409f8f816958dede63be5d573adc355e0e54ba62",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xFE302c5E31D19Cf0732d46D1B230E1C42ee26B6F",
+      "txHash": "0x520b104833c0074622fd1433f85c3d4f112798ab9507378399cd12ab3f590b8e",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x9B71a25f703Be7AFFb6DF1c3ff47F072662aB765",
+      "txHash": "0x60812c195b1b8a2433e015d3159b6a35eb5df72b7c7b236571f852035a3e68a3",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xDd634320A76DF41c61C1a052c8FB2700192675C3",
+      "txHash": "0x3187e32a6693b881424e58906324fbce3f32982c010f1c2e02b1bd3c93414372",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xa28FC30B2A54De2e5211755297d31bF74ac2fff9",
+      "txHash": "0xb79e177f8f4e1f183d891fd6e09bf36a645182cf6027f3d70bdf00a4719ab7a3",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -860,6 +895,175 @@
           },
           "t_uint256": {
             "label": "uint256"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          }
+        }
+      }
+    },
+    "04c9d04ad51703802c461302f2c2325fea9b89202f6811b4edc8ac9059cc2877": {
+      "address": "0x826B7800242bfEd6088E1B045b9588D901Ec4022",
+      "txHash": "0xe82d52f088d41ef3c7fc42de6eb9841ac26f00ba34a29f2df7a8b56da4687795",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:37"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:42"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:82"
+          },
+          {
+            "contract": "PausableUpgradeable",
+            "label": "_paused",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
+          },
+          {
+            "contract": "PausableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:97"
+          },
+          {
+            "contract": "ERC165Upgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:36"
+          },
+          {
+            "contract": "ERC165StorageUpgradeable",
+            "label": "_supportedInterfaces",
+            "type": "t_mapping(t_bytes4,t_bool)",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol:26"
+          },
+          {
+            "contract": "ERC165StorageUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165StorageUpgradeable.sol:50"
+          },
+          {
+            "contract": "VolmexController",
+            "label": "stableCoinIndex",
+            "type": "t_uint256",
+            "src": "contracts/VolmexController.sol:35"
+          },
+          {
+            "contract": "VolmexController",
+            "label": "poolIndex",
+            "type": "t_uint256",
+            "src": "contracts/VolmexController.sol:37"
+          },
+          {
+            "contract": "VolmexController",
+            "label": "allPools",
+            "type": "t_array(t_address)dyn_storage",
+            "src": "contracts/VolmexController.sol:39"
+          },
+          {
+            "contract": "VolmexController",
+            "label": "protocols",
+            "type": "t_mapping(t_uint256,t_mapping(t_uint256,t_contract(IVolmexProtocol)13710))",
+            "src": "contracts/VolmexController.sol:55"
+          },
+          {
+            "contract": "VolmexController",
+            "label": "stableCoins",
+            "type": "t_mapping(t_uint256,t_contract(IERC20Modified)12702)",
+            "src": "contracts/VolmexController.sol:60"
+          },
+          {
+            "contract": "VolmexController",
+            "label": "pools",
+            "type": "t_mapping(t_uint256,t_contract(IVolmexPool)13424)",
+            "src": "contracts/VolmexController.sol:62"
+          },
+          {
+            "contract": "VolmexController",
+            "label": "isPool",
+            "type": "t_mapping(t_address,t_bool)",
+            "src": "contracts/VolmexController.sol:64"
+          },
+          {
+            "contract": "VolmexController",
+            "label": "precisionRatios",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "src": "contracts/VolmexController.sol:66"
+          }
+        ],
+        "types": {
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_mapping(t_uint256,t_mapping(t_uint256,t_contract(IVolmexProtocol)13710))": {
+            "label": "mapping(uint256 => mapping(uint256 => contract IVolmexProtocol))"
+          },
+          "t_mapping(t_uint256,t_contract(IVolmexProtocol)13710)": {
+            "label": "mapping(uint256 => contract IVolmexProtocol)"
+          },
+          "t_contract(IVolmexProtocol)13710": {
+            "label": "contract IVolmexProtocol"
+          },
+          "t_mapping(t_uint256,t_contract(IERC20Modified)12702)": {
+            "label": "mapping(uint256 => contract IERC20Modified)"
+          },
+          "t_contract(IERC20Modified)12702": {
+            "label": "contract IERC20Modified"
+          },
+          "t_mapping(t_uint256,t_contract(IVolmexPool)13424)": {
+            "label": "mapping(uint256 => contract IVolmexPool)"
+          },
+          "t_contract(IVolmexPool)13424": {
+            "label": "contract IVolmexPool"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          },
+          "t_bool": {
+            "label": "bool"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)"
+          },
+          "t_mapping(t_bytes4,t_bool)": {
+            "label": "mapping(bytes4 => bool)"
+          },
+          "t_bytes4": {
+            "label": "bytes4"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
           },
           "t_array(t_uint256)50_storage": {
             "label": "uint256[50]"

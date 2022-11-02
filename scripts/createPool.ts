@@ -1,22 +1,22 @@
 import { ethers, upgrades, run } from "hardhat";
 
 const Protocols = [
-  "0x52833271fC7Aae6D0451De8D387ca8e248c90e7B", // ETH DAI
-  "0x6995C08611826Af0FE02B6F1a199848F5Db2b477", // ETH USDC
-  "0x08a9eA97042d70b33CbEf217fBB368E0FfDb38d8", // BTC DAI
-  "0x674d9e4493991b984ceB5a179853Bd76f815fc87", // BTC USDC
+  "0xFc016C2109B88413E7cbeBf81b000d8E91c53bD0", // ETH DAI
+  "0x341B0Be0cc91d05937d7AcA43e6b55dBb37aa62a", // ETH USDC
+  "0x322209955f9A62519961ABac71CDbA6CB1708E24", // BTC DAI
+  "0x0553205605A6611dA5c595C46E47A5BBC9B19e14", // BTC USDC
 ];
 
 const Volatility = [
-  "0x6b670Cb9490fc96C9dc56f7F06c54B8C0105b75E", // ETHV
-  "0xe71bbC40443C7708040Ac752Cd86F617473F9B5a",
-  "0x570df55Df6CA6b5b3485FC46209940729b813719", //BTCV
-  "0x4069de818471a08cdDB758177db48a2a25526245",
+  "0x621C37853FF4bFF3089b93f5f0B47fAea16C0767", // ETHV
+  "0xf91BA2E8047b8A2Cbf15c188bC1638a187C9a741",
+  "0x654CAe450283dC5C64F73B096eD36c5Bf38f68F3", //BTCV
+  "0x188B15A084b4107797c8Fc4E0AC33eDc9AE0D895",
 ];
 
 const StableCoins = [
-  "0xeabf1b4f19439af69302d6701a00e3c34d0ad20b", // DAI
-  "0xaFD38467Ef8b9048Ddb853221dE79f993a103f21", // USDC
+  "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063", // DAI
+  "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // USDC
 ];
 
 const createPool = async () => {
@@ -50,13 +50,15 @@ const createPool = async () => {
 
   console.log("Deploying Oracle...");
 
-  const oracle = await upgrades.deployProxy(VolmexOracle, [governor]);
-  await oracle.deployed();
+  const oracle = await VolmexOracle.attach("0x9AD8D5fec1B2dFF3f35F91eb5F638C8Bac6E5E38");
+  // await upgrades.deployProxy(VolmexOracle, ["0x99f4588F53DdC0B0197D82bfeFc620dE0c485eD0"]);
+  // await oracle.deployed();
   console.log("VolmexOracle deployed ", oracle.address);
 
   console.log("Deploying Repricer...");
-  const repricer = await upgrades.deployProxy(VolmexRepricer, [oracle.address, governor]);
-  await repricer.deployed();
+  const repricer = await VolmexRepricer.attach("0x5d0D8CC099ADF1D3ada5aD2066A03d57aeBB4a82");
+  // await upgrades.deployProxy(VolmexRepricer, [oracle.address, governor]);
+  // await repricer.deployed();
   console.log("VolmexRepricer deployed ", repricer.address);
 
   console.log("Creating pool... ");
@@ -107,7 +109,7 @@ const createPool = async () => {
   await (await poolBTC.setController(controller.address)).wait();
   console.log("Set pools controller");
 
-  const joinAmount = "1000000000000000000";
+  const joinAmount = "100000000000000000";
 
   console.log("Approve volatility to pool ETH");
   await ethv.approve(controller.address, joinAmount);
