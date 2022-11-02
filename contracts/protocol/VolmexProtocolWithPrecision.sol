@@ -67,7 +67,7 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
         override
         onlyActive
         onlyNotSettled
-        returns (uint256, uint256)
+        returns (uint256 qtyToBeMinted, uint256 fee)
     {
         require(
             _collateralQty >= minimumCollateralQty,
@@ -82,7 +82,6 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
 
         _collateralQty = finalProtocolBalance - initialProtocolBalance;
 
-        uint256 fee;
         if (issuanceFees > 0) {
             fee = (_collateralQty * issuanceFees) / 10000;
             _collateralQty = _collateralQty - fee;
@@ -91,7 +90,7 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
 
         uint256 effectiveCollateralQty = _collateralQty * precisionRatio;
 
-        uint256 qtyToBeMinted = effectiveCollateralQty / volatilityCapRatio;
+        qtyToBeMinted = effectiveCollateralQty / volatilityCapRatio;
 
         volatilityToken.mint(msg.sender, qtyToBeMinted);
         inverseVolatilityToken.mint(msg.sender, qtyToBeMinted);
@@ -105,16 +104,15 @@ contract VolmexProtocolWithPrecision is VolmexProtocol {
         uint256 _collateralQtyRedeemed,
         uint256 _volatilityIndexTokenQty,
         uint256 _inverseVolatilityIndexTokenQty
-    ) internal virtual override returns (uint256, uint256) {
+    ) internal virtual override returns (uint256 effectiveCollateralQty, uint256 fee) {
         require(
             _collateralQtyRedeemed > precisionRatio,
             "Volmex: Collateral qty is less"
         );
 
-        uint256 effectiveCollateralQty = _collateralQtyRedeemed /
+        effectiveCollateralQty = _collateralQtyRedeemed /
             precisionRatio;
 
-        uint256 fee;
         if (redeemFees > 0) {
             fee =
                 (_collateralQtyRedeemed * redeemFees) /
