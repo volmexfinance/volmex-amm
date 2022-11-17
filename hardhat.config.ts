@@ -33,8 +33,8 @@ import { HardhatUserConfig } from "hardhat/types";
 // Go to https://hardhat.org/config/ to learn more
 const config: HardhatUserConfig = {
   defender: {
-    apiKey: process.env.DEFENDER_TEAM_API_KEY,
-    apiSecret: process.env.DEFENDER_TEAM_API_SECRET_KEY,
+    apiKey: `${process.env.DEFENDER_TEAM_API_KEY}`,
+    apiSecret: `${process.env.DEFENDER_TEAM_API_SECRET_KEY}`,
   },
   contractSizer: {
     alphaSort: true,

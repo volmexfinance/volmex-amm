@@ -1,17 +1,17 @@
 import { ethers, upgrades, run } from "hardhat";
 
 const Protocols = [
-  "0xFc016C2109B88413E7cbeBf81b000d8E91c53bD0", // ETH DAI
-  "0x341B0Be0cc91d05937d7AcA43e6b55dBb37aa62a", // ETH USDC
-  "0x322209955f9A62519961ABac71CDbA6CB1708E24", // BTC DAI
-  "0x0553205605A6611dA5c595C46E47A5BBC9B19e14", // BTC USDC
+  "0x149f21e2861121E217c2CFb4895EA05fF13B5bB0", // ETH DAI
+  "0xcD5CE7cf09DCC15F95b6Cc096Ff247eA46c3E54C", // ETH USDC
+  "0x6eaA3E716D732c39Df41A42516B61ec514c61B3b", // BTC DAI
+  "0x1aDdc97A55905D067EF9c1C103562BF27b51A3d2", // BTC USDC
 ];
 
 const Volatility = [
-  "0x621C37853FF4bFF3089b93f5f0B47fAea16C0767", // ETHV
-  "0xf91BA2E8047b8A2Cbf15c188bC1638a187C9a741",
-  "0x654CAe450283dC5C64F73B096eD36c5Bf38f68F3", //BTCV
-  "0x188B15A084b4107797c8Fc4E0AC33eDc9AE0D895",
+  "0xFdf8D2eCB6FD720D43884CE50BA9aAd1926B5396", // ETHV
+  "0xeE21b34885054368446504730b6EdAf45186C989",
+  "0x095CD8883f38534B1bD543cB7a7910b8023d19b0", //BTCV
+  "0xEed375c6FCf7ee7Fd8Dd19b75FbBe0a7fd36E4d1",
 ];
 
 const StableCoins = [
@@ -50,15 +50,13 @@ const createPool = async () => {
 
   console.log("Deploying Oracle...");
 
-  const oracle = await VolmexOracle.attach("0x9AD8D5fec1B2dFF3f35F91eb5F638C8Bac6E5E38");
-  // await upgrades.deployProxy(VolmexOracle, ["0x99f4588F53DdC0B0197D82bfeFc620dE0c485eD0"]);
-  // await oracle.deployed();
+  const oracle = await upgrades.deployProxy(VolmexOracle, ["0x99f4588F53DdC0B0197D82bfeFc620dE0c485eD0"]);
+  await oracle.deployed();
   console.log("VolmexOracle deployed ", oracle.address);
 
   console.log("Deploying Repricer...");
-  const repricer = await VolmexRepricer.attach("0x5d0D8CC099ADF1D3ada5aD2066A03d57aeBB4a82");
-  // await upgrades.deployProxy(VolmexRepricer, [oracle.address, governor]);
-  // await repricer.deployed();
+  const repricer = await upgrades.deployProxy(VolmexRepricer, [oracle.address, governor]);
+  await repricer.deployed();
   console.log("VolmexRepricer deployed ", repricer.address);
 
   console.log("Creating pool... ");
@@ -153,7 +151,7 @@ const createPool = async () => {
   await poolView.deployed();
   console.log("VolmexPoolView deployed", poolView.address);
 
-  console.log("\nDeployment History");
+  console.log("\nDeployment History\n");
   console.log("VolmexPool ETH: ", poolETH.address);
   console.log("VolmexPool BTC: ", poolBTC.address);
   console.log("VolmexRepricer: ", repricer.address);
