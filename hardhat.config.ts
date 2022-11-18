@@ -70,14 +70,6 @@ const config: HardhatUserConfig = {
       gas: 8000000,
       gasPrice: 1,
     },
-    rinkeby: {
-      url: `https://eth-rinkeby.alchemyapi.io/v2/${process.env.RINKEBY_ALCHEMY_API_KEY}`,
-      accounts: [`0x${process.env.PRIVATE_KEY}`],
-      throwOnTransactionFailures: true,
-      loggingEnabled: true,
-      gas: 5000000,
-      gasPrice: 10000000000
-    },
     goerli: {
       url: `https://eth-goerli.alchemyapi.io/v2/${process.env.GOERLI_ALCHEMY_API_KEY}`,
       accounts: [`0x${process.env.PRIVATE_KEY}`],
@@ -87,12 +79,6 @@ const config: HardhatUserConfig = {
       gasPrice: 200000000000,
       blockGasLimit: 8000000,
       timeout: 10800000
-    },
-    kovan: {
-      url: `https://eth-kovan.alchemyapi.io/v2/${process.env.KOVAN_ALCHEMY_API_KEY}`,
-      accounts: [`0x${process.env.PRIVATE_KEY}`],
-      throwOnTransactionFailures: true,
-      loggingEnabled: true,
     },
     mumbai: {
       url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.POLYGON_TESTNET_ALCHEMY_API_KEY}`,
@@ -119,13 +105,13 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   gasReporter: {
-    currency: 'USD',
+    currency: "USD",
     gasPrice: 21
   },
   typechain: {
     outDir: "typechain",
     target: "ethers-v5",
-  },
+  }
 };
 
 export default config;
