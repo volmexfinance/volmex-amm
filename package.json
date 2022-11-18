@@ -67,7 +67,7 @@
         "@openzeppelin/contracts-ethereum-package": "^3.0.0",
         "@openzeppelin/contracts-upgradeable": "4.4.0",
         "@openzeppelin/hardhat-defender": "^1.8.1",
-        "@openzeppelin/hardhat-upgrades": "^1.10.0",
+        "@openzeppelin/hardhat-upgrades": "1.10.0",
         "@openzeppelin/test-helpers": "^0.5.13",
         "abdk-libraries-solidity": "^3.0.0",
         "csv-parse": "^4.15.3",

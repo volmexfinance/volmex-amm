@@ -1197,13 +1197,22 @@
     defender-base-client "^1.3.1"
     ethereumjs-util "^7.1.5"
 
-"@openzeppelin/hardhat-upgrades@^1.10.0":
-  version "1.14.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.14.0.tgz#a84c4088061959164468ae10a2ae53faaa3163fd"
-  integrity sha512-dWLC+cgawHcZ5AbEblA3nTrBpcG9J7Z7J5UmM7qdsc/Yc97USJjXfcD6uYOQ+PhyFVBY0Ni83WGVll48d4QRWQ==
+"@openzeppelin/hardhat-upgrades@1.10.0":
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.10.0.tgz#e7751e3b9a005ccc9cef4e0de190628b181b59b6"
+  integrity sha512-iGe058iV7Ba/g11RxlbqBG47nbqbZn1FRdg1FCQq7xPmvjRhXmFsoI/5gGw5el0aZlLDRtpFOBZbzMZvI/S7iw==
   dependencies:
-    "@openzeppelin/upgrades-core" "^1.12.0"
+    "@openzeppelin/upgrades-core" "^1.9.0"
+
+"@openzeppelin/hardhat-upgrades@^1.20.0":
+  version "1.21.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/hardhat-upgrades/-/hardhat-upgrades-1.21.0.tgz#e90fb7d858093f35a300b3a5a2fd32bca6179dfc"
+  integrity sha512-Kwl7IN0Hlhj4HluMTTl0DrtU90OI/Q6rG3sAyd2pv3fababe9EuZqs9DydOlkWM45JwTzC+eBzX3TgHsqI13eA==
+  dependencies:
+    "@openzeppelin/upgrades-core" "^1.20.0"
     chalk "^4.1.0"
+    debug "^4.1.1"
+    proper-lockfile "^4.1.1"
 
 "@openzeppelin/hardhat-upgrades@^1.20.0":
   version "1.21.0"
@@ -1231,15 +1240,14 @@
     web3 "^1.2.5"
     web3-utils "^1.2.5"
 
-"@openzeppelin/upgrades-core@^1.12.0":
-  version "1.12.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.12.0.tgz#847aeeba38780040672f8288795c824a4c9d97e6"
-  integrity sha512-gu/ijQW+RJqGlniNkpNmiwBus3R1cuJNT0/MEJASWRFNr4Qvn0d7LZONaAkhnvlBpxdiiPenMcFIrRlwvZL4iw==
+"@openzeppelin/upgrades-core@^1.20.0", "@openzeppelin/upgrades-core@^1.9.0":
+  version "1.20.4"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.20.4.tgz#bd79d87ff395af851cd0f4d66ef77f64c690641b"
+  integrity sha512-Y4/+BPIbnopfE6ZhPOE2CD0V5fnvDxKKm7+kryx5+WrcRCTW3B5DjbXL9xyyoviG8Rn5EXUh5Fk1GLbiYDfu0g==
   dependencies:
-    bn.js "^5.1.2"
     cbor "^8.0.0"
     chalk "^4.1.0"
-    compare-versions "^4.0.0"
+    compare-versions "^5.0.0"
     debug "^4.1.1"
     ethereumjs-util "^7.0.3"
     proper-lockfile "^4.1.1"
@@ -4759,10 +4767,10 @@ commander@^8.1.0:
   resolved "https://registry.yarnpkg.com/commander/-/commander-8.3.0.tgz#4837ea1b2da67b9c616a67afbb0fafee567bca66"
   integrity sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww==
 
-compare-versions@^4.0.0:
-  version "4.1.3"
-  resolved "https://registry.yarnpkg.com/compare-versions/-/compare-versions-4.1.3.tgz#8f7b8966aef7dc4282b45dfa6be98434fc18a1a4"
-  integrity sha512-WQfnbDcrYnGr55UwbxKiQKASnTtNnaAWVi8jZyy8NTpVAXWACSne8lMD1iaIo9AiU6mnuLvSVshCzewVuWxHUg==
+compare-versions@^5.0.0:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/compare-versions/-/compare-versions-5.0.1.tgz#14c6008436d994c3787aba38d4087fabe858555e"
+  integrity sha512-v8Au3l0b+Nwkp4G142JcgJFh1/TUhdxut7wzD1Nq1dyp5oa3tXaqb03EXOAB6jS4gMlalkjAUPZBMiAfKUixHQ==
 
 compare-versions@^5.0.0:
   version "5.0.1"
@@ -5373,19 +5381,19 @@ defaults@^1.0.3:
     clone "^1.0.2"
 
 defender-admin-client@^1.29.0-rc.1:
-  version "1.34.0"
-  resolved "https://registry.yarnpkg.com/defender-admin-client/-/defender-admin-client-1.34.0.tgz#15bafe10877a58e8db872a39bc68b71cb5edde35"
-  integrity sha512-UpYgj3DMXSmwG0eVSBmFSFYyCdYQJcQ/AAsL0SXep8F7F6phpecOTS2gMEYzp8VkFu+8MsHyKHs2evZ3qhiuVw==
+  version "1.37.0"
+  resolved "https://registry.yarnpkg.com/defender-admin-client/-/defender-admin-client-1.37.0.tgz#d4b6cc6c7ebaa9aab138f39b10572018c25dc9a1"
+  integrity sha512-0I0n+LUo4X75uiy/Sd5V5Qv1HwhmIvC++uswxx8xnQ0VUK+y0ic0uMk/8ACrItH/9EGH2YrURNm8ZGg9AY1K5A==
   dependencies:
     axios "^0.21.2"
-    defender-base-client "1.34.0"
+    defender-base-client "1.37.0"
     lodash "^4.17.19"
     node-fetch "^2.6.0"
 
-defender-base-client@1.34.0, defender-base-client@^1.3.1:
-  version "1.34.0"
-  resolved "https://registry.yarnpkg.com/defender-base-client/-/defender-base-client-1.34.0.tgz#8dcae9b56c2a5d5433054fd9bdf662b4049b4bc9"
-  integrity sha512-A4/7z0PYX3XwbohQQGIFXX0qP8TgrVNvIWKiq2h4Q9t/F4ejJgvSthi18f5cKaepBntsszIdcidI8Ci7cX0l2w==
+defender-base-client@1.37.0, defender-base-client@^1.3.1:
+  version "1.37.0"
+  resolved "https://registry.yarnpkg.com/defender-base-client/-/defender-base-client-1.37.0.tgz#22f63357ac99c2c8f64eab6e52c99ef113c62d3a"
+  integrity sha512-V6tU0q8/n1/m/edT2FlTvUmZn6u5/A64FqYQfrMgg4PEy1TvYCz9tF+3dnGjk+sJrzICAv0GQWwLw/+8uRq2mg==
   dependencies:
     amazon-cognito-identity-js "^4.3.3"
     async-retry "^1.3.3"
