@@ -417,22 +417,22 @@ contract VolmexProtocolV1 is
         uint256 _inverseVolatilityIndexTokenQty,
         address _receiver
     ) internal virtual returns (uint256 collateralRedeemed, uint256 fee) {
-        if (redeemFees > 0) {
-            fee = (_collateralQtyRedeemed * redeemFees) / 10000;
-            collateralRedeemed = _collateralQtyRedeemed - fee;
-            accumulatedFees = accumulatedFees + fee;
-        } else {
-            collateralRedeemed = _collateralQtyRedeemed;
-        }
-
         volatilityToken.burn(msg.sender, _volatilityIndexTokenQty);
-
         inverseVolatilityToken.burn(
             msg.sender,
             _inverseVolatilityIndexTokenQty
         );
 
-        collateral.transfer(_receiver, collateralRedeemed);
+        if (_receiver != address(this)) {
+            if (redeemFees > 0) {
+                fee = (_collateralQtyRedeemed * redeemFees) / 10000;
+                collateralRedeemed = _collateralQtyRedeemed - fee;
+                accumulatedFees = accumulatedFees + fee;
+            } else {
+                collateralRedeemed = _collateralQtyRedeemed;
+            }
+            collateral.transfer(_receiver, collateralRedeemed);
+        }
 
         emit Redeemed(
             msg.sender,
