@@ -111,9 +111,14 @@ contract VolmexProtocolWithPrecisionV1 is VolmexProtocolV1 {
             "Volmex: Collateral qty is less"
         );
 
+        volatilityToken.burn(msg.sender, _volatilityIndexTokenQty);
+        inverseVolatilityToken.burn(
+            msg.sender,
+            _inverseVolatilityIndexTokenQty
+        );
+
         effectiveCollateralQty = _collateralQtyRedeemed /
             precisionRatio;
-
         if (redeemFees > 0) {
             fee =
                 (_collateralQtyRedeemed * redeemFees) /
@@ -122,13 +127,8 @@ contract VolmexProtocolWithPrecisionV1 is VolmexProtocolV1 {
             accumulatedFees = accumulatedFees + fee;
         }
 
-        volatilityToken.burn(msg.sender, _volatilityIndexTokenQty);
-        inverseVolatilityToken.burn(
-            msg.sender,
-            _inverseVolatilityIndexTokenQty
-        );
-
-        collateral.transfer(_receiver, effectiveCollateralQty);
+        if (_receiver != address(this))
+            collateral.transfer(_receiver, effectiveCollateralQty);
 
         emit Redeemed(
             msg.sender,

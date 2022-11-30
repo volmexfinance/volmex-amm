@@ -81,9 +81,6 @@ contract VolmexProtocolV1 is
     // and the inverse can be calculated by subtracting volatilityCapRatio by settlementPrice.
     uint256 public settlementPrice;
 
-    // Address of V2 protocol
-    IVolmexProtocol public v2Protocol;
-
     /**
      * @notice Used to check contract is active
      */
@@ -370,47 +367,6 @@ contract VolmexProtocolV1 is
         emit ToggledVolatilityTokenPause(_isPause);
     }
 
-    /**
-     * @notice Used to set the V2 protocol
-     *
-     * @param _v2Protocol Address of the V2 protocol
-     */
-    function setV2Protocol(
-        IVolmexProtocol _v2Protocol,
-        bool isSettling,
-        uint256 _settlementPrice
-    ) external virtual onlyOwner {
-        v2Protocol = _v2Protocol;
-        if(isSettling) {
-            settle(_settlementPrice);
-        }
-        emit NewProtocolSet(address(_v2Protocol));
-    }
-
-    /**
-     * @notice Used to migrate to V2 protocol
-     *
-     * @param _volatilityTokenAmount Amount of tokens that needs to migrate
-     *
-     */
-    function migrateToV2(uint256 _volatilityTokenAmount)
-        external
-        virtual
-        onlyActive
-        onlySettled
-    {
-        require(_volatilityTokenAmount != 0, "Volmex: amount should be non-zero");
-        (uint256 collQtyToBeRedeemed,) = redeemSettled(_volatilityTokenAmount, _volatilityTokenAmount, address(this));
-        collateral.approve(address(v2Protocol), collQtyToBeRedeemed);
-        (uint256 volatilityAmount,) = v2Protocol.collateralize(collQtyToBeRedeemed);
-
-        IERC20Modified _volatilityToken = v2Protocol.volatilityToken();
-        IERC20Modified _inverseVolatilityToken = v2Protocol.inverseVolatilityToken();
-
-        _volatilityToken.transfer(msg.sender, volatilityAmount);
-        _inverseVolatilityToken.transfer(msg.sender, volatilityAmount);
-    }
-
     function _redeem(
         uint256 _collateralQtyRedeemed,
         uint256 _volatilityIndexTokenQty,
@@ -422,17 +378,15 @@ contract VolmexProtocolV1 is
             msg.sender,
             _inverseVolatilityIndexTokenQty
         );
-
-        if (_receiver != address(this)) {
-            if (redeemFees > 0) {
-                fee = (_collateralQtyRedeemed * redeemFees) / 10000;
-                collateralRedeemed = _collateralQtyRedeemed - fee;
-                accumulatedFees = accumulatedFees + fee;
-            } else {
-                collateralRedeemed = _collateralQtyRedeemed;
-            }
-            collateral.transfer(_receiver, collateralRedeemed);
+        if (redeemFees > 0) {
+            fee = (_collateralQtyRedeemed * redeemFees) / 10000;
+            collateralRedeemed = _collateralQtyRedeemed - fee;
+            accumulatedFees = accumulatedFees + fee;
+        } else {
+            collateralRedeemed = _collateralQtyRedeemed;
         }
+        if (_receiver != address(this))
+            collateral.transfer(_receiver, collateralRedeemed);
 
         emit Redeemed(
             msg.sender,
