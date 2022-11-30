@@ -212,7 +212,9 @@ contract VolmexProtocolV1 is
         _collateralQty = finalProtocolBalance - initialProtocolBalance;
 
         if (issuanceFees > 0) {
-            fee = (_collateralQty * issuanceFees) / 10000;
+            unchecked {
+                fee = (_collateralQty * issuanceFees) / 10000;
+            }
             _collateralQty = _collateralQty - fee;
             accumulatedFees = accumulatedFees + fee;
         }
@@ -254,6 +256,7 @@ contract VolmexProtocolV1 is
      *
      * @param _volatilityIndexTokenQty Quantity of the volatility index token that the user is surrendering
      * @param _inverseVolatilityIndexTokenQty Quantity of the inverse volatility index token that the user is surrendering
+     * @param _receiver Address of the user to which collateral needs to transfer
      *
      * Amount of collateral is `_volatilityIndexTokenQty` by the settlementPrice and `_inverseVolatilityIndexTokenQty`
      * by volatilityCapRatio - settlementPrice
@@ -379,7 +382,9 @@ contract VolmexProtocolV1 is
             _inverseVolatilityIndexTokenQty
         );
         if (redeemFees > 0) {
-            fee = (_collateralQtyRedeemed * redeemFees) / 10000;
+            unchecked {
+                fee = (_collateralQtyRedeemed * redeemFees) / 10000;
+            }
             collateralRedeemed = _collateralQtyRedeemed - fee;
             accumulatedFees = accumulatedFees + fee;
         } else {

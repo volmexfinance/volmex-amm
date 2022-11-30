@@ -83,7 +83,9 @@ contract VolmexProtocolWithPrecisionV1 is VolmexProtocolV1 {
         _collateralQty = finalProtocolBalance - initialProtocolBalance;
 
         if (issuanceFees > 0) {
-            fee = (_collateralQty * issuanceFees) / 10000;
+            unchecked {
+                fee = (_collateralQty * issuanceFees) / 10000;
+            }
             _collateralQty = _collateralQty - fee;
             accumulatedFees = accumulatedFees + fee;
         }
@@ -120,9 +122,11 @@ contract VolmexProtocolWithPrecisionV1 is VolmexProtocolV1 {
         effectiveCollateralQty = _collateralQtyRedeemed /
             precisionRatio;
         if (redeemFees > 0) {
-            fee =
-                (_collateralQtyRedeemed * redeemFees) /
-                (precisionRatio * 10000);
+            unchecked {
+                fee =
+                    (_collateralQtyRedeemed * redeemFees) /
+                    (precisionRatio * 10000);
+            }
             effectiveCollateralQty = effectiveCollateralQty - fee;
             accumulatedFees = accumulatedFees + fee;
         }
