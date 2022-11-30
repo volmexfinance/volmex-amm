@@ -7,10 +7,10 @@ import {
   TestCollateralToken__factory,
   VolmexPositionToken__factory,
   VolmexProtocol,
-  VolmexProtocol__factory,
+  VolmexProtocolWithPrecision__factory,
   VolmexPositionToken,
   VolmexIndexFactory__factory,
-  VolmexProtocolV11__factory
+  VolmexProtocolWithPrecisionV11__factory
 
 } from "../typechain";
 import { Result } from "@ethersproject/abi";
@@ -38,12 +38,12 @@ describe("Volmex Protocol", function () {
   let CollateralTokenFactory: TestCollateralToken__factory;
   let VolmexPositionTokenFactory: VolmexPositionToken__factory;
   let VolmexPositionToken: VolmexPositionToken;
-  let VolmexProtocolFactory: VolmexProtocol__factory;
+  let VolmexProtocolFactory: VolmexProtocolWithPrecision__factory;
   let VolmexProtocol: any;
   let indexFactory: VolmexIndexFactory__factory;
   let factory: Contract;
   let positionTokenCreatedEvent: Result[];
-  let VolmexProtocolV11Factory: VolmexProtocolV11__factory
+  let VolmexProtocolV11Factory: VolmexProtocolWithPrecisionV11__factory
 
   this.beforeAll(async function () {
     accounts = await ethers.getSigners();
@@ -57,12 +57,12 @@ describe("Volmex Protocol", function () {
     )) as VolmexPositionToken__factory;
 
     VolmexProtocolFactory = (await ethers.getContractFactory(
-      "VolmexProtocolV1"
-    )) as VolmexProtocol__factory;
+      "VolmexProtocolWithPrecisionV1"
+    )) as VolmexProtocolWithPrecision__factory;
 
     VolmexProtocolV11Factory = (await ethers.getContractFactory(
-      "VolmexProtocolV1_1"
-    )) as VolmexProtocolV11__factory;
+      "VolmexProtocolWithPrecisionV1_1"
+    )) as VolmexProtocolWithPrecisionV11__factory;
 
     indexFactory = (await ethers.getContractFactory(
       "VolmexIndexFactory"
@@ -72,8 +72,8 @@ describe("Volmex Protocol", function () {
   this.beforeEach(async function () {
     CollateralToken = (await CollateralTokenFactory.deploy(
       "DAI",
-      "10000000000000000000000000000000000",
-      "18"
+      "10000000000000000000000",
+      "6"
     )) as TestCollateralToken;
     await CollateralToken.deployed();
 
@@ -98,9 +98,13 @@ describe("Volmex Protocol", function () {
       CollateralToken.address,
       positionTokenCreatedEvent[0].volatilityToken,
       positionTokenCreatedEvent[0].inverseVolatilityToken,
-      "25000000000000000000",
+      "25000000",
       "250",
-    ]);
+      "1000000000000"
+    ],
+    {
+        initializer: "initializePrecision",
+    });
 
     await VolmexProtocol.deployed();
 
@@ -112,14 +116,16 @@ describe("Volmex Protocol", function () {
       `${process.env.COLLATERAL_TOKEN_SYMBOL}`
     );
     await volmexProtocolRegister.wait();
-
-    VolmexProtocol = await upgrades.upgradeProxy(VolmexProtocol.address, VolmexProtocolV11Factory)
-    await VolmexProtocol.deployed();
   });
 
   it("Should deploy protocol", async () => {
     expect(await VolmexProtocol.deployed());
   });
+
+  it("Should upgrade the Protocol V1_1", async () => {
+    VolmexProtocol = await upgrades.upgradeProxy(VolmexProtocol.address, VolmexProtocolV11Factory)
+    await VolmexProtocol.deployed();
+  })
 
   describe("Migrate", function () {
     let protocolFactory: any;
@@ -127,7 +133,7 @@ describe("Volmex Protocol", function () {
     let newPositionTokenCreatedEvent: Result[];
     let v1factory: Contract;
     this.beforeAll(async () => {
-      protocolFactory = await ethers.getContractFactory("VolmexProtocol");
+      protocolFactory = await ethers.getContractFactory("VolmexProtocolWithPrecision");
     });
 
     this.beforeEach(async () => {
@@ -149,9 +155,13 @@ describe("Volmex Protocol", function () {
         CollateralToken.address,
         newPositionTokenCreatedEvent[0].volatilityToken,
         newPositionTokenCreatedEvent[0].inverseVolatilityToken,
-        "25000000000000000000",
+        "25000000",
         "400",
-      ]);
+        "1000000000000"
+      ],
+      {
+          initializer: "initializePrecision",
+      });
       await protocol.deployed();
 
       const receipt = await protocol.updateFees(10, 30);
@@ -161,8 +171,9 @@ describe("Volmex Protocol", function () {
         protocol.address,
         `${process.env.COLLATERAL_TOKEN_SYMBOL}`
       );
-
       await volmexProtocolRegister.wait();
+      VolmexProtocol = await upgrades.upgradeProxy(VolmexProtocol.address, VolmexProtocolV11Factory)
+      await VolmexProtocol.deployed();
     });
 
     it("Should deploy protocol v2", async () => {
@@ -173,20 +184,19 @@ describe("Volmex Protocol", function () {
       await (
         await CollateralToken.approve(
           VolmexProtocol.address,
-          "10000000000000000000000000000000000"
+          "10000000000000000000000"
         )
       ).wait();
-      await (await VolmexProtocol.collateralize("10000000000000000000000")).wait();
+      await (await VolmexProtocol.collateralize("10000000000")).wait();
 
       const ethv = VolmexPositionToken.attach(positionTokenCreatedEvent[0].volatilityToken);
       const beforeBalance = await ethv.balanceOf(await accounts[0].getAddress());
 
       await (await VolmexProtocol.setV2Protocol(protocol.address, true, 250)).wait();
 
+      const migrateAmount = (await ethv.balanceOf(await accounts[0].getAddress()));
       await (
-        await VolmexProtocol.migrateToV2(
-          (await ethv.balanceOf(await accounts[0].getAddress())).toString()
-        )
+        await VolmexProtocol.migrateToV2(migrateAmount)
       ).wait();
 
       const vive = VolmexPositionToken.attach(newPositionTokenCreatedEvent[0].volatilityToken);
