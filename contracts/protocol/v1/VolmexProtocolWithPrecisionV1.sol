@@ -83,7 +83,9 @@ contract VolmexProtocolWithPrecisionV1 is VolmexProtocolV1 {
         _collateralQty = finalProtocolBalance - initialProtocolBalance;
 
         if (issuanceFees > 0) {
-            fee = (_collateralQty * issuanceFees) / 10000;
+            unchecked {
+                fee = (_collateralQty * issuanceFees) / 10000;
+            }
             _collateralQty = _collateralQty - fee;
             accumulatedFees = accumulatedFees + fee;
         }
@@ -111,24 +113,26 @@ contract VolmexProtocolWithPrecisionV1 is VolmexProtocolV1 {
             "Volmex: Collateral qty is less"
         );
 
-        effectiveCollateralQty = _collateralQtyRedeemed /
-            precisionRatio;
-
-        if (redeemFees > 0) {
-            fee =
-                (_collateralQtyRedeemed * redeemFees) /
-                (precisionRatio * 10000);
-            effectiveCollateralQty = effectiveCollateralQty - fee;
-            accumulatedFees = accumulatedFees + fee;
-        }
-
         volatilityToken.burn(msg.sender, _volatilityIndexTokenQty);
         inverseVolatilityToken.burn(
             msg.sender,
             _inverseVolatilityIndexTokenQty
         );
 
-        collateral.transfer(_receiver, effectiveCollateralQty);
+        effectiveCollateralQty = _collateralQtyRedeemed /
+            precisionRatio;
+        if (redeemFees > 0) {
+            unchecked {
+                fee =
+                    (_collateralQtyRedeemed * redeemFees) /
+                    (precisionRatio * 10000);
+            }
+            effectiveCollateralQty = effectiveCollateralQty - fee;
+            accumulatedFees = accumulatedFees + fee;
+        }
+
+        if (_receiver != address(this))
+            collateral.transfer(_receiver, effectiveCollateralQty);
 
         emit Redeemed(
             msg.sender,
