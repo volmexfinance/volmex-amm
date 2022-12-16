@@ -43,8 +43,8 @@ const createPool = async () => {
   const feeAmpComplement = 10;
   const qMin = (1 * Math.pow(10, 6)).toString();
   const pMin = (0.01 * Math.pow(10, 18)).toString();
-  const exposureLimitPrimary = (0.25 * Math.pow(10, 18)).toString();
-  const exposureLimitComplement = (0.25 * Math.pow(10, 18)).toString();
+  const exposureLimitPrimary = (0.4 * Math.pow(10, 18)).toString();
+  const exposureLimitComplement = (0.4 * Math.pow(10, 18)).toString();
   const leveragePrimary = "999996478162223000";
   const leverageComplement = "1000003521850180000";
 
