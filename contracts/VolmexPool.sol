@@ -223,6 +223,20 @@ contract VolmexPool is
     }
 
     /**
+     * @notice Used to set exposure limit
+     * @param _exposureLimitPrimary Primary to complement swap difference limit
+     * @param _exposureLimitComplement Complement to primary swap difference limit
+     */
+    function updateExposureLimit(
+        uint256 _exposureLimitPrimary,
+        uint256 _exposureLimitComplement
+    ) external onlyOwner {
+        exposureLimitPrimary = _exposureLimitPrimary;
+        exposureLimitComplement = _exposureLimitComplement;
+        emit ExposureLimitUpdated(exposureLimitPrimary, exposureLimitComplement);
+    }
+
+    /**
      * @notice Used to finalise the pool with the required attributes and operations
      *
      * @dev Checks, pool is finalised, caller is owner, supplied token balance

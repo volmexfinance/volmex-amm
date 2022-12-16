@@ -47,6 +47,7 @@ interface IVolmexPool is IERC20 {
     );
     event AdminFeeUpdated(uint256 fee);
     event VolatilityIndexUpdated(uint256 newIndex);
+    event ExposureLimitUpdated(uint256 exposureLimitPrimary, uint256 exposureLimitComplement);
 
     // Getter methods
     function repricingBlock() external view returns (uint256);
@@ -98,4 +99,8 @@ interface IVolmexPool is IERC20 {
         uint256 _qMin,
         address _receiver
     ) external;
+    function updateExposureLimit(
+        uint256 _exposureLimitPrimary,
+        uint256 _exposureLimitComplement
+    ) external
 }
