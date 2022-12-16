@@ -307,6 +307,15 @@ describe("VolmexPool", function () {
       expect(await pool.volatilityIndex()).to.equal(2);
     });
 
+    it("Should update exposure limit", async () => {
+      await (await pool.updateExposureLimit(
+        "400000000000000000",
+        "400000000000000000"
+      )).wait();
+      expect((await pool.exposureLimitPrimary()).toString()).to.equal("400000000000000000");
+      expect((await pool.exposureLimitComplement()).toString()).to.equal("400000000000000000");
+    });
+
     it("Should add liquidity", async () => {
       await (await volatility.approve(pool.address, "30000000000000000000")).wait();
       await (await inverseVolatility.approve(pool.address, "30000000000000000000")).wait();
