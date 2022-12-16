@@ -23,6 +23,7 @@ contract TokenBase is Num {
         require(_balance[address(this)] >= _amt, "INSUFFICIENT_BAL");
         _balance[address(this)] = _balance[address(this)] - _amt;
         _totalSupply = _totalSupply - _amt;
+        require(_totalSupply != 0, "BAD_SUPPLY");
         emit Transfer(address(this), address(0), _amt);
     }
 

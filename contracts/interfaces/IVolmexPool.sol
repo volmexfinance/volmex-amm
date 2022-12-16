@@ -102,5 +102,5 @@ interface IVolmexPool is IERC20 {
     function updateExposureLimit(
         uint256 _exposureLimitPrimary,
         uint256 _exposureLimitComplement
-    ) external
+    ) external;
 }
