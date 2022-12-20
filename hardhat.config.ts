@@ -71,13 +71,11 @@ const config: HardhatUserConfig = {
       gasPrice: 1,
     },
     goerli: {
-      url: `https://eth-goerli.alchemyapi.io/v2/${process.env.GOERLI_ALCHEMY_API_KEY}`,
+      url: `https://eth-goerli.g.alchemy.com/v2/${process.env.GOERLI_ALCHEMY_API_KEY}`,
       accounts: [`0x${process.env.PRIVATE_KEY}`],
       throwOnTransactionFailures: true,
       loggingEnabled: true,
-      gas: 5000000,
-      gasPrice: 200000000000,
-      blockGasLimit: 8000000,
+      gasMultiplier: 1.5,
       timeout: 10800000
     },
     mumbai: {
@@ -85,23 +83,27 @@ const config: HardhatUserConfig = {
       accounts: [`0x${process.env.PRIVATE_KEY}`],
       throwOnTransactionFailures: true,
       loggingEnabled: true,
-      gas: 5000000,
-      gasPrice: 10000000000,
-      blockGasLimit: 8000000,
+      gasMultiplier: 1.5,
+      timeout: 10800000
     },
     polygon: {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.POLYGON_MAINNET_ALCHEMY_API_KEY}`,
       accounts: [`0x${process.env.PRIVATE_KEY}`],
       throwOnTransactionFailures: true,
       loggingEnabled: true,
-      gas: 5000000,
-      blockGasLimit: 8000000,
+      gasMultiplier: 1.5,
       timeout: 18000000
+    },
+    arb_goerli: {
+      url: `https://arb-goerli.g.alchemy.com/v2/${process.env.ARBITRUM_TESTNET_ALCHEMY_API_KEY}`,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      throwOnTransactionFailures: true,
+      loggingEnabled: true,
+      gasMultiplier: 1.5,
+      timeout: 10800000
     }
   },
   etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   gasReporter: {
