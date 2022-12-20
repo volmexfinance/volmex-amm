@@ -101,7 +101,7 @@ contract VolmexIndexFactory is OwnableUpgradeable {
         inverseVolatilityToken = IERC20Modified(
             _clonePositonToken(
                 string(abi.encodePacked("Inverse ", _tokenName)),
-                string(abi.encodePacked("i", _tokenSymbol))
+                string(abi.encodePacked("I", _tokenSymbol))
             )
         );
 
