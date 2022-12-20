@@ -10,9 +10,11 @@ const createPool = async () => {
   await instance.deployed();
 
   const proxyAdmin = await upgrades.admin.getInstance();
+  const implementation = await proxyAdmin.getProxyImplementation(instance.address)
+  console.log("Upgraded, implementation: ", implementation)
 
   await run("verify:verify", {
-    address: await proxyAdmin.getProxyImplementation(instance.address),
+    address: implementation,
   });
 };
 
