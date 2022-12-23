@@ -1,22 +1,22 @@
 import { ethers, upgrades, run } from "hardhat";
 
 const Protocols = [
-  "0x149f21e2861121E217c2CFb4895EA05fF13B5bB0", // ETH DAI
-  "0xcD5CE7cf09DCC15F95b6Cc096Ff247eA46c3E54C", // ETH USDC
-  "0x6eaA3E716D732c39Df41A42516B61ec514c61B3b", // BTC DAI
-  "0x1aDdc97A55905D067EF9c1C103562BF27b51A3d2", // BTC USDC
+  "0xc1d4cD11e99d765cc7eb10BF7a540D3E77d3C93C", // ETH DAI
+  "0xf122e3A4fC26020eb8741181F724Cf87DF6D8197", // ETH USDC
+  "0x82F82C70f79D6CCFF135396064C962AaBb3a7f4c", // BTC DAI
+  "0xc9ade968378156036137dA3038b1B2CB5dBcFd63", // BTC USDC
 ];
 
 const Volatility = [
-  "0xFdf8D2eCB6FD720D43884CE50BA9aAd1926B5396", // ETHV
-  "0xeE21b34885054368446504730b6EdAf45186C989",
-  "0x095CD8883f38534B1bD543cB7a7910b8023d19b0", //BTCV
-  "0xEed375c6FCf7ee7Fd8Dd19b75FbBe0a7fd36E4d1",
+  "0x6797e42e20dC46feE4B3Cddf62A050FBAF8dc717", // ETHV
+  "0x9A469d03854c318a3330728aC3c5195211535b60",
+  "0x896F6E5c413Eaabf1E88470116ad6686eFFe2729", //BTCV
+  "0xE5EcD7B3AE949227F74BF1F4124Fb93C32ce599F",
 ];
 
 const StableCoins = [
-  "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063", // DAI
-  "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174", // USDC
+  "0xd214d87Cb51ce5a434426e6066E666cA1394dc88", // DAI
+  "0xEabf1B4F19439AF69302d6701a00E3c34D0AD20b", // USDC
 ];
 
 const createPool = async () => {
@@ -50,7 +50,7 @@ const createPool = async () => {
 
   console.log("Deploying Oracle...");
 
-  const oracle = await upgrades.deployProxy(VolmexOracle, ["0x99f4588F53DdC0B0197D82bfeFc620dE0c485eD0"]);
+  const oracle = await upgrades.deployProxy(VolmexOracle, [governor]);
   await oracle.deployed();
   console.log("VolmexOracle deployed ", oracle.address);
 
