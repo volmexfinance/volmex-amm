@@ -27,7 +27,7 @@ contract Layer1VolmexPositionToken is OFTCoreUpgradeable, VolmexPositionToken {
         public
         view
         virtual
-        override(OFTCoreUpgradeable, IERC165Upgradeable, AccessControlUpgradeable)
+        override(OFTCoreUpgradeable, AccessControlUpgradeable)
         returns (bool)
     {
         return

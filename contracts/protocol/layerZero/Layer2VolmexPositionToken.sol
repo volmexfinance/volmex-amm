@@ -2,9 +2,10 @@
 pragma solidity =0.8.17;
 
 import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/OFT/OFTCoreUpgradeable.sol";
+import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/OFT/IOFTUpgradeable.sol";
 import "../VolmexPositionToken.sol";
 
-contract Layer2VolmexPositionToken is OFTCoreUpgradeable, VolmexPositionToken {
+contract Layer2VolmexPositionToken is OFTCoreUpgradeable, IOFTUpgradeable, VolmexPositionToken {
     function __Layer2VolmexPositionToken_init(
         string memory _name,
         string memory _symbol,
