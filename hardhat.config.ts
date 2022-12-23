@@ -8,26 +8,18 @@ import "@nomiclabs/hardhat-truffle5";
 import "@nomiclabs/hardhat-ganache";
 import "@openzeppelin/hardhat-upgrades";
 import "@openzeppelin/hardhat-defender";
+import "@nomicfoundation/hardhat-toolbox";
 
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import "./tasks";
 
 import { config as dotEnvConfig } from "dotenv";
 dotEnvConfig();
 
 import { HardhatUserConfig } from "hardhat/types";
-
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
-// task("accounts", "Prints the list of accounts", async () => {
-//   const accounts = await ethers.getSigners();
-//
-//   for (const account of accounts) {
-//     console.log(account.address);
-//   }
-// });
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -45,7 +37,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.11",
+        version: "0.8.17",
         settings: {
           optimizer: {
             enabled: true,
@@ -97,7 +89,17 @@ const config: HardhatUserConfig = {
       gas: 5000000,
       blockGasLimit: 8000000,
       timeout: 18000000
-    }
+    },
+    fuji: {
+      url: `https://api.avax-test.network/ext/bc/C/rpc`,
+      chainId: 43113,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+    },
+    'bsc-testnet': {
+      url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
+      chainId: 97,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+    },
   },
   etherscan: {
     // Your API key for Etherscan
