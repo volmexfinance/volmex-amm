@@ -1,4 +1,4 @@
-/* // SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
 import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/OFT/OFTCoreUpgradeable.sol";
@@ -65,4 +65,3 @@ contract Layer1VolmexPositionToken is OFTCoreUpgradeable, VolmexPositionToken {
         }
     }
 }
- */

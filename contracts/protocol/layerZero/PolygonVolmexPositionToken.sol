@@ -1,4 +1,4 @@
-/* // SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity =0.8.17;
 
@@ -40,4 +40,3 @@ contract PolygonVolmexPositionToken is ProxyOFTUpgradeable, ERC20Upgradeable {
         volmexPositionToken.mint(_toAddress, _amount);
     }
 }
- */
