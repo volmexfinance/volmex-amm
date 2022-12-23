@@ -113,12 +113,14 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
         volatilityCapRatioByIndex[_index] = _volatilityCapRatio;
         volatilityIndexBySymbol[_volatilityTokenSymbol] = _index;
 
-        if (_leverage > 1) {
+        if (_leverage != 0) {
             // This will also check the base volatilities are present
-            require(
-                volatilityCapRatioByIndex[_baseVolatilityIndex] / _leverage == _volatilityCapRatio,
-                "VolmexOracle: Invalid _baseVolatilityIndex provided"
-            );
+            if (_leverage > 1) {
+                require(
+                    volatilityCapRatioByIndex[_baseVolatilityIndex] / _leverage == _volatilityCapRatio,
+                    "VolmexOracle: Invalid _baseVolatilityIndex provided"
+                );
+            }
             volatilityLeverageByIndex[_index] = _leverage;
             baseVolatilityIndex[_index] = _baseVolatilityIndex;
             _addIndexDataPoint(
@@ -321,7 +323,7 @@ contract VolmexOracle is OwnableUpgradeable, ERC165StorageUpgradeable, VolmexTWA
             uint256 lastUpdateTimestamp
         )
     {
-        if (volatilityLeverageByIndex[_index] > 0) {
+        if (volatilityLeverageByIndex[_index] != 0) {
             uint256 baseIndex = baseVolatilityIndex[_index];
             volatilityTokenTwap = (_getIndexTwap(baseIndex)) / volatilityLeverageByIndex[_index];
             lastUpdateTimestamp = volatilityLastUpdateTimestamp[baseIndex];
