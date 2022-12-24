@@ -53,12 +53,14 @@ const config: HardhatUserConfig = {
       forking: {
         enabled: true,
         url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.POLYGON_MAINNET_ALCHEMY_API_KEY}`,
-        blockNumber: 34033365
-      }
+        blockNumber: 34033365,
+      },
     },
     localhost: {
       url: "http://127.0.0.1:8545", // same address and port for both Buidler and Ganache node
-      accounts: [/* will be provided by ganache */],
+      accounts: [
+        /* will be provided by ganache */
+      ],
       gas: 8000000,
       gasPrice: 1,
     },
@@ -67,10 +69,8 @@ const config: HardhatUserConfig = {
       accounts: [`0x${process.env.PRIVATE_KEY}`],
       throwOnTransactionFailures: true,
       loggingEnabled: true,
-      gas: 5000000,
-      gasPrice: 200000000000,
       blockGasLimit: 8000000,
-      timeout: 10800000
+      timeout: 10800000,
     },
     mumbai: {
       url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.POLYGON_TESTNET_ALCHEMY_API_KEY}`,
@@ -88,17 +88,7 @@ const config: HardhatUserConfig = {
       loggingEnabled: true,
       gas: 5000000,
       blockGasLimit: 8000000,
-      timeout: 18000000
-    },
-    fuji: {
-      url: `https://api.avax-test.network/ext/bc/C/rpc`,
-      chainId: 43113,
-      accounts: [`0x${process.env.PRIVATE_KEY}`],
-    },
-    'bsc-testnet': {
-      url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
-      chainId: 97,
-      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      timeout: 18000000,
     },
   },
   etherscan: {
@@ -108,14 +98,12 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     currency: "USD",
-    gasPrice: 21
+    gasPrice: 21,
   },
   typechain: {
     outDir: "typechain",
     target: "ethers-v5",
-  }
+  },
 };
 
 export default config;
-
-

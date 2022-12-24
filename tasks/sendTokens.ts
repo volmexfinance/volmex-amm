@@ -1,44 +1,64 @@
-import CHAIN_ID from "../constants/chainIds.json";
-import ENDPOINTS from "../constants/layerzeroEndpoints.json";
+const CHAIN_ID = require("../constants/chainIds.json");
 
 module.exports = async function (taskArgs, hre) {
-  console.log("In task");
-  const remoteChainId = CHAIN_ID[taskArgs.targetNetwork]
-  const layer2VolmexPositionToken = await hre.ethers.getContractAt("Layer2VolmexPositionToken", taskArgs.toAddress)
+  let signers = await ethers.getSigners();
+  let owner = signers[0];
+  let toAddress = owner.address;
+  let qty = ethers.utils.parseEther(taskArgs.amount);
+  console.log(signers, owner, toAddress, qty);
+
+  let localContract, remoteContract;
+
+  if (taskArgs.contract) {
+    localContract = taskArgs.contract;
+    remoteContract = taskArgs.contract;
+  } else {
+    localContract = taskArgs.localContract;
+    remoteContract = taskArgs.remoteContract;
+  }
+
+  if (!localContract || !remoteContract) {
+    console.log(
+      "Must pass in contract name OR pass in both localContract name and remoteContract name"
+    );
+    return;
+  }
+
+  // get remote chain id
+  const remoteChainId = CHAIN_ID[taskArgs.targetNetwork];
+
+  // get local contract
+  const localContractInstance = await ethers.getContractAt(localContract, "0x7e7c38b1434391E44367D39333ed6084A3d76538");
 
   // quote fee with default adapterParams
-  let adapterParams = hre.ethers.utils.solidityPack(["uint16", "uint256"], [1, 200000]) // default adapterParams example
+  let adapterParams = ethers.utils.solidityPack(["uint16", "uint256"], [1, 200000]); // default adapterParams example
 
-  const endpoint = await hre.ethers.getContractAt("ILayerZeroEndpointUpgradeable", ENDPOINTS[hre.network.name])
-  let fees = await endpoint.estimateFees(remoteChainId, layer2VolmexPositionToken.address, "0x", false, adapterParams)
-  console.log(`fees[0] (wei): ${fees[0]} / (eth): ${hre.ethers.utils.formatEther(fees[0])}`)
-
-  const [owner] = await hre.ethers.getSigners();
-  console.log("Deployer: ", owner.address);
-
-  const toAddress = taskArgs.toAddress
-  const amount = taskArgs.amount
-  const refundAddress = taskArgs.fromAddress
-  const zroPaymentAddress = taskArgs.fromAddress
+  let fees = await localContractInstance.estimateSendFee(
+    remoteChainId,
+    toAddress,
+    qty,
+    false,
+    adapterParams
+  );
+  console.log(`fees[0] (wei): ${fees[0]} / (eth): ${ethers.utils.formatEther(fees[0])}`);
 
   let tx = await (
-      await layer2VolmexPositionToken.sendFrom(
-          owner.address,
-          remoteChainId,
-          toAddress,
-          amount,
-          refundAddress,
-          zroPaymentAddress,
-          adapterParams,
-          { value: fees[0] }
-      )
-  ).wait()
-  console.log(`✅ Message Sent [${hre.network.name}] sendTokens on destination OmniCounter @ [${remoteChainId}]`)
-  console.log(`tx: ${tx.transactionHash}`)
-
-  console.log(``)
-  console.log(`Note: to poll/wait for the message to arrive on the destination use the command:`)
-  console.log(`       (it may take a minute to arrive, be patient!)`)
-  console.log("")
-  console.log(`    $ npx hardhat --network ${taskArgs.targetNetwork} ocPoll`)
-}
+    await localContractInstance.sendFrom(
+      owner.address, // 'from' address to send tokens
+      remoteChainId, // remote LayerZero chainId
+      toAddress, // 'to' address to send tokens
+      qty, // amount of tokens to send (in wei)
+      owner.address, // refund address (if too much message fee is sent, it gets refunded)
+      ethers.constants.AddressZero, // address(0x0) if not paying in ZRO (LayerZero Token)
+      "0x", // flexible bytes array to indicate messaging adapter services
+      { value: fees[0] }
+    )
+  ).wait();
+  console.log(
+    `✅ Message Sent [${hre.network.name}] sendTokens() to OFT @ LZ chainId[${remoteChainId}] token:[${toAddress}]`
+  );
+  console.log(` tx: ${tx.transactionHash}`);
+  console.log(
+    `* check your address [${owner.address}] on the destination chain, in the ERC20 transaction tab !"`
+  );
+};

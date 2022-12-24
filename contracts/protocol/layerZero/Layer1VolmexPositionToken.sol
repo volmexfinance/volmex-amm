@@ -46,6 +46,7 @@ contract Layer1VolmexPositionToken is OFTCoreUpgradeable, VolmexPositionToken {
         address spender = _msgSender();
         if (_from != spender) _spendAllowance(_from, spender, _amount);
         _transfer(_from, address(this), _amount);
+        return _amount;
     }
 
     function _creditTo(

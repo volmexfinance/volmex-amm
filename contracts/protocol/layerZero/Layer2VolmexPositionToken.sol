@@ -37,8 +37,8 @@ contract Layer2VolmexPositionToken is OFTCoreUpgradeable, IOFTUpgradeable, Volme
 
     function _debitFrom(
         address _from,
-        uint16 _dstChainId,
-        bytes memory _toAddress,
+        uint16,
+        bytes memory,
         uint256 _amount
     ) internal override returns (uint256) {
         address spender = _msgSender();
@@ -48,7 +48,7 @@ contract Layer2VolmexPositionToken is OFTCoreUpgradeable, IOFTUpgradeable, Volme
     }
 
     function _creditTo(
-        uint16 _srcChainId,
+        uint16,
         address _toAddress,
         uint256 _amount
     ) internal override {
