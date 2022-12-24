@@ -39,29 +39,28 @@ contract Layer1VolmexPositionToken is OFTCoreUpgradeable, VolmexPositionToken {
 
     function _debitFrom(
         address _from,
-        uint16 _dstChainId,
-        bytes memory _toAddress,
+        uint16,
+        bytes memory,
         uint256 _amount
     ) internal override returns (uint256) {
-        if (_from != address(this)) _spendAllowance(_from, address(this), _amount);
-        // locking tokens
+        address spender = _msgSender();
+        if (_from != spender) _spendAllowance(_from, spender, _amount);
         _transfer(_from, address(this), _amount);
-        _lockedTokens[_from] += _amount;
-        return _lockedTokens[_from];
     }
 
     function _creditTo(
-        uint16 _srcChainId,
+        uint16,
         address _toAddress,
         uint256 _amount
     ) internal override {
-        if (_lockedTokens[_toAddress] >= _amount) {
+        uint256 lockedTokens = _lockedTokens[_toAddress];
+        if (_amount <= lockedTokens) {
             _lockedTokens[_toAddress] -= _amount;
             _transfer(address(this), _toAddress, _amount);
         } else {
-            uint256 _currentBalance = _lockedTokens[_toAddress];
             delete (_lockedTokens[_toAddress]);
-            _mint(_toAddress, _amount - _currentBalance);
+            _transfer(address(this), _toAddress, lockedTokens);
+            _mint(_toAddress, _amount - lockedTokens);
         }
     }
 }
