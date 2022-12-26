@@ -90,6 +90,13 @@ const config: HardhatUserConfig = {
       blockGasLimit: 8000000,
       timeout: 18000000,
     },
+    "arb-goerli": {
+      url: `https://arb-goerli.g.alchemy.com/v2/${process.env.ARBITRUM_TESTNET_ALCHEMY_API_KEY}`,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      throwOnTransactionFailures: true,
+      loggingEnabled: true,
+      timeout: 18000000,
+    }
   },
   etherscan: {
     // Your API key for Etherscan
