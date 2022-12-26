@@ -10,12 +10,14 @@ import "contracts/interfaces/IERC20Modified.sol";
 contract PolygonVolmexPositionToken is ProxyOFTUpgradeable, ERC20Upgradeable {
     IERC20Modified public volmexPositionToken;
 
-    function initialize(address _volmexPositionToken, address _endPoint)
+    function initialize(address _volmexPositionToken, address _endPoint, string calldata _name, string calldata _symbol)
         external
         initializer
     {
         __ProxyOFTUpgradeable_init(_endPoint, address(_volmexPositionToken));
         volmexPositionToken = IERC20Modified(_volmexPositionToken);
+        __ERC20_init(_name, _symbol);
+        __Ownable_init();
     }
 
     // to handle tokens being sent on the source
