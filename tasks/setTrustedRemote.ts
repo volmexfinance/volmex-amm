@@ -21,18 +21,21 @@ module.exports = async function (taskArgs, hre) {
     return;
   }
 
-  console.log(localContract);
+  if ((localContract && !taskArgs.localContractAddress) || (remoteContract && !taskArgs.remoteContractAddress)) {
+    console.log("Must pass in address & name of local contract / remote contract");
+    return;
+  }
 
   // get local contract
   const localContractInstance = await hre.ethers.getContractAt(
     localContract,
-    "0x492216cDD729C142916EB565574bdCBc3843924f"
+    taskArgs.localContractAddress
   );
 
   console.log("Owner local: ", await localContractInstance.owner());
 
   // get deployed remote contract address
-  const remoteAddress = "0x7e7c38b1434391E44367D39333ed6084A3d76538";
+  const remoteAddress = taskArgs.remoteContractAddress;
   // getDeploymentAddresses(taskArgs.targetNetwork)[remoteContract];
 
   console.log("Remote address: ", remoteAddress);
@@ -69,6 +72,8 @@ module.exports = async function (taskArgs, hre) {
       );
       console.log(` tx: ${tx.transactionHash}`);
     } catch (e) {
+      console.log(e);
+      console.log(e.error);
       if (e.error.message.includes("The chainId + address is already trusted")) {
         console.log("*source already set*");
       } else {
