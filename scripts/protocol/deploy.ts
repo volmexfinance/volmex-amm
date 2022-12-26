@@ -183,8 +183,8 @@ const deploy = async () => {
 
   console.log("Collateralizing ...");
   const collateral = TestCollateralFactory.attach(CollateralTokenAddress);
-  await (await collateral.approve(volmexProtocolInstance.address, "10000000000")).wait();
-  await (await volmexProtocolInstance.collateralize("10000000000")).wait();
+  await (await collateral.approve(volmexProtocolInstance.address, process.env.COLLATERAL_AMOUNT)).wait();
+  await (await volmexProtocolInstance.collateralize(process.env.COLLATERAL_AMOUNT)).wait();
   console.log("Collateralized!!")
 };
 
