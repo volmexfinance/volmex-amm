@@ -20,7 +20,7 @@ module.exports = async function () {
         contract, 
         [name, symbol, endpointAddr], 
         {
-            initializer: "__Layer2VolmexPositionToken_init",
+            initializer: "__LayerZero_init",
         },
     );
 

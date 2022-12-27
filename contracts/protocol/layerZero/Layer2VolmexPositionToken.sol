@@ -6,7 +6,9 @@ import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/OF
 import "../VolmexPositionToken.sol";
 
 contract Layer2VolmexPositionToken is OFTCoreUpgradeable, IOFTUpgradeable, VolmexPositionToken {
-    function __Layer2VolmexPositionToken_init(
+    // Adding a common init in Layer1VolmexPositionToken & Layer2VolmexPositionToken
+    // so that Factory doesn't require if-else check
+    function __LayerZero_init(
         string memory _name,
         string memory _symbol,
         address _lzEndpoint

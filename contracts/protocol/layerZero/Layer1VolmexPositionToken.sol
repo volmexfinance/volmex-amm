@@ -8,7 +8,9 @@ import "contracts/protocol/VolmexPositionToken.sol";
 contract Layer1VolmexPositionToken is OFTCoreUpgradeable, VolmexPositionToken {
     mapping(address => uint256) internal _lockedTokens;
 
-    function __Layer1VolmexPositionToken_init(
+    // Adding a common init in Layer1VolmexPositionToken & Layer2VolmexPositionToken
+    // so that Factory doesn't require if-else check
+    function __LayerZero_init(
         string memory _name,
         string memory _symbol,
         address _lzEndpoint
