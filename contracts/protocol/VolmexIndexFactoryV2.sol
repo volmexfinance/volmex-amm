@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
 import "../interfaces/IERC20Modified.sol";
 import "contracts/interfaces/ILayerZeroVolmexPositionToken.sol";
+import "contracts/protocol/VolmexPositionToken.sol";
 import "./VolmexProtocol.sol";
 
 
