@@ -2,21 +2,18 @@
 
 pragma solidity =0.8.17;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-
 import "contracts/helpers/ProxyOFTUpgradeable.sol";
 import "contracts/interfaces/IERC20Modified.sol";
 
-contract PolygonVolmexPositionToken is ProxyOFTUpgradeable, ERC20Upgradeable {
+contract PolygonVolmexPositionTokenWrapper is ProxyOFTUpgradeable {
     IERC20Modified public volmexPositionToken;
 
-    function initialize(address _volmexPositionToken, address _endPoint, string calldata _name, string calldata _symbol)
+    function initialize(address _volmexPositionToken, address _endPoint)
         external
         initializer
     {
         __ProxyOFTUpgradeable_init(_endPoint, address(_volmexPositionToken));
         volmexPositionToken = IERC20Modified(_volmexPositionToken);
-        __ERC20_init(_name, _symbol);
         __Ownable_init();
     }
 
@@ -27,8 +24,6 @@ contract PolygonVolmexPositionToken is ProxyOFTUpgradeable, ERC20Upgradeable {
         bytes memory,
         uint256 _amount
     ) internal override returns (uint256) {
-        address spender = _msgSender();
-        if (_from != spender) _spendAllowance(_from, spender, _amount);
         volmexPositionToken.burn(_from, _amount);
         return _amount;
     }

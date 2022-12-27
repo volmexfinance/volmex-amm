@@ -5,7 +5,7 @@ module.exports = async function () {
     const [owner] = await ethers.getSigners();
     console.log("Deployer: ", owner.address);
     console.log("Balance: ", (await owner.getBalance()).toString());
-    const contract = await ethers.getContractFactory("PolygonVolmexPositionToken");
+    const contract = await ethers.getContractFactory("PolygonVolmexPositionTokenWrapper");
   
     console.log("Deploying upgradeable contract ...");
     
@@ -15,14 +15,14 @@ module.exports = async function () {
     
     const instance = await upgrades.deployProxy(
         contract, 
-        [`${process.env.POLYGON_TOKEN_ADDRESS}`, endpointAddr, `${process.env.WRAPPED_TOKEN_NAME}`, `${process.env.WRAPPED_TOKEN_SYMBOL}`],
+        [`${process.env.POLYGON_TOKEN_ADDRESS}`, endpointAddr],
         {
             initializer: "initialize",
         },
     );
 
     await instance.deployed();
-    console.log("Deployed to PolygonVolmexPositionToken: ", (instance.address));
+    console.log("Deployed to PolygonVolmexPositionTokenWrapper: ", (instance.address));
     
     const proxyAdmin = await upgrades.admin.getInstance();
     console.log("Proxy Implementation address: ", (await proxyAdmin.getProxyImplementation(instance.address)));
@@ -32,4 +32,4 @@ module.exports = async function () {
     // });
 }
 
-module.exports.tags = ["PolygonVolmexPositionToken"]
+module.exports.tags = ["PolygonVolmexPositionTokenWrapper"]
