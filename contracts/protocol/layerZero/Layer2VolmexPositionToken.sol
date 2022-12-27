@@ -4,8 +4,9 @@ pragma solidity =0.8.17;
 import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/OFT/OFTCoreUpgradeable.sol";
 import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/OFT/IOFTUpgradeable.sol";
 import "../VolmexPositionToken.sol";
+import "contracts/interfaces/ILayerZeroVolmexPositionToken.sol";
 
-contract Layer2VolmexPositionToken is OFTCoreUpgradeable, IOFTUpgradeable, VolmexPositionToken {
+contract Layer2VolmexPositionToken is OFTCoreUpgradeable, IOFTUpgradeable, VolmexPositionToken, ILayerZeroVolmexPositionToken {
     // Adding a common init in Layer1VolmexPositionToken & Layer2VolmexPositionToken
     // so that Factory doesn't require if-else check
     function __LayerZero_init(

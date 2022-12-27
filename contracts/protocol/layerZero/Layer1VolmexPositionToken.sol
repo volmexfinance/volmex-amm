@@ -4,8 +4,9 @@ pragma solidity ^0.8.17;
 import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/OFT/OFTCoreUpgradeable.sol";
 import "@layerzerolabs/solidity-examples/contracts/contracts-upgradable/token/OFT/IOFTUpgradeable.sol";
 import "contracts/protocol/VolmexPositionToken.sol";
+import "contracts/interfaces/ILayerZeroVolmexPositionToken.sol";
 
-contract Layer1VolmexPositionToken is OFTCoreUpgradeable, VolmexPositionToken {
+contract Layer1VolmexPositionToken is OFTCoreUpgradeable, VolmexPositionToken, ILayerZeroVolmexPositionToken {
     mapping(address => uint256) internal _lockedTokens;
 
     // Adding a common init in Layer1VolmexPositionToken & Layer2VolmexPositionToken

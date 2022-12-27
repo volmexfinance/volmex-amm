@@ -3,10 +3,10 @@
 pragma solidity =0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts/proxy/Clones.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
 import "../interfaces/IERC20Modified.sol";
-import "./layerZero/Layer1VolmexPositionToken.sol";
+import "contracts/interfaces/ILayerZeroVolmexPositionToken.sol";
 import "./VolmexProtocol.sol";
 
 
@@ -68,7 +68,7 @@ contract VolmexIndexFactoryV2 is OwnableUpgradeable {
     ) external view returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(_indexCount, _name, _symbol));
         return
-            Clones.predictDeterministicAddress(
+            ClonesUpgradeable.predictDeterministicAddress(
                 positionTokenImplementation,
                 salt,
                 address(this)
@@ -222,17 +222,12 @@ contract VolmexIndexFactoryV2 is OwnableUpgradeable {
      */
     function _clonePositonToken(string memory _name, string memory _symbol)
         private
-        returns (address)
+        returns (address newVolatilityToken)
     {
         bytes32 salt = keccak256(abi.encodePacked(indexCount, _name, _symbol));
-
-        VolmexPositionToken newVolatilityToken =
-            VolmexPositionToken(
-                Clones.cloneDeterministic(positionTokenImplementation, salt)
-            );
-        newVolatilityToken.initialize(_name, _symbol);
-
-        return address(newVolatilityToken);
+        newVolatilityToken = ClonesUpgradeable.cloneDeterministic(positionTokenImplementation, salt);
+        VolmexPositionToken(newVolatilityToken).initialize(_name, _symbol);
+        return newVolatilityToken;
     }
 
     /**
@@ -247,16 +242,11 @@ contract VolmexIndexFactoryV2 is OwnableUpgradeable {
      */
     function _cloneLayerZeroPositonToken(string memory _name, string memory _symbol, address _lzEndPoint)
         private
-        returns (address)
+        returns (address newVolatilityToken)
     {
         bytes32 salt = keccak256(abi.encodePacked(indexCount, _name, _symbol));
-
-        Layer1VolmexPositionToken newVolatilityToken =
-            Layer1VolmexPositionToken(
-                Clones.cloneDeterministic(positionTokenImplementation, salt)
-            );
-        newVolatilityToken.__LayerZero_init(_name, _symbol, _lzEndPoint);
-
-        return address(newVolatilityToken);
+        newVolatilityToken = ClonesUpgradeable.cloneDeterministic(positionTokenImplementation, salt);
+        ILayerZeroVolmexPositionToken(newVolatilityToken).__LayerZero_init(_name, _symbol, _lzEndPoint);
+        return newVolatilityToken;
     }
 }
