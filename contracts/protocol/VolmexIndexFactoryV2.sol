@@ -10,7 +10,6 @@ import "contracts/interfaces/ILayerZeroVolmexPositionToken.sol";
 import "contracts/protocol/VolmexPositionToken.sol";
 import "./VolmexProtocol.sol";
 
-
 /**
  * @title Factory Contract
  * @author volmex.finance [security@volmexlabs.com]
@@ -248,6 +247,7 @@ contract VolmexIndexFactoryV2 is OwnableUpgradeable {
         bytes32 salt = keccak256(abi.encodePacked(indexCount, _name, _symbol));
         newVolatilityToken = ClonesUpgradeable.cloneDeterministic(positionTokenImplementation, salt);
         ILayerZeroVolmexPositionToken(newVolatilityToken).__LayerZero_init(_name, _symbol, _lzEndPoint);
+        OwnableUpgradeable(newVolatilityToken).transferOwnership(msg.sender);
         return newVolatilityToken;
     }
 }

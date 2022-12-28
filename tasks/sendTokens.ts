@@ -9,13 +9,13 @@ module.exports = async function (taskArgs, hre) {
 
   let localContract;
 
-  localContract = taskArgs.localContract;
+  localContract = taskArgs.contract;
 
   // get remote chain id
   const remoteChainId = CHAIN_ID[taskArgs.targetNetwork];
 
   // get local contract
-  const localContractInstance = await hre.ethers.getContractAt(localContract, taskArgs.localContractAddress);
+  const localContractInstance = await hre.ethers.getContractAt(localContract, taskArgs.contractAddress);
 
   // quote fee with default adapterParams
   let adapterParams = hre.ethers.utils.solidityPack(["uint16", "uint256"], [1, 200000]); // default adapterParams example

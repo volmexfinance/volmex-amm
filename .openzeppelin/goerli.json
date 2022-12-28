@@ -264,6 +264,66 @@
       "address": "0x2E0299677d775a1ADBBF33155cec5e0c221aE347",
       "txHash": "0x61fccbeb937107118383efd76a341598c6f538ec86f103de28795222fa91b969",
       "kind": "transparent"
+    },
+    {
+      "address": "0x9Ed3e7979B4863783F81281301f1Ef70788f4163",
+      "txHash": "0x29f804678833ba1727a5b4b8776379ea1f796e310a1461bb0bb086e89b650c62",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x5ca2dF64a4feb8A548E490c5D15Eb9E2C3397a99",
+      "txHash": "0xf1d70a9630ea36185359a9bd68eeaed75906afc43bd8981498ae967a4046e5fb",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x3D960c0b48e7Fed8c208454eb23144e93F143Bd1",
+      "txHash": "0xe4f6a8633f672df39bb484c5eb8e4a08b010e94af0c329727d87feac25315e94",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x9A873C78cC5f1e90C298A0336722308D654b24F1",
+      "txHash": "0x2482e1131b15830005598ec164eb1f532c2c0d194b3dfb7accd423fe4d610ab6",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x2E3D1EfeC789288dCBd123353dDa33fe95b090bc",
+      "txHash": "0x17e4ac2492a0165c32411d2b9bf6a61fb57179b9279106e2e90c3750fc6b8a5d",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x4C5F25DC7940b03Ec5627077D7E40E0D29af0eA1",
+      "txHash": "0x78860a3315524ade46ce8009635c98316b20d2fac6885e08517b1f2de8c5d9de",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x87aA4189528a965D1c77130544f978957897E642",
+      "txHash": "0xff926a212ff37faccd6277a497663c8e3d5ca24eabc53b6ceb4c7b9a5d3227e8",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xD99080a3315Cdc434293B029bA0A9457ad5C6403",
+      "txHash": "0x000d53e4f7779f4a019b6a440a75b9083cd4214b735a89a280d67d137b12fd5a",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x6Cd32fF0C65dc842F1E883fE08D0262F0305B8b1",
+      "txHash": "0xf9667205fade785c84733cab538dd719073562e18fe13fbc96fa231c7604d4fd",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x38F5a48fE8cb7A0b5457cf5812B40D242bEb280b",
+      "txHash": "0x3ec43819e46719d1ca08e2b8dfbbcb3f0d1ed9784d45c7371bdd094fc9439aad",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x49154e0B06A44d2B5972C9B7602b2Ce46215419F",
+      "txHash": "0x5c075265945530fed6b5ce0a3caa34ddba50a6c1d461ae6bd6d4ccd64908c15f",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x0229938e4Bde86327cA5421a41516880D0EAbd3C",
+      "txHash": "0x3b7d03c514439d147c91eb3624ea387c7792bec02b29da0ad5fdf3509c421a4f",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -1919,32 +1979,32 @@
             "offset": 0,
             "slot": "101",
             "type": "t_address",
-            "contract": "VolmexIndexFactory",
-            "src": "contracts/protocol/VolmexIndexFactory.sol:30"
+            "contract": "VolmexIndexFactoryV1",
+            "src": "contracts/protocol/v1/VolmexIndexFactoryV1.sol:30"
           },
           {
             "label": "getIndex",
             "offset": 0,
             "slot": "102",
             "type": "t_mapping(t_uint256,t_address)",
-            "contract": "VolmexIndexFactory",
-            "src": "contracts/protocol/VolmexIndexFactory.sol:33"
+            "contract": "VolmexIndexFactoryV1",
+            "src": "contracts/protocol/v1/VolmexIndexFactoryV1.sol:33"
           },
           {
             "label": "getIndexSymbol",
             "offset": 0,
             "slot": "103",
             "type": "t_mapping(t_uint256,t_string_storage)",
-            "contract": "VolmexIndexFactory",
-            "src": "contracts/protocol/VolmexIndexFactory.sol:36"
+            "contract": "VolmexIndexFactoryV1",
+            "src": "contracts/protocol/v1/VolmexIndexFactoryV1.sol:36"
           },
           {
             "label": "indexCount",
             "offset": 0,
             "slot": "104",
             "type": "t_uint256",
-            "contract": "VolmexIndexFactory",
-            "src": "contracts/protocol/VolmexIndexFactory.sol:39"
+            "contract": "VolmexIndexFactoryV1",
+            "src": "contracts/protocol/v1/VolmexIndexFactoryV1.sol:39"
           }
         ],
         "types": {
@@ -3416,6 +3476,125 @@
           },
           "t_mapping(t_bytes4,t_bool)": {
             "label": "mapping(bytes4 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "e31cfcf26aa9e2d4787c2482ad6e2c48c54ec01d3df4975a7b13687ecb57f9b3": {
+      "address": "0x451B35832cA0AF3B8c606948500931E89A4A4c8A",
+      "txHash": "0x61db0c634348d9a144219ed515b04c5da00b47de184f14fdd1562ea31403e42d",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "positionTokenImplementation",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "VolmexIndexFactoryV2",
+            "src": "contracts/protocol/VolmexIndexFactoryV2.sol:34"
+          },
+          {
+            "label": "getIndex",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "VolmexIndexFactoryV2",
+            "src": "contracts/protocol/VolmexIndexFactoryV2.sol:37"
+          },
+          {
+            "label": "getIndexSymbol",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_mapping(t_uint256,t_string_storage)",
+            "contract": "VolmexIndexFactoryV2",
+            "src": "contracts/protocol/VolmexIndexFactoryV2.sol:40"
+          },
+          {
+            "label": "indexCount",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_uint256",
+            "contract": "VolmexIndexFactoryV2",
+            "src": "contracts/protocol/VolmexIndexFactoryV2.sol:43"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_string_storage)": {
+            "label": "mapping(uint256 => string)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
             "numberOfBytes": "32"
           },
           "t_uint256": {

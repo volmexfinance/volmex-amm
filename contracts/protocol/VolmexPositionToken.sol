@@ -25,9 +25,9 @@ contract VolmexPositionToken is
     // To add functionality to update the token metadata, we added another variables
     // We added the override public-view method, to compensate on ERC20's methods
     // name of the token
-    string private _vivName;
+    string internal _vivName;
     // symbol of the token
-    string private _vivSymbol;
+    string internal _vivSymbol;
 
     /**
      * @dev Grants `DEFAULT_ADMIN_ROLE` and `VOLMEX_PROTOCOL_ROLE` to the

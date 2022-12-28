@@ -2,12 +2,10 @@
 task('sendTokens', 'Send tokens from one chain to another', require('./sendTokens.ts'))
     .addParam('targetNetwork', 'the target network to set as a trusted remote')
     .addParam('amount', 'Amount of tokens to send in ETH')
-    .addParam('localContract', 'Name of local contract if the names are different')
-    .addParam('localContractAddress', 'Address of local contract')
-    .addOptionalParam('remoteContract', 'Name of remote contract if the names are different')
-    .addOptionalParam('fromAddress', 'Address of account from which tokens have to be transferred')
-    .addOptionalParam('toAddress', 'Address of account to which tokens have to be transferred')
-    .addOptionalParam('contract', 'If both contracts are the same name');
+    .addParam('contract', 'Name of local contract (from chain)')
+    .addParam('contractAddress', 'Address of local contract (from chain)')
+    .addParam('fromAddress', 'Address of account from which tokens have to be transferred')
+    .addParam('toAddress', 'Address of account to which tokens have to be transferred');
 
 task(
     'setTrustedRemote',

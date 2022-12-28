@@ -14,8 +14,14 @@ contract Layer2VolmexPositionToken is OFTCoreUpgradeable, IOFTUpgradeable, Volme
         string memory _symbol,
         address _lzEndpoint
     ) external initializer {
-        // VolmexPositionToken associated initialize
-        initialize(_name, _symbol);
+        __AccessControl_init_unchained();
+
+        __ERC20Pausable_init();
+        _vivName = _name;
+        _vivSymbol = _symbol;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(VOLMEX_PROTOCOL_ROLE, msg.sender);
         __OFTCoreUpgradeable_init(_lzEndpoint);
         __Ownable_init();
     }
