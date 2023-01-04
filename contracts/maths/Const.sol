@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.8.11;
+pragma solidity =0.8.17;
 
 contract Const {
     uint256 public constant BONE = 10**18;

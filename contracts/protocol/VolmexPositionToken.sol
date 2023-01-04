@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.8.11;
+pragma solidity =0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -25,9 +25,9 @@ contract VolmexPositionToken is
     // To add functionality to update the token metadata, we added another variables
     // We added the override public-view method, to compensate on ERC20's methods
     // name of the token
-    string private _vivName;
+    string internal _vivName;
     // symbol of the token
-    string private _vivSymbol;
+    string internal _vivSymbol;
 
     /**
      * @dev Grants `DEFAULT_ADMIN_ROLE` and `VOLMEX_PROTOCOL_ROLE` to the
@@ -36,7 +36,7 @@ contract VolmexPositionToken is
      * See {ERC20-constructor}.
      */
     function initialize(string memory _name, string memory _symbol)
-        external
+        public
         initializer
     {
         __AccessControl_init_unchained();

@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 
-pragma solidity =0.8.11;
+pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
-import "../interfaces/IERC20Modified.sol";
-import "./VolmexPositionToken.sol";
-import "./VolmexProtocol.sol";
+import "../../interfaces/IERC20Modified.sol";
+import "../VolmexPositionToken.sol";
+import "../VolmexProtocol.sol";
 
 /**
  * @title Factory Contract
  * @author volmex.finance [security@volmexlabs.com]
  */
-contract VolmexIndexFactory is OwnableUpgradeable {
+contract VolmexIndexFactoryV1 is OwnableUpgradeable {
     event IndexRegistered(
         uint256 indexed indexCount,
         VolmexProtocol indexed index

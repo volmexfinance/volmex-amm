@@ -1,6 +1,7 @@
-import { ethers, upgrades, run } from "hardhat";
+import { ethers, upgrades, run, network } from "hardhat";
 import { Contract, ContractReceipt, Event } from "ethers";
 import { Result } from "@ethersproject/abi";
+const LZ_ENDPOINTS = require("../../constants/layerzeroEndpoints.json")
 
 const filterEvents = (blockEvents: ContractReceipt, name: String): Array<Event> => {
   return blockEvents.events?.filter((event) => event.event === name) || [];
@@ -21,12 +22,16 @@ export const decodeEvents = <T extends Contract>(
 };
 
 const deploy = async () => {
-  const VolmexPositionTokenFactory = await ethers.getContractFactory("VolmexPositionToken");
+  const endpointAddr = LZ_ENDPOINTS[network.name];
+  
+  console.log(`[${network.name}] Endpoint address: ${endpointAddr}`);
+
+  const VolmexPositionTokenFactory = await ethers.getContractFactory(`${process.env.TOKEN_CONTRACT_NAME}`);
 
   const VolmexProtocolFactory = await ethers.getContractFactory(
     `${process.env.VOLMEX_PROTOCOL_CONTRACT}`
   );
-  const VolmexIndexFactory = await ethers.getContractFactory("VolmexIndexFactory");
+  const VolmexIndexFactory = await ethers.getContractFactory(`${process.env.FACTORY_CONTRACT_NAME}`);
   const TestCollateralFactory = await ethers.getContractFactory("TestCollateralToken");
 
   let CollateralTokenAddress: string = `${process.env.COLLATERAL_TOKEN_ADDRESS}`;
@@ -57,16 +62,21 @@ const deploy = async () => {
   if (process.env.FACTORY_ADDRESS) {
     volmexIndexFactoryInstance = VolmexIndexFactory.attach(`${process.env.FACTORY_ADDRESS}`);
   } else {
-    console.log("Deploying VolmexPositionToken implementation...");
+    console.log("Deploying Layer1VolmexPositionToken implementation...");
 
     const volmexPositionTokenFactoryInstance = await VolmexPositionTokenFactory.deploy();
     await volmexPositionTokenFactoryInstance.deployed();
+    console.log("Layer1VolmexPositionToken deployed...");
 
     try {
       await run("verify:verify", {
         address: volmexPositionTokenFactoryInstance.address,
       });
-    } catch (error: any) {}
+      console.log("Verification complete: Layer1VolmexPositionToken");
+    } catch (error: any) {
+      console.log("Error while verifying VolmexPositionTokenFactory");
+      console.log(error);
+    }
 
     console.log("Deploying VolmexIndexFactory...");
 
@@ -89,16 +99,31 @@ const deploy = async () => {
       await run("verify:verify", {
         address: factoryImplementation,
       });
-    } catch (error: any) {}
+    } catch (error: any) {
+      console.log("Error while verifying VolmexIndexFactory");
+    }
   }
 
   let positionTokenCreatedEvent;
   let volatilityTokenAddress, inverseVolatilityTokenAddress;
   if (!process.env.VOLATILITY_TOKEN_ADDRESS) {
-    const volatilityToken = await volmexIndexFactoryInstance.createVolatilityTokens(
-      `${process.env.VOLATILITY_TOKEN_NAME}`,
-      `${process.env.VOLATILITY_TOKEN_SYMBOL}`
-    );
+    let volatilityToken;
+    if (!process.env.IS_LAYER_ZERO_TOKEN) {
+      volatilityToken = await volmexIndexFactoryInstance.createVolatilityTokens(
+        `${process.env.VOLATILITY_TOKEN_NAME}`,
+        `${process.env.VOLATILITY_TOKEN_SYMBOL}`,
+        `${process.env.INVERSE_VOLATILITY_TOKEN_NAME}`,
+        `${process.env.INVERSE_VOLATILITY_TOKEN_SYMBOL}`,
+      );
+    } else {
+      volatilityToken = await volmexIndexFactoryInstance.createLayerZeroVolatilityTokens(
+        `${process.env.VOLATILITY_TOKEN_NAME}`,
+        `${process.env.VOLATILITY_TOKEN_SYMBOL}`,
+        `${process.env.INVERSE_VOLATILITY_TOKEN_NAME}`,
+        `${process.env.INVERSE_VOLATILITY_TOKEN_SYMBOL}`,
+        endpointAddr,
+      );
+    }
 
     const receipt = await volatilityToken.wait();
 
@@ -168,7 +193,9 @@ const deploy = async () => {
     await run("verify:verify", {
       address: protocolImplementation,
     });
-  } catch (error: any) {}
+  } catch (error: any) {
+    console.log("Error while verifying VolmexProtocol");
+  }
 
   console.log("Registering VolmexProtocol...");
 

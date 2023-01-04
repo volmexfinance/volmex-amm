@@ -8,26 +8,18 @@ import "@nomiclabs/hardhat-truffle5";
 import "@nomiclabs/hardhat-ganache";
 import "@openzeppelin/hardhat-upgrades";
 import "@openzeppelin/hardhat-defender";
+import "@nomicfoundation/hardhat-toolbox";
 
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import "./tasks";
 
 import { config as dotEnvConfig } from "dotenv";
 dotEnvConfig();
 
 import { HardhatUserConfig } from "hardhat/types";
-
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
-// task("accounts", "Prints the list of accounts", async () => {
-//   const accounts = await ethers.getSigners();
-//
-//   for (const account of accounts) {
-//     console.log(account.address);
-//   }
-// });
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -45,7 +37,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.11",
+        version: "0.8.17",
         settings: {
           optimizer: {
             enabled: true,
@@ -61,12 +53,14 @@ const config: HardhatUserConfig = {
       forking: {
         enabled: true,
         url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.POLYGON_MAINNET_ALCHEMY_API_KEY}`,
-        blockNumber: 34033365
-      }
+        blockNumber: 34033365,
+      },
     },
     localhost: {
       url: "http://127.0.0.1:8545", // same address and port for both Buidler and Ganache node
-      accounts: [/* will be provided by ganache */],
+      accounts: [
+        /* will be provided by ganache */
+      ],
       gas: 8000000,
       gasPrice: 1,
     },
@@ -75,10 +69,8 @@ const config: HardhatUserConfig = {
       accounts: [`0x${process.env.PRIVATE_KEY}`],
       throwOnTransactionFailures: true,
       loggingEnabled: true,
-      gas: 5000000,
-      gasPrice: 200000000000,
       blockGasLimit: 8000000,
-      timeout: 10800000
+      timeout: 10800000,
     },
     mumbai: {
       url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.POLYGON_TESTNET_ALCHEMY_API_KEY}`,
@@ -96,7 +88,15 @@ const config: HardhatUserConfig = {
       loggingEnabled: true,
       gas: 5000000,
       blockGasLimit: 8000000,
-      timeout: 18000000
+      timeout: 18000000,
+    },
+    "arbitrum-goerli": {
+      url: `https://arb-goerli.g.alchemy.com/v2/${process.env.ARBITRUM_TESTNET_ALCHEMY_API_KEY}`,
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
+      throwOnTransactionFailures: true,
+      loggingEnabled: true,
+      timeout: 18000000,
+      chainId: 421613,
     }
   },
   etherscan: {
@@ -106,14 +106,12 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     currency: "USD",
-    gasPrice: 21
+    gasPrice: 21,
   },
   typechain: {
     outDir: "typechain",
     target: "ethers-v5",
-  }
+  },
 };
 
 export default config;
-
-
