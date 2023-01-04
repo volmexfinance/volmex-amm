@@ -26,12 +26,12 @@ const deploy = async () => {
   
   console.log(`[${network.name}] Endpoint address: ${endpointAddr}`);
 
-  const VolmexPositionTokenFactory = await ethers.getContractFactory("Layer1VolmexPositionToken");
+  const VolmexPositionTokenFactory = await ethers.getContractFactory(`${process.env.TOKEN_CONTRACT_NAME}`);
 
   const VolmexProtocolFactory = await ethers.getContractFactory(
     `${process.env.VOLMEX_PROTOCOL_CONTRACT}`
   );
-  const VolmexIndexFactory = await ethers.getContractFactory("VolmexIndexFactoryV2");
+  const VolmexIndexFactory = await ethers.getContractFactory(`${process.env.FACTORY_CONTRACT_NAME}`);
   const TestCollateralFactory = await ethers.getContractFactory("TestCollateralToken");
 
   let CollateralTokenAddress: string = `${process.env.COLLATERAL_TOKEN_ADDRESS}`;
@@ -107,13 +107,23 @@ const deploy = async () => {
   let positionTokenCreatedEvent;
   let volatilityTokenAddress, inverseVolatilityTokenAddress;
   if (!process.env.VOLATILITY_TOKEN_ADDRESS) {
-    const volatilityToken = await volmexIndexFactoryInstance.createLayerZeroVolatilityTokens(
-      `${process.env.VOLATILITY_TOKEN_NAME}`,
-      `${process.env.VOLATILITY_TOKEN_SYMBOL}`,
-      `${process.env.INVERSE_VOLATILITY_TOKEN_NAME}`,
-      `${process.env.INVERSE_VOLATILITY_TOKEN_SYMBOL}`,
-      endpointAddr,
-    );
+    let volatilityToken;
+    if (!process.env.IS_LAYER_ZERO_TOKEN) {
+      volatilityToken = await volmexIndexFactoryInstance.createVolatilityTokens(
+        `${process.env.VOLATILITY_TOKEN_NAME}`,
+        `${process.env.VOLATILITY_TOKEN_SYMBOL}`,
+        `${process.env.INVERSE_VOLATILITY_TOKEN_NAME}`,
+        `${process.env.INVERSE_VOLATILITY_TOKEN_SYMBOL}`,
+      );
+    } else {
+      volatilityToken = await volmexIndexFactoryInstance.createLayerZeroVolatilityTokens(
+        `${process.env.VOLATILITY_TOKEN_NAME}`,
+        `${process.env.VOLATILITY_TOKEN_SYMBOL}`,
+        `${process.env.INVERSE_VOLATILITY_TOKEN_NAME}`,
+        `${process.env.INVERSE_VOLATILITY_TOKEN_SYMBOL}`,
+        endpointAddr,
+      );
+    }
 
     const receipt = await volatilityToken.wait();
 
