@@ -8,7 +8,6 @@ import "@nomiclabs/hardhat-truffle5";
 import "@nomiclabs/hardhat-ganache";
 import "@openzeppelin/hardhat-upgrades";
 import "@openzeppelin/hardhat-defender";
-import "@nomicfoundation/hardhat-toolbox";
 
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
@@ -65,12 +64,12 @@ const config: HardhatUserConfig = {
       gasPrice: 1,
     },
     goerli: {
-      url: `https://eth-goerli.alchemyapi.io/v2/${process.env.GOERLI_ALCHEMY_API_KEY}`,
+      url: `https://eth-goerli.g.alchemy.com/v2/${process.env.GOERLI_ALCHEMY_API_KEY}`,
       accounts: [`0x${process.env.PRIVATE_KEY}`],
       throwOnTransactionFailures: true,
       loggingEnabled: true,
-      blockGasLimit: 8000000,
-      timeout: 10800000,
+      gasMultiplier: 1.5,
+      timeout: 36000000,
     },
     mumbai: {
       url: `https://polygon-mumbai.g.alchemy.com/v2/${process.env.POLYGON_TESTNET_ALCHEMY_API_KEY}`,
